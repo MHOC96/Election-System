@@ -1,9 +1,13 @@
+import { Suspense, useEffect } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { LogOut, Moon, Sun } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
 import { useTheme } from '@/context/ThemeContext'
 import { cn } from '@/lib/utils'
+import { prefetchMemberData, prefetchMemberRoutes, scheduleIdle } from '@/lib/prefetch'
+import { PageLoader } from '@/components/shared/PageLoader'
 import { toast } from 'sonner'
 
 const navItems = [
@@ -15,6 +19,12 @@ export function MemberLayout() {
   const { user, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    prefetchMemberData(queryClient)
+    scheduleIdle(prefetchMemberRoutes)
+  }, [queryClient])
 
   const handleLogout = async () => {
     try {
@@ -64,7 +74,9 @@ export function MemberLayout() {
       </header>
 
       <main className="mx-auto max-w-5xl p-4 pb-12">
-        <Outlet />
+        <Suspense fallback={<PageLoader className="min-h-[40vh]" />}>
+          <Outlet />
+        </Suspense>
       </main>
 
       <footer className="border-t py-4 text-center text-xs text-muted-foreground">

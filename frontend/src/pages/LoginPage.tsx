@@ -1,15 +1,23 @@
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion } from 'framer-motion'
 import { Loader2, Vote } from 'lucide-react'
 import { useNavigate, Navigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/context/AuthContext'
 import { getApiErrorMessage } from '@/api/client'
+import {
+  prefetchAdminData,
+  prefetchMemberData,
+  warmAdminLanding,
+  warmMemberLanding,
+} from '@/lib/prefetch'
 import { toast } from 'sonner'
 
 const loginSchema = z.object({
@@ -22,6 +30,7 @@ type LoginForm = z.infer<typeof loginSchema>
 export function LoginPage() {
   const { login, isAuthenticated, user } = useAuth()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   const {
     register,
@@ -30,6 +39,17 @@ export function LoginPage() {
   } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
   })
+
+  useEffect(() => {
+    if (!user) return
+    if (user.role === 'ADMIN') {
+      prefetchAdminData(queryClient)
+      warmAdminLanding()
+      return
+    }
+    prefetchMemberData(queryClient)
+    warmMemberLanding()
+  }, [user, queryClient])
 
   if (isAuthenticated && user) {
     const target = user.role === 'ADMIN' ? '/admin' : '/vote'
@@ -42,8 +62,18 @@ export function LoginPage() {
         cpm_number: data.cpm_number.trim().toUpperCase(),
         mc_number: data.mc_number,
       })
+
+      if (loggedIn.role === 'ADMIN') {
+        prefetchAdminData(queryClient)
+        warmAdminLanding()
+        navigate('/admin')
+      } else {
+        prefetchMemberData(queryClient)
+        warmMemberLanding()
+        navigate('/vote')
+      }
+
       toast.success('Welcome back!')
-      navigate(loggedIn.role === 'ADMIN' ? '/admin' : '/vote')
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Invalid credentials'))
     }

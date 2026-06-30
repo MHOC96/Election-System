@@ -1,4 +1,6 @@
+import { Suspense, useEffect } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   BarChart3,
   ClipboardList,
@@ -16,6 +18,8 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
 import { useTheme } from '@/context/ThemeContext'
 import { cn } from '@/lib/utils'
+import { prefetchAdminData, prefetchAdminRoutes, scheduleIdle } from '@/lib/prefetch'
+import { PageLoader } from '@/components/shared/PageLoader'
 import { toast } from 'sonner'
 
 const navItems = [
@@ -33,6 +37,12 @@ export function AdminLayout() {
   const { user, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    prefetchAdminData(queryClient)
+    scheduleIdle(prefetchAdminRoutes)
+  }, [queryClient])
 
   const handleLogout = async () => {
     try {
@@ -113,7 +123,9 @@ export function AdminLayout() {
         </nav>
 
         <main className="flex-1 p-4 lg:p-8">
-          <Outlet />
+          <Suspense fallback={<PageLoader className="min-h-[50vh]" />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>

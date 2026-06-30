@@ -1,23 +1,18 @@
-import { Suspense, lazy } from 'react'
+import { lazy } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
-import { PageLoader } from '@/components/shared/PageLoader'
 import { AuthProvider } from '@/context/AuthContext'
 import { ThemeProvider } from '@/context/ThemeContext'
 import { AdminLayout } from '@/components/layout/AdminLayout'
 import { MemberLayout } from '@/components/layout/MemberLayout'
 import { LoginPage } from '@/pages/LoginPage'
+import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage'
+import { BallotPage } from '@/pages/member/BallotPage'
 
-const BallotPage = lazy(() =>
-  import('@/pages/member/BallotPage').then((m) => ({ default: m.BallotPage })),
-)
 const MyVotesPage = lazy(() =>
   import('@/pages/member/MyVotesPage').then((m) => ({ default: m.MyVotesPage })),
-)
-const AdminDashboardPage = lazy(() =>
-  import('@/pages/admin/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage })),
 )
 const ElectionsPage = lazy(() =>
   import('@/pages/admin/ElectionsPage').then((m) => ({ default: m.ElectionsPage })),
@@ -52,10 +47,6 @@ const queryClient = new QueryClient({
   },
 })
 
-function LazyPage({ children }: { children: React.ReactNode }) {
-  return <Suspense fallback={<PageLoader />}>{children}</Suspense>
-}
-
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -67,91 +58,21 @@ export default function App() {
 
               <Route element={<ProtectedRoute allowedRoles={['MEMBER']} />}>
                 <Route element={<MemberLayout />}>
-                  <Route
-                    path="/vote"
-                    element={
-                      <LazyPage>
-                        <BallotPage />
-                      </LazyPage>
-                    }
-                  />
-                  <Route
-                    path="/my-votes"
-                    element={
-                      <LazyPage>
-                        <MyVotesPage />
-                      </LazyPage>
-                    }
-                  />
+                  <Route path="/vote" element={<BallotPage />} />
+                  <Route path="/my-votes" element={<MyVotesPage />} />
                 </Route>
               </Route>
 
               <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
                 <Route path="/admin" element={<AdminLayout />}>
-                  <Route
-                    index
-                    element={
-                      <LazyPage>
-                        <AdminDashboardPage />
-                      </LazyPage>
-                    }
-                  />
-                  <Route
-                    path="members"
-                    element={
-                      <LazyPage>
-                        <MembersPage />
-                      </LazyPage>
-                    }
-                  />
-                  <Route
-                    path="positions"
-                    element={
-                      <LazyPage>
-                        <PositionsPage />
-                      </LazyPage>
-                    }
-                  />
-                  <Route
-                    path="candidates"
-                    element={
-                      <LazyPage>
-                        <CandidatesPage />
-                      </LazyPage>
-                    }
-                  />
-                  <Route
-                    path="elections"
-                    element={
-                      <LazyPage>
-                        <ElectionsPage />
-                      </LazyPage>
-                    }
-                  />
-                  <Route
-                    path="reports"
-                    element={
-                      <LazyPage>
-                        <ReportsPage />
-                      </LazyPage>
-                    }
-                  />
-                  <Route
-                    path="audit"
-                    element={
-                      <LazyPage>
-                        <AuditPage />
-                      </LazyPage>
-                    }
-                  />
-                  <Route
-                    path="live"
-                    element={
-                      <LazyPage>
-                        <LiveStatsPage />
-                      </LazyPage>
-                    }
-                  />
+                  <Route index element={<AdminDashboardPage />} />
+                  <Route path="members" element={<MembersPage />} />
+                  <Route path="positions" element={<PositionsPage />} />
+                  <Route path="candidates" element={<CandidatesPage />} />
+                  <Route path="elections" element={<ElectionsPage />} />
+                  <Route path="reports" element={<ReportsPage />} />
+                  <Route path="audit" element={<AuditPage />} />
+                  <Route path="live" element={<LiveStatsPage />} />
                 </Route>
               </Route>
 
