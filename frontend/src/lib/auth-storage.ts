@@ -1,0 +1,41 @@
+const ACCESS_KEY = 'election_access_token'
+const REFRESH_KEY = 'election_refresh_token'
+const USER_KEY = 'election_user'
+
+export interface StoredUser {
+  id: number
+  cpm_number: string
+  role: 'ADMIN' | 'MEMBER'
+  is_active: boolean
+  created_at: string
+}
+
+export function getAccessToken(): string | null {
+  return localStorage.getItem(ACCESS_KEY)
+}
+
+export function getRefreshToken(): string | null {
+  return localStorage.getItem(REFRESH_KEY)
+}
+
+export function getStoredUser(): StoredUser | null {
+  const raw = localStorage.getItem(USER_KEY)
+  if (!raw) return null
+  try {
+    return JSON.parse(raw) as StoredUser
+  } catch {
+    return null
+  }
+}
+
+export function setAuthTokens(access: string, refresh: string, user: StoredUser) {
+  localStorage.setItem(ACCESS_KEY, access)
+  localStorage.setItem(REFRESH_KEY, refresh)
+  localStorage.setItem(USER_KEY, JSON.stringify(user))
+}
+
+export function clearAuth() {
+  localStorage.removeItem(ACCESS_KEY)
+  localStorage.removeItem(REFRESH_KEY)
+  localStorage.removeItem(USER_KEY)
+}

@@ -1,0 +1,123 @@
+from django.test import TestCase
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APIClient
+
+from accounts.models import User, UserRole
+
+
+class AuthenticationAPITestCase(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = User.objects.create_user(
+            cpm_number="ADM001",
+            mc_number="admin-secret",
+            role=UserRole.ADMIN,
+            is_staff=True,
+        )
+        self.member = User.objects.create_user(
+            cpm_number="CPM001",
+            mc_number="member-secret",
+            role=UserRole.MEMBER,
+        )
+
+    def _login(self, cpm_number, mc_number):
+        return self.client.post(
+            reverse("auth-login"),
+            {"cpm_number": cpm_number, "mc_number": mc_number},
+            format="json",
+        )
+
+    def test_member_login_success(self):
+        response = self._login("cpm001", "member-secret")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["success"])
+        self.assertIn("access", response.data["data"])
+        self.assertIn("refresh", response.data["data"])
+        self.assertEqual(response.data["data"]["user"]["role"], UserRole.MEMBER)
+
+    def test_login_invalid_credentials(self):
+        response = self._login("CPM001", "wrong-password")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertFalse(response.data["success"])
+
+    def test_me_endpoint_requires_auth(self):
+        response = self.client.get(reverse("auth-me"))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_me_endpoint_returns_profile(self):
+        login_response = self._login("CPM001", "member-secret")
+        access = login_response.data["data"]["access"]
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
+        response = self.client.get(reverse("auth-me"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["data"]["cpm_number"], "CPM001")
+
+    def test_admin_probe_denied_for_member(self):
+        login_response = self._login("CPM001", "member-secret")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {login_response.data['data']['access']}"
+        )
+        response = self.client.get(reverse("auth-probe-admin"))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_probe_allowed_for_admin(self):
+        login_response = self._login("ADM001", "admin-secret")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {login_response.data['data']['access']}"
+        )
+        response = self.client.get(reverse("auth-probe-admin"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_member_probe_allowed_for_member(self):
+        login_response = self._login("CPM001", "member-secret")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {login_response.data['data']['access']}"
+        )
+        response = self.client.get(reverse("auth-probe-member"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_logout_blacklists_refresh_token(self):
+        login_response = self._login("CPM001", "member-secret")
+        access = login_response.data["data"]["access"]
+        refresh = login_response.data["data"]["refresh"]
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
+        logout_response = self.client.post(
+            reverse("auth-logout"),
+            {"refresh": refresh},
+            format="json",
+        )
+        self.assertEqual(logout_response.status_code, status.HTTP_200_OK)
+
+        refresh_response = self.client.post(
+            reverse("auth-refresh"),
+            {"refresh": refresh},
+            format="json",
+        )
+        self.assertEqual(refresh_response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class UserModelTestCase(TestCase):
+    def test_admin_cannot_vote(self):
+        admin = User.objects.create_user(
+            cpm_number="ADM002",
+            mc_number="secret",
+            role=UserRole.ADMIN,
+        )
+        self.assertFalse(admin.can_vote())
+
+    def test_member_can_vote(self):
+        member = User.objects.create_user(
+            cpm_number="CPM002",
+            mc_number="secret",
+            role=UserRole.MEMBER,
+        )
+        self.assertTrue(member.can_vote())
+
+    def test_cpm_number_normalized_to_uppercase(self):
+        user = User.objects.create_user(
+            cpm_number="cpm003",
+            mc_number="secret",
+            role=UserRole.MEMBER,
+        )
+        self.assertEqual(user.cpm_number, "CPM003")
