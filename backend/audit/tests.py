@@ -1,3 +1,4 @@
+import time
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
@@ -52,11 +53,35 @@ class AuditLogAPITestCase(TestCase):
             {"cpm_number": "CPM600", "mc_number": "member-pass"},
             format="json",
         )
+        time.sleep(0.3)
         self.assertTrue(
             AuditLog.objects.filter(
                 action=AuditAction.LOGIN, actor=self.member
             ).exists()
         )
+
+    def test_admin_can_fetch_recent_audit_logs(self):
+        AuditLog.objects.create(
+            actor=self.admin,
+            action=AuditAction.ELECTION_CREATED,
+            ip_address="127.0.0.1",
+            metadata={"election_id": self.election.id},
+        )
+        AuditLog.objects.create(
+            actor=self.admin,
+            action=AuditAction.LOGOUT,
+            metadata={},
+        )
+        self._login("ADM600", "admin-pass")
+        response = self.client.get(reverse("audit-logs-recent"), {"limit": 1})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["data"]), 1)
+        self.assertNotIn("metadata", response.data["data"][0])
+
+    def test_member_cannot_access_recent_audit_logs(self):
+        self._login("CPM600", "member-pass")
+        response = self.client.get(reverse("audit-logs-recent"))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_vote_creates_audit_log(self):
         self._login("CPM600", "member-pass")
@@ -98,6 +123,37 @@ class AuditLogAPITestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         results = response.data["data"]["results"]
         self.assertTrue(all(item["action"] == AuditAction.LOGIN for item in results))
+
+    def test_filter_audit_logs_by_actor_cpm(self):
+        AuditLog.objects.create(
+            actor=self.member,
+            action=AuditAction.LOGIN,
+            metadata={},
+        )
+        AuditLog.objects.create(
+            actor=self.admin,
+            action=AuditAction.LOGOUT,
+            metadata={},
+        )
+        self._login("ADM600", "admin-pass")
+        response = self.client.get(reverse("audit-logs-list"), {"actor_cpm": "cpm600"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data["data"]["results"]
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["actor_cpm_number"], "CPM600")
+
+    def test_admin_can_fetch_audit_log_detail(self):
+        log = AuditLog.objects.create(
+            actor=self.admin,
+            action=AuditAction.ELECTION_CREATED,
+            ip_address="127.0.0.1",
+            metadata={"election_id": self.election.id},
+        )
+        self._login("ADM600", "admin-pass")
+        response = self.client.get(reverse("audit-logs-detail", kwargs={"pk": log.pk}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["data"]["id"], log.pk)
+        self.assertEqual(response.data["data"]["metadata"]["election_id"], self.election.id)
 
     def test_member_cannot_access_audit_logs(self):
         self._login("CPM600", "member-pass")

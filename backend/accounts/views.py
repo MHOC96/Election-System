@@ -4,12 +4,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from accounts.models import User
 from accounts.permissions import IsAdmin, IsMember
 from accounts.serializers import LoginSerializer, LogoutSerializer, UserSerializer
 from accounts.throttling import AuthRateThrottle
 from audit.models import AuditAction
-from audit.services.logger import log_action
+from audit.services.logger import get_client_ip, log_action, log_action_async
 
 
 class LoginView(APIView):
@@ -20,20 +19,22 @@ class LoginView(APIView):
         serializer = LoginSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-        user = User.objects.get(pk=data["user"]["id"])
-        log_action(
-            request=request,
+        user_data = data["user"]
+
+        log_action_async(
             action=AuditAction.LOGIN,
-            actor=user,
-            metadata={"cpm_number": user.cpm_number, "role": user.role},
+            actor_id=user_data["id"],
+            ip_address=get_client_ip(request),
+            metadata={"cpm_number": user_data["cpm_number"], "role": user_data["role"]},
         )
+
         return Response(
             {
                 "success": True,
                 "data": {
                     "access": data["access"],
                     "refresh": data["refresh"],
-                    "user": data["user"],
+                    "user": user_data,
                 },
             },
             status=status.HTTP_200_OK,

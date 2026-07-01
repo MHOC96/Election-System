@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import { fetchMe, login as apiLogin, logout as apiLogout, type LoginPayload } from '@/api/auth'
-import { clearAuth, getAccessToken, getStoredUser } from '@/lib/auth-storage'
+import { clearAuth, consumeFreshLogin, getAccessToken, getStoredUser } from '@/lib/auth-storage'
 import type { User } from '@/types/api'
 
 interface AuthContextValue {
@@ -44,6 +44,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
+    if (consumeFreshLogin()) {
+      return
+    }
+
     void refreshUser().catch(() => {
       clearAuth()
       setUser(null)
@@ -57,8 +61,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const logout = useCallback(async () => {
-    await apiLogout()
     setUser(null)
+    await apiLogout()
   }, [])
 
   const value = useMemo(

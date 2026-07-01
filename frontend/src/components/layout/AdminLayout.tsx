@@ -1,133 +1,118 @@
-import { Suspense, useEffect } from 'react'
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { Suspense, useCallback, useEffect, useState } from 'react'
+import { Link, Outlet, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import {
-  BarChart3,
-  ClipboardList,
-  FileText,
-  LayoutDashboard,
-  LogOut,
-  Moon,
-  Shield,
-  Sun,
-  UserCheck,
-  Users,
-  Vote,
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Vote } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
-import { useTheme } from '@/context/ThemeContext'
-import { cn } from '@/lib/utils'
-import { prefetchAdminData, prefetchAdminRoutes, scheduleIdle } from '@/lib/prefetch'
+import { adminNavItems } from '@/lib/navigation'
+import { shellContentClass } from '@/lib/design-tokens'
+import { prefetchAdminLanding, warmAdminLanding } from '@/lib/prefetch'
+import { MobileNavSheet } from '@/components/layout/MobileNavSheet'
+import { ShellActions } from '@/components/layout/ShellActions'
+import { SidebarNav } from '@/components/layout/SidebarNav'
+import { SkipToContent } from '@/components/shared/SkipToContent'
 import { PageLoader } from '@/components/shared/PageLoader'
+import { MAIN_CONTENT_ID } from '@/lib/a11y'
 import { toast } from 'sonner'
-
-const navItems = [
-  { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/admin/members', label: 'Members', icon: Users },
-  { to: '/admin/positions', label: 'Positions', icon: ClipboardList },
-  { to: '/admin/candidates', label: 'Candidates', icon: UserCheck },
-  { to: '/admin/elections', label: 'Elections', icon: Vote },
-  { to: '/admin/reports', label: 'Reports', icon: FileText },
-  { to: '/admin/audit', label: 'Audit Logs', icon: Shield },
-  { to: '/admin/live', label: 'Live Stats', icon: BarChart3 },
-]
 
 export function AdminLayout() {
   const { user, logout } = useAuth()
-  const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   useEffect(() => {
-    prefetchAdminData(queryClient)
-    scheduleIdle(prefetchAdminRoutes)
+    prefetchAdminLanding(queryClient)
+    warmAdminLanding()
   }, [queryClient])
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
+    if (isLoggingOut) return
+    setIsLoggingOut(true)
+    queryClient.cancelQueries()
+    queryClient.clear()
     try {
       await logout()
-      navigate('/login')
+      navigate('/login', { replace: true })
       toast.success('Logged out successfully')
     } catch {
+      navigate('/login', { replace: true })
       toast.error('Failed to log out')
+    } finally {
+      setIsLoggingOut(false)
     }
-  }
+  }, [isLoggingOut, logout, navigate, queryClient])
 
   return (
     <div className="flex min-h-screen bg-muted/30">
-      <aside className="hidden w-64 flex-col border-r bg-background lg:flex">
-        <div className="border-b p-6">
-          <p className="text-xs font-semibold uppercase tracking-wider text-primary">Election System</p>
-          <h1 className="mt-1 text-lg font-bold">Admin Console</h1>
+      <SkipToContent />
+      <aside className="hidden w-64 shrink-0 flex-col border-r bg-background lg:flex">
+        <div className="border-b px-6 py-5">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10">
+              <Vote className="h-4 w-4 text-primary" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Election System
+              </p>
+              <p className="text-sm font-semibold leading-tight">Admin Console</p>
+            </div>
+          </div>
         </div>
-        <nav className="flex-1 space-y-1 p-4">
-          {navItems.map(({ to, label, icon: Icon, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-                )
-              }
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </NavLink>
-          ))}
-        </nav>
+        <div className="flex-1 overflow-y-auto p-4">
+          <SidebarNav items={adminNavItems} prefetchScope="admin" />
+        </div>
         <div className="border-t p-4 text-xs text-muted-foreground">
-          Signed in as <span className="font-medium text-foreground">{user?.cpm_number}</span>
+          Signed in as{' '}
+          <span className="font-medium text-foreground">{user?.cpm_number}</span>
         </div>
       </aside>
 
-      <div className="flex flex-1 flex-col">
-        <header className="flex items-center justify-between border-b bg-background px-4 py-3 lg:px-8">
-          <div className="lg:hidden">
-            <Link to="/admin" className="font-semibold">
-              Admin Console
-            </Link>
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
-              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => void handleLogout()}>
-              <LogOut className="h-4 w-4" />
-              Logout
-            </Button>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <div className="flex h-14 items-center justify-between gap-3 px-4 lg:px-8">
+            <div className="flex min-w-0 items-center gap-2 lg:hidden">
+              <Link to="/admin" className="flex min-w-0 items-center gap-2">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                  <Vote className="h-4 w-4 text-primary" aria-hidden="true" />
+                </div>
+                <span className="truncate text-sm font-semibold">Admin Console</span>
+              </Link>
+            </div>
+            <div className="hidden lg:block" aria-hidden="true" />
+            <ShellActions
+              cpmNumber={user?.cpm_number}
+              onLogout={() => void handleLogout()}
+              isLoggingOut={isLoggingOut}
+              showMenuButton
+              onMenuClick={() => setMobileNavOpen(true)}
+            />
           </div>
         </header>
 
-        <nav className="flex gap-2 overflow-x-auto border-b bg-background px-4 py-2 lg:hidden">
-          {navItems.map(({ to, label, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                cn(
-                  'whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium',
-                  isActive ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
-                )
-              }
-            >
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-
-        <main className="flex-1 p-4 lg:p-8">
-          <Suspense fallback={<PageLoader className="min-h-[50vh]" />}>
-            <Outlet />
-          </Suspense>
+        <main id={MAIN_CONTENT_ID} className="flex-1 p-4 lg:p-8" tabIndex={-1}>
+          <div className={shellContentClass}>
+            <Suspense fallback={<PageLoader className="min-h-[50vh]" />}>
+              <Outlet />
+            </Suspense>
+          </div>
         </main>
       </div>
+
+      <MobileNavSheet
+        open={mobileNavOpen}
+        onOpenChange={setMobileNavOpen}
+        title="Admin Console"
+        description="Election management"
+        items={adminNavItems}
+        prefetchScope="admin"
+        footer={
+          <>
+            Signed in as <span className="font-medium text-foreground">{user?.cpm_number}</span>
+          </>
+        }
+      />
     </div>
   )
 }

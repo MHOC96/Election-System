@@ -1,5 +1,6 @@
-import { api, apiGet, apiPost } from '@/api/client'
-import { clearAuth, setAuthTokens } from '@/lib/auth-storage'
+import axios from 'axios'
+import { apiGet, apiPost, setLoggingOut } from '@/api/client'
+import { clearAuth, getRefreshToken, markFreshLogin, setAuthTokens } from '@/lib/auth-storage'
 import type { User } from '@/types/api'
 
 export interface LoginPayload {
@@ -13,20 +14,30 @@ export interface LoginResult {
   user: User
 }
 
+const API_URL = import.meta.env.VITE_API_URL ?? '/api'
+
 export async function login(payload: LoginPayload): Promise<User> {
   const data = await apiPost<LoginResult>('/auth/login/', payload)
   setAuthTokens(data.access, data.refresh, data.user)
+  markFreshLogin()
   return data.user
 }
 
 export async function logout(): Promise<void> {
-  const refresh = localStorage.getItem('election_refresh_token')
+  setLoggingOut(true)
+  const refresh = getRefreshToken()
+  clearAuth()
+
   try {
     if (refresh) {
-      await apiPost('/auth/logout/', { refresh })
+      await axios.post(`${API_URL}/auth/logout/`, { refresh }, {
+        headers: { 'Content-Type': 'application/json' },
+      })
     }
+  } catch {
+    // Local session is already cleared; server logout is best-effort.
   } finally {
-    clearAuth()
+    setLoggingOut(false)
   }
 }
 
@@ -38,4 +49,4 @@ export async function refreshSession(): Promise<User> {
   return fetchMe()
 }
 
-export { api }
+export { api } from '@/api/client'

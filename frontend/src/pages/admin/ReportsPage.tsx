@@ -12,6 +12,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import type { ExportFormat, ReportType } from '@/types/api'
+import { PageHeader } from '@/components/shared/PageHeader'
+import { pageLayoutClass } from '@/lib/design-tokens'
 import { toast } from 'sonner'
 
 const reports: { type: ReportType; title: string; description: string }[] = [
@@ -38,25 +40,25 @@ export function ReportsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold">Reports</h2>
-          <p className="text-muted-foreground">Export election data in PDF, Excel, or CSV</p>
-        </div>
-        <div className="w-40">
-          <Select value={format} onValueChange={(v) => setFormat(v as ExportFormat)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pdf">PDF</SelectItem>
-              <SelectItem value="xlsx">Excel</SelectItem>
-              <SelectItem value="csv">CSV</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+    <div className={pageLayoutClass}>
+      <PageHeader
+        title="Reports"
+        description="Export election data in PDF, Excel, or CSV"
+        action={
+          <div className="w-40">
+            <Select value={format} onValueChange={(v) => setFormat(v as ExportFormat)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pdf">PDF</SelectItem>
+                <SelectItem value="xlsx">Excel</SelectItem>
+                <SelectItem value="csv">CSV</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        }
+      />
 
       <div className="grid gap-4 sm:grid-cols-2">
         {reports.map((report) => (

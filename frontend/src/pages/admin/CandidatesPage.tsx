@@ -2,7 +2,6 @@ import { useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { Pencil, Plus, Trash2, UserCheck } from 'lucide-react'
 import {
   createCandidate,
@@ -13,16 +12,6 @@ import {
 } from '@/api/candidates'
 import { fetchPositions } from '@/api/positions'
 import { getApiErrorMessage } from '@/api/client'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -33,7 +22,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -43,18 +31,15 @@ import {
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { PageHeader } from '@/components/shared/PageHeader'
+import { FormField } from '@/components/design-system/FormField'
+import { pageLayoutClass } from '@/lib/design-tokens'
+import { optimizeCloudinaryUrl } from '@/lib/cloudinary'
+import { candidateSchema, type CandidateForm } from '@/lib/form-schemas'
 import type { AcademicYear, Candidate } from '@/types/api'
 import { toast } from 'sonner'
-
-const candidateSchema = z.object({
-  full_name: z.string().min(1, 'Name is required'),
-  academic_year: z.enum(['2nd Year', '3rd Year']),
-  position: z.number().min(1, 'Position is required'),
-  photo_url: z.string().url('Photo URL is required'),
-})
-
-type CandidateForm = z.infer<typeof candidateSchema>
 
 export function CandidatesPage() {
   const queryClient = useQueryClient()
@@ -156,17 +141,17 @@ export function CandidatesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold">Candidates</h2>
-          <p className="text-muted-foreground">Manage election candidates</p>
-        </div>
-        <Button onClick={openCreate} disabled={!positions?.length}>
-          <Plus className="h-4 w-4" />
-          Add Candidate
-        </Button>
-      </div>
+    <div className={pageLayoutClass}>
+      <PageHeader
+        title="Candidates"
+        description="Manage election candidates"
+        action={
+          <Button onClick={openCreate} disabled={!positions?.length}>
+            <Plus className="h-4 w-4" />
+            Add Candidate
+          </Button>
+        }
+      />
 
       <Card>
         <CardContent className="p-0">
@@ -197,9 +182,10 @@ export function CandidatesPage() {
                   <TableRow key={candidate.id}>
                     <TableCell>
                       <img
-                        src={candidate.photo_url}
+                        src={optimizeCloudinaryUrl(candidate.photo_url, 80)}
                         alt={candidate.full_name}
                         loading="lazy"
+                        decoding="async"
                         className="h-10 w-10 rounded-full object-cover"
                       />
                     </TableCell>
@@ -207,10 +193,20 @@ export function CandidatesPage() {
                     <TableCell>{candidate.academic_year}</TableCell>
                     <TableCell>{candidate.position_name}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(candidate)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEdit(candidate)}
+                        aria-label={`Edit ${candidate.full_name}`}
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(candidate)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeleteTarget(candidate)}
+                        aria-label={`Delete ${candidate.full_name}`}
+                      >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </TableCell>
@@ -231,13 +227,10 @@ export function CandidatesPage() {
             onSubmit={(e) => void handleSubmit((data) => saveMutation.mutate(data))(e)}
             className="space-y-4"
           >
-            <div className="space-y-2">
-              <Label>Full Name</Label>
+            <FormField label="Full Name" error={errors.full_name?.message} required>
               <Input {...register('full_name')} />
-              {errors.full_name && <p className="text-sm text-destructive">{errors.full_name.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label>Academic Year</Label>
+            </FormField>
+            <FormField label="Academic Year" required>
               <Select
                 value={academicYear}
                 onValueChange={(v) => setValue('academic_year', v as AcademicYear)}
@@ -250,9 +243,8 @@ export function CandidatesPage() {
                   <SelectItem value="3rd Year">3rd Year</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Position</Label>
+            </FormField>
+            <FormField label="Position" error={errors.position?.message} required>
               <Select
                 value={positionId ? String(positionId) : ''}
                 onValueChange={(v) => setValue('position', Number(v))}
@@ -268,21 +260,24 @@ export function CandidatesPage() {
                   ))}
                 </SelectContent>
               </Select>
-              {errors.position && <p className="text-sm text-destructive">{errors.position.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label>Profile Photo</Label>
+            </FormField>
+            <FormField label="Profile Photo" error={errors.photo_url?.message} required>
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => void handlePhotoUpload(e)} />
               <div className="flex items-center gap-3">
                 <Button type="button" variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading}>
                   {uploading ? 'Uploading...' : 'Upload Photo'}
                 </Button>
                 {photoUrl && (
-                  <img src={photoUrl} alt="Preview" className="h-12 w-12 rounded-full object-cover" />
+                  <img
+                    src={optimizeCloudinaryUrl(photoUrl, 96)}
+                    alt="Preview"
+                    loading="lazy"
+                    decoding="async"
+                    className="h-12 w-12 rounded-full object-cover"
+                  />
                 )}
               </div>
-              {errors.photo_url && <p className="text-sm text-destructive">{errors.photo_url.message}</p>}
-            </div>
+            </FormField>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={closeDialog}>
                 Cancel
@@ -295,25 +290,16 @@ export function CandidatesPage() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete candidate?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Delete {deleteTarget?.full_name}? Candidates with votes cannot be deleted.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete candidate?"
+        description={`Delete ${deleteTarget?.full_name}? Candidates with votes cannot be deleted.`}
+        confirmLabel="Delete"
+        destructive
+        loading={deleteMutation.isPending}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+      />
     </div>
   )
 }

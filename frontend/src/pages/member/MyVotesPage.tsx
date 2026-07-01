@@ -1,12 +1,16 @@
+import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ClipboardList } from 'lucide-react'
+import { CheckCircle2, ClipboardList, Vote } from 'lucide-react'
 import { fetchVoteStatus } from '@/api/votes'
+import { BallotProgressCard } from '@/components/voting/BallotProgressCard'
+import { VoteTimelineItem } from '@/components/voting/VoteTimelineItem'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/shared/EmptyState'
-import { formatDate, formatPercent } from '@/lib/utils'
+import { PageHeader } from '@/components/shared/PageHeader'
+import { pageLayoutClass } from '@/lib/design-tokens'
+import { cn } from '@/lib/utils'
 
 export function MyVotesPage() {
   const { data, isLoading } = useQuery({
@@ -16,72 +20,89 @@ export function MyVotesPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-24 w-full" />
+      <div className={cn(pageLayoutClass, 'mx-auto max-w-3xl')}>
+        <Skeleton className="h-10 w-48" />
         <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-48 w-full" />
       </div>
     )
   }
 
   if (!data?.election) {
     return (
-      <EmptyState
-        icon={ClipboardList}
-        title="No active election"
-        description="Your vote history will appear here during an election."
-      />
+      <div className={cn(pageLayoutClass, 'mx-auto max-w-3xl')}>
+        <PageHeader title="My Votes" description="Your private voting record" />
+        <EmptyState
+          icon={ClipboardList}
+          title="No active election"
+          description="Your vote history will appear here during an election."
+        />
+      </div>
     )
   }
 
-  const progress =
-    data.positions_total > 0 ? (data.positions_voted / data.positions_total) * 100 : 0
+  const isActive = data.election.status === 'ACTIVE'
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold">My Votes</h2>
-          <p className="text-muted-foreground">Only you can see your selections</p>
-        </div>
-        <Badge variant={data.ballot_complete ? 'success' : 'warning'}>
-          {data.positions_voted}/{data.positions_total} positions
-        </Badge>
-      </div>
+    <div className={cn(pageLayoutClass, 'mx-auto max-w-3xl')}>
+      <PageHeader
+        title="My Votes"
+        description="Only you can see your selections"
+        action={
+          <Badge variant={data.ballot_complete ? 'success' : 'warning'}>
+            {data.positions_voted}/{data.positions_total} positions
+          </Badge>
+        }
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{data.election.name}</CardTitle>
-          <CardDescription>Ballot completion progress</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-2 flex justify-between text-sm">
-            <span>{data.positions_voted} voted · {data.positions_remaining} remaining</span>
-            <span>{formatPercent(progress)}</span>
-          </div>
-          <Progress value={progress} />
-        </CardContent>
-      </Card>
+      <BallotProgressCard
+        electionName={data.election.name}
+        status={data.election.status}
+        votedCount={data.positions_voted}
+        total={data.positions_total}
+        isActive={isActive}
+      />
 
       {data.votes.length === 0 ? (
         <EmptyState
-          icon={ClipboardList}
+          icon={Vote}
           title="No votes yet"
-          description="Go to the ballot to cast your votes."
-        />
+          description="Head to the ballot to cast your votes. Each position allows one irreversible selection."
+        >
+          <Button asChild>
+            <Link to="/vote">
+              <Vote className="h-4 w-4" />
+              Go to ballot
+            </Link>
+          </Button>
+        </EmptyState>
       ) : (
-        <div className="space-y-3">
-          {data.votes.map((vote) => (
-            <Card key={vote.position_id}>
-              <CardHeader>
-                <CardTitle className="text-base">{vote.position_name}</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                <p className="font-medium text-foreground">{vote.candidate_name}</p>
-                <p className="mt-1">Voted at {formatDate(vote.voted_at)}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <section aria-label="Vote history">
+          <div className="mb-4 flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-success" aria-hidden="true" />
+            <h2 className="text-sm font-medium text-muted-foreground">
+              {data.votes.length} vote{data.votes.length === 1 ? '' : 's'} recorded
+            </h2>
+          </div>
+          <div className="rounded-lg border bg-card p-6">
+            {data.votes.map((vote, index) => (
+              <VoteTimelineItem
+                key={vote.position_id}
+                positionName={vote.position_name}
+                candidateName={vote.candidate_name}
+                votedAt={vote.voted_at}
+                isLast={index === data.votes.length - 1}
+              />
+            ))}
+          </div>
+          {!data.ballot_complete && (
+            <div className="flex justify-center pt-2">
+              <Button variant="outline" asChild>
+                <Link to="/vote">Continue voting</Link>
+              </Button>
+            </div>
+          )}
+        </section>
       )}
     </div>
   )

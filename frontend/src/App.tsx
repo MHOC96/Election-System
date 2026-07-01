@@ -8,9 +8,13 @@ import { ThemeProvider } from '@/context/ThemeContext'
 import { AdminLayout } from '@/components/layout/AdminLayout'
 import { MemberLayout } from '@/components/layout/MemberLayout'
 import { LoginPage } from '@/pages/LoginPage'
-import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage'
-import { BallotPage } from '@/pages/member/BallotPage'
 
+const AdminDashboardPage = lazy(() =>
+  import('@/pages/admin/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage })),
+)
+const BallotPage = lazy(() =>
+  import('@/pages/member/BallotPage').then((m) => ({ default: m.BallotPage })),
+)
 const MyVotesPage = lazy(() =>
   import('@/pages/member/MyVotesPage').then((m) => ({ default: m.MyVotesPage })),
 )
@@ -79,7 +83,7 @@ export default function App() {
               <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
           </BrowserRouter>
-          <Toaster richColors closeButton position="top-right" />
+          <Toaster richColors closeButton position="top-right" containerAriaLabel="Notifications" />
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

@@ -61,6 +61,10 @@ def submit_vote(*, member: User, position_id: int, candidate_id: int) -> Vote:
                 code="duplicate_vote",
             ) from exc
 
+    from dashboard.services.stats_service import invalidate_dashboard_cache
+
+    invalidate_dashboard_cache(election.id)
+
     return vote
 
 

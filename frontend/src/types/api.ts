@@ -162,7 +162,7 @@ export interface AuditLog {
   actor_cpm_number: string | null
   action: string
   ip_address: string | null
-  metadata: Record<string, unknown>
+  metadata?: Record<string, unknown>
   created_at: string
 }
 

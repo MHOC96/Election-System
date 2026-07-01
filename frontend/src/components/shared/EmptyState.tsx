@@ -15,7 +15,7 @@ export function EmptyState({ icon: Icon = Inbox, title, description, className, 
       <div className="mb-4 rounded-full bg-muted p-4">
         <Icon className="h-8 w-8 text-muted-foreground" />
       </div>
-      <h3 className="text-lg font-semibold">{title}</h3>
+      <h2 className="text-lg font-semibold">{title}</h2>
       {description && <p className="mt-2 max-w-sm text-sm text-muted-foreground">{description}</p>}
       {children && <div className="mt-6">{children}</div>}
     </div>

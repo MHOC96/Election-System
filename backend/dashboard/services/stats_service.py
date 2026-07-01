@@ -39,29 +39,22 @@ def get_dashboard_summary(
     total_candidates = Candidate.objects.count()
     total_positions = Position.objects.count()
 
-    votes_qs = Vote.objects.all()
-    if election:
-        votes_qs = votes_qs.filter(election=election)
-    votes_cast = votes_qs.count()
-
     position_turnout = []
     members_completed_ballot = 0
     members_partial_ballot = 0
     members_no_votes = total_members
+    votes_cast = 0
 
     if election and total_positions > 0 and total_members > 0:
-        position_vote_counts = (
-            Vote.objects.filter(election=election)
-            .values("position_id")
-            .annotate(vote_count=Count("id"))
+        vote_filter = Q(votes__election_id=election.id)
+        annotated_positions = (
+            Position.objects.annotate(votes_cast=Count("votes", filter=vote_filter))
+            .order_by("name")
         )
-        vote_count_by_position = {
-            row["position_id"]: row["vote_count"] for row in position_vote_counts
-        }
 
-        positions = Position.objects.all().order_by("name")
-        for position in positions:
-            position_votes = vote_count_by_position.get(position.id, 0)
+        for position in annotated_positions:
+            position_votes = position.votes_cast
+            votes_cast += position_votes
             position_turnout.append(
                 {
                     "position_id": position.id,
@@ -87,6 +80,8 @@ def get_dashboard_summary(
         members_no_votes = (
             total_members - members_completed_ballot - members_partial_ballot
         )
+    elif election:
+        votes_cast = Vote.objects.filter(election=election).count()
 
     avg_position_turnout = (
         round(
@@ -250,3 +245,11 @@ def _election_payload(election: Election | None) -> dict | None:
         "stopped_at": election.stopped_at,
         "closed_at": election.closed_at,
     }
+
+
+def invalidate_dashboard_cache(election_id: int | None = None) -> None:
+    """Clear dashboard caches after votes or election changes."""
+    cache.delete("dashboard:summary:default")
+    if election_id is not None:
+        cache.delete(f"dashboard:summary:{election_id}")
+        cache.delete(f"dashboard:live_stats:{election_id}")

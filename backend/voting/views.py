@@ -9,6 +9,7 @@ from audit.models import AuditAction
 from audit.services.logger import log_action
 from candidates.models import Candidate
 from candidates.serializers import CandidateSerializer
+from dashboard.services.stats_service import invalidate_dashboard_cache
 from positions.models import Position
 from positions.serializers import PositionSerializer
 from voting.models import Election, ElectionStatus
@@ -32,6 +33,7 @@ class ElectionListCreateView(generics.ListCreateAPIView):
             actor=request.user,
             metadata={"election_id": election.id, "name": election.name},
         )
+        invalidate_dashboard_cache()
         return Response(
             {"success": True, "data": serializer.data},
             status=status.HTTP_201_CREATED,
@@ -67,6 +69,7 @@ class ElectionStartView(APIView):
             actor=request.user,
             metadata={"election_id": election.id, "name": election.name, "status": election.status},
         )
+        invalidate_dashboard_cache(election.id)
         return Response(
             {"success": True, "data": ElectionSerializer(election).data},
             status=status.HTTP_200_OK,
@@ -88,6 +91,7 @@ class ElectionStopView(APIView):
             actor=request.user,
             metadata={"election_id": election.id, "name": election.name, "status": election.status},
         )
+        invalidate_dashboard_cache(election.id)
         return Response(
             {"success": True, "data": ElectionSerializer(election).data},
             status=status.HTTP_200_OK,
@@ -109,6 +113,7 @@ class ElectionCloseView(APIView):
             actor=request.user,
             metadata={"election_id": election.id, "name": election.name, "status": election.status},
         )
+        invalidate_dashboard_cache(election.id)
         return Response(
             {"success": True, "data": ElectionSerializer(election).data},
             status=status.HTTP_200_OK,

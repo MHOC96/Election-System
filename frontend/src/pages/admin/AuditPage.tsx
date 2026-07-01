@@ -1,100 +1,312 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+
 import { useQuery } from '@tanstack/react-query'
+
 import { Shield } from 'lucide-react'
+
 import { fetchAuditLogs } from '@/api/audit'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/skeleton'
+
+import { AuditLogDetailSheet } from '@/components/audit/AuditLogDetailSheet'
+
+import {
+
+  AuditLogFilters,
+
+  type AuditLogFilterValues,
+
+} from '@/components/audit/AuditLogFilters'
+
+import { AuditLogMobileList } from '@/components/audit/AuditLogMobileList'
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { EmptyState } from '@/components/shared/EmptyState'
-import { formatDate } from '@/lib/utils'
+
+import { DataTable } from '@/components/shared/DataTable'
+
+import { AuditActionBadge } from '@/components/shared/StatusBadge'
+
+import { PageHeader } from '@/components/shared/PageHeader'
+
+import { toDateRangeParams } from '@/lib/audit-actions'
+
+import { pageLayoutClass } from '@/lib/design-tokens'
+
+import { cn, formatDate } from '@/lib/utils'
+
+
+
+const EMPTY_FILTERS: AuditLogFilterValues = {
+
+  action: '',
+
+  actorCpm: '',
+
+  fromDate: '',
+
+  toDate: '',
+
+}
+
+
 
 export function AuditPage() {
+
   const [page, setPage] = useState(1)
-  const [actionInput, setActionInput] = useState('')
-  const [action, setAction] = useState('')
+
+  const [filters, setFilters] = useState<AuditLogFilterValues>(EMPTY_FILTERS)
+
+  const [debouncedActorCpm, setDebouncedActorCpm] = useState('')
+
+  const [selectedLogId, setSelectedLogId] = useState<number | null>(null)
+
+  const [detailOpen, setDetailOpen] = useState(false)
+
+
 
   useEffect(() => {
+
     const timer = window.setTimeout(() => {
-      setAction(actionInput.trim().toUpperCase())
+
+      setDebouncedActorCpm(filters.actorCpm.trim().toUpperCase())
+
       setPage(1)
+
     }, 400)
+
     return () => window.clearTimeout(timer)
-  }, [actionInput])
+
+  }, [filters.actorCpm])
+
+
+
+  const queryParams = useMemo(
+
+    () => ({
+
+      page,
+
+      ...(filters.action ? { action: filters.action } : {}),
+
+      ...(debouncedActorCpm ? { actor_cpm: debouncedActorCpm } : {}),
+
+      ...toDateRangeParams(filters.fromDate, filters.toDate),
+
+    }),
+
+    [page, filters.action, filters.fromDate, filters.toDate, debouncedActorCpm],
+
+  )
+
+
 
   const { data, isLoading } = useQuery({
-    queryKey: ['audit-logs', page, action],
-    queryFn: () =>
-      fetchAuditLogs({
-        page,
-        ...(action ? { action } : {}),
-      }),
+
+    queryKey: ['audit-logs', queryParams],
+
+    queryFn: () => fetchAuditLogs(queryParams),
+
   })
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold">Audit Logs</h2>
-          <p className="text-muted-foreground">Immutable record of all system actions</p>
-        </div>
-        <Input
-          className="max-w-xs"
-          placeholder="Filter by action (e.g. LOGIN)"
-          value={actionInput}
-          onChange={(e) => setActionInput(e.target.value)}
-        />
-      </div>
 
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="space-y-2 p-6">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          ) : !data?.results.length ? (
-            <EmptyState icon={Shield} title="No audit logs" description="Actions will appear here as they occur." />
-          ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Time</TableHead>
-                    <TableHead>Actor</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>IP</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.results.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="whitespace-nowrap">{formatDate(log.created_at)}</TableCell>
-                      <TableCell>{log.actor_cpm_number ?? '—'}</TableCell>
-                      <TableCell>
-                        <span className="rounded bg-muted px-2 py-0.5 text-xs font-medium">{log.action}</span>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{log.ip_address ?? '—'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <div className="flex items-center justify-between border-t p-4">
-                <p className="text-sm text-muted-foreground">{data.count} total logs</p>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" disabled={!data.previous} onClick={() => setPage((p) => p - 1)}>
-                    Previous
-                  </Button>
-                  <Button variant="outline" size="sm" disabled={!data.next} onClick={() => setPage((p) => p + 1)}>
-                    Next
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+
+  const hasFilters =
+
+    filters.action !== '' ||
+
+    debouncedActorCpm !== '' ||
+
+    filters.fromDate !== '' ||
+
+    filters.toDate !== ''
+
+
+
+  function handleFiltersChange(next: AuditLogFilterValues) {
+
+    setFilters(next)
+
+    setPage(1)
+
+  }
+
+
+
+  function openLogDetail(logId: number) {
+
+    setSelectedLogId(logId)
+
+    setDetailOpen(true)
+
+  }
+
+
+
+  return (
+
+    <div className={pageLayoutClass}>
+
+      <PageHeader
+
+        title="Audit Logs"
+
+        description="Immutable record of all system actions. Select a row to view full metadata."
+
+      />
+
+
+
+      <AuditLogFilters values={filters} onChange={handleFiltersChange} />
+
+
+
+      <DataTable
+
+        isLoading={isLoading}
+
+        isEmpty={!isLoading && !data?.results.length}
+
+        emptyIcon={Shield}
+
+        emptyTitle="No audit logs"
+
+        emptyDescription={
+
+          hasFilters
+
+            ? 'No logs match the current filters. Try adjusting or clearing them.'
+
+            : 'Actions will appear here as they occur.'
+
+        }
+
+        mobileView={
+
+          data?.results.length ? (
+
+            <AuditLogMobileList logs={data.results} onSelectLog={openLogDetail} />
+
+          ) : undefined
+
+        }
+
+        pagination={
+
+          data
+
+            ? {
+
+                page,
+
+                totalCount: data.count,
+
+                hasPrevious: !!data.previous,
+
+                hasNext: !!data.next,
+
+                onPrevious: () => setPage((p) => p - 1),
+
+                onNext: () => setPage((p) => p + 1),
+
+                itemLabel: 'logs',
+
+              }
+
+            : undefined
+
+        }
+
+      >
+
+        <Table>
+
+          <TableHeader>
+
+            <TableRow>
+
+              <TableHead>Time</TableHead>
+
+              <TableHead>Actor</TableHead>
+
+              <TableHead>Action</TableHead>
+
+              <TableHead className="hidden sm:table-cell">IP</TableHead>
+
+            </TableRow>
+
+          </TableHeader>
+
+          <TableBody>
+
+            {data?.results.map((log) => (
+
+              <TableRow
+
+                key={log.id}
+
+                className={cn('cursor-pointer transition-colors hover:bg-muted/50')}
+
+                onClick={() => openLogDetail(log.id)}
+
+                onKeyDown={(event) => {
+
+                  if (event.key === 'Enter' || event.key === ' ') {
+
+                    event.preventDefault()
+
+                    openLogDetail(log.id)
+
+                  }
+
+                }}
+
+                tabIndex={0}
+
+                role="button"
+
+                aria-label={`View audit log ${log.action} by ${log.actor_cpm_number ?? 'unknown actor'}`}
+
+              >
+
+                <TableCell className="whitespace-nowrap">{formatDate(log.created_at)}</TableCell>
+
+                <TableCell>{log.actor_cpm_number ?? '—'}</TableCell>
+
+                <TableCell>
+
+                  <AuditActionBadge action={log.action} />
+
+                </TableCell>
+
+                <TableCell className="hidden text-muted-foreground sm:table-cell">
+
+                  {log.ip_address ?? '—'}
+
+                </TableCell>
+
+              </TableRow>
+
+            ))}
+
+          </TableBody>
+
+        </Table>
+
+      </DataTable>
+
+
+
+      <AuditLogDetailSheet
+
+        logId={selectedLogId}
+
+        open={detailOpen}
+
+        onOpenChange={setDetailOpen}
+
+      />
+
     </div>
+
   )
+
 }
+

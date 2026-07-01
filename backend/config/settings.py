@@ -4,6 +4,8 @@ import sys
 
 import environ
 
+from config import py314_compat  # noqa: F401  — Django 5.1 + Python 3.14 admin fix
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env(
@@ -162,7 +164,7 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(minutes=env("JWT_REFRESH_TOKEN_LIFETIME")),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
-    "UPDATE_LAST_LOGIN": True,
+    "UPDATE_LAST_LOGIN": False,
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
@@ -171,9 +173,22 @@ CLOUDINARY_CLOUD_NAME = env("CLOUDINARY_CLOUD_NAME", default="")
 CLOUDINARY_API_KEY = env("CLOUDINARY_API_KEY", default="")
 CLOUDINARY_API_SECRET = env("CLOUDINARY_API_SECRET", default="")
 
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        "LOCATION": "election-dashboard",
+_redis_url = env("REDIS_URL", default="")
+if _redis_url:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": _redis_url,
+            "OPTIONS": {
+                "socket_connect_timeout": 5,
+                "socket_timeout": 5,
+            },
+        }
     }
-}
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "election-dashboard",
+        }
+    }

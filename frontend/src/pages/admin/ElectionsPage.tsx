@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Play, Square, Lock, Plus, Vote } from 'lucide-react'
 import {
@@ -9,7 +11,6 @@ import {
   stopElection,
 } from '@/api/elections'
 import { getApiErrorMessage } from '@/api/client'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -20,30 +21,32 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { EmptyState } from '@/components/shared/EmptyState'
-import type { Election, ElectionStatus } from '@/types/api'
+import { ElectionStatusBadge } from '@/components/shared/StatusBadge'
+import { PageHeader } from '@/components/shared/PageHeader'
+import { FormField } from '@/components/design-system/FormField'
+import { pageLayoutClass } from '@/lib/design-tokens'
+import { electionSchema, type ElectionForm } from '@/lib/form-schemas'
+import type { Election } from '@/types/api'
 import { formatDate } from '@/lib/utils'
 import { toast } from 'sonner'
-
-function statusVariant(status: ElectionStatus) {
-  switch (status) {
-    case 'ACTIVE':
-      return 'success' as const
-    case 'STOPPED':
-      return 'warning' as const
-    case 'CLOSED':
-      return 'secondary' as const
-    default:
-      return 'outline' as const
-  }
-}
 
 export function ElectionsPage() {
   const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [name, setName] = useState('')
+  const [closeTarget, setCloseTarget] = useState<Election | null>(null)
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ElectionForm>({
+    resolver: zodResolver(electionSchema),
+    defaultValues: { name: '' },
+  })
 
   const { data: elections, isLoading } = useQuery({
     queryKey: ['elections'],
@@ -51,12 +54,11 @@ export function ElectionsPage() {
   })
 
   const createMutation = useMutation({
-    mutationFn: () => createElection(name),
+    mutationFn: (values: ElectionForm) => createElection(values.name),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['elections'] })
       toast.success('Election created')
-      setDialogOpen(false)
-      setName('')
+      closeCreateDialog()
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
   })
@@ -67,19 +69,45 @@ export function ElectionsPage() {
       if (action === 'stop') return stopElection(id)
       return closeElection(id)
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({ queryKey: ['elections'] })
       void queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
-      toast.success('Election updated')
+      if (variables.action === 'close') {
+        setCloseTarget(null)
+        toast.success('Election closed')
+      } else if (variables.action === 'start') {
+        toast.success('Election started')
+      } else {
+        toast.success('Election stopped')
+      }
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
   })
+
+  const openCreateDialog = () => {
+    reset({ name: '' })
+    setDialogOpen(true)
+  }
+
+  const closeCreateDialog = () => {
+    setDialogOpen(false)
+    reset({ name: '' })
+  }
+
+  const onCreateSubmit = (values: ElectionForm) => {
+    createMutation.mutate(values)
+  }
 
   const renderActions = (election: Election) => {
     const actions = []
     if (election.status === 'DRAFT' || election.status === 'STOPPED') {
       actions.push(
-        <Button key="start" size="sm" onClick={() => actionMutation.mutate({ id: election.id, action: 'start' })}>
+        <Button
+          key="start"
+          size="sm"
+          disabled={actionMutation.isPending}
+          onClick={() => actionMutation.mutate({ id: election.id, action: 'start' })}
+        >
           <Play className="h-4 w-4" />
           Start
         </Button>,
@@ -91,6 +119,7 @@ export function ElectionsPage() {
           key="stop"
           size="sm"
           variant="outline"
+          disabled={actionMutation.isPending}
           onClick={() => actionMutation.mutate({ id: election.id, action: 'stop' })}
         >
           <Square className="h-4 w-4" />
@@ -104,7 +133,8 @@ export function ElectionsPage() {
           key="close"
           size="sm"
           variant="destructive"
-          onClick={() => actionMutation.mutate({ id: election.id, action: 'close' })}
+          disabled={actionMutation.isPending}
+          onClick={() => setCloseTarget(election)}
         >
           <Lock className="h-4 w-4" />
           Close
@@ -115,17 +145,17 @@ export function ElectionsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold">Elections</h2>
-          <p className="text-muted-foreground">Create and manage election lifecycle</p>
-        </div>
-        <Button onClick={() => setDialogOpen(true)}>
-          <Plus className="h-4 w-4" />
-          New Election
-        </Button>
-      </div>
+    <div className={pageLayoutClass}>
+      <PageHeader
+        title="Elections"
+        description="Create and manage election lifecycle"
+        action={
+          <Button onClick={openCreateDialog}>
+            <Plus className="h-4 w-4" />
+            New Election
+          </Button>
+        }
+      />
 
       {isLoading ? (
         <div className="space-y-4">
@@ -146,7 +176,7 @@ export function ElectionsPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <CardTitle className="text-lg">{election.name}</CardTitle>
-                    <Badge variant={statusVariant(election.status)}>{election.status}</Badge>
+                    <ElectionStatusBadge status={election.status} />
                   </div>
                   <CardDescription className="mt-1">
                     Created {formatDate(election.created_at)}
@@ -161,33 +191,48 @@ export function ElectionsPage() {
         </div>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeCreateDialog()}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create Election</DialogTitle>
           </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="election-name">Election Name</Label>
-            <Input
-              id="election-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. 2026 Executive Election"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => createMutation.mutate()}
-              disabled={!name.trim() || createMutation.isPending}
+          <form onSubmit={(e) => void handleSubmit(onCreateSubmit)(e)} className="space-y-4">
+            <FormField
+              label="Election Name"
+              htmlFor="election-name"
+              error={errors.name?.message}
+              required
             >
-              Create
-            </Button>
-          </DialogFooter>
+              <Input
+                id="election-name"
+                placeholder="e.g. 2026 Executive Election"
+                {...register('name')}
+              />
+            </FormField>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={closeCreateDialog}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting || createMutation.isPending}>
+                {createMutation.isPending ? 'Creating...' : 'Create'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!closeTarget}
+        title="Close election?"
+        description={`Permanently close "${closeTarget?.name}"? This ends the election and cannot be undone. No further votes will be accepted.`}
+        confirmLabel="Close election"
+        destructive
+        loading={actionMutation.isPending}
+        onCancel={() => setCloseTarget(null)}
+        onConfirm={() =>
+          closeTarget && actionMutation.mutate({ id: closeTarget.id, action: 'close' })
+        }
+      />
     </div>
   )
 }

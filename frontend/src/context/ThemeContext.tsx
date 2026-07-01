@@ -15,13 +15,25 @@ function getInitialTheme(): Theme {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
+function applyTheme(theme: Theme) {
+  const root = document.documentElement
+  root.classList.add('theme-transition-disabled')
+  root.classList.toggle('dark', theme === 'dark')
+  localStorage.setItem('election_theme', theme)
+
+  // Force a reflow so the theme class applies before transitions are re-enabled.
+  void root.offsetHeight
+
+  requestAnimationFrame(() => {
+    root.classList.remove('theme-transition-disabled')
+  })
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
 
   useEffect(() => {
-    const root = document.documentElement
-    root.classList.toggle('dark', theme === 'dark')
-    localStorage.setItem('election_theme', theme)
+    applyTheme(theme)
   }, [theme])
 
   const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))

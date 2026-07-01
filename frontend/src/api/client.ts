@@ -16,6 +16,15 @@ export const api = axios.create({
 })
 
 let refreshPromise: Promise<string | null> | null = null
+let loggingOut = false
+
+export function isLoggingOut(): boolean {
+  return loggingOut
+}
+
+export function setLoggingOut(value: boolean): void {
+  loggingOut = value
+}
 
 async function refreshAccessToken(): Promise<string | null> {
   const refresh = getRefreshToken()
@@ -52,6 +61,10 @@ api.interceptors.response.use(
   async (error: AxiosError<ApiFailure>) => {
     const original = error.config
     if (!original || error.response?.status !== 401) {
+      return Promise.reject(error)
+    }
+
+    if (loggingOut || original.url?.includes('/auth/logout')) {
       return Promise.reject(error)
     }
 

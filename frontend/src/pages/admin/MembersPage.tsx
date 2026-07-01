@@ -1,18 +1,10 @@
 import { useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Pencil, Trash2, Upload, Users } from 'lucide-react'
 import { deleteMember, fetchMembers, importMembers, updateMember } from '@/api/members'
 import { getApiErrorMessage } from '@/api/client'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -23,7 +15,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -31,22 +22,38 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { EmptyState } from '@/components/shared/EmptyState'
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
+import { DataTable } from '@/components/shared/DataTable'
+import { MemberStatusBadge } from '@/components/shared/StatusBadge'
+import { PageHeader } from '@/components/shared/PageHeader'
+import { FormField } from '@/components/design-system/FormField'
+import { pageLayoutClass } from '@/lib/design-tokens'
+import { memberEditSchema, type MemberEditForm } from '@/lib/form-schemas'
 import type { Member } from '@/types/api'
 import { formatDate } from '@/lib/utils'
 import { toast } from 'sonner'
 
 export function MembersPage() {
   const fileRef = useRef<HTMLInputElement>(null)
+  const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [deleteTarget, setDeleteTarget] = useState<Member | null>(null)
   const [editing, setEditing] = useState<Member | null>(null)
-  const [cpmNumber, setCpmNumber] = useState('')
-  const [mcNumber, setMcNumber] = useState('')
-  const [isActive, setIsActive] = useState(true)
-  const queryClient = useQueryClient()
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<MemberEditForm>({
+    resolver: zodResolver(memberEditSchema),
+    defaultValues: { cpm_number: '', mc_number: '', is_active: true },
+  })
+
+  const isActive = watch('is_active')
 
   const { data, isLoading } = useQuery({
     queryKey: ['members', page],
@@ -78,11 +85,11 @@ export function MembersPage() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: () =>
-      updateMember(editing!.id, {
-        cpm_number: cpmNumber.trim().toUpperCase(),
-        mc_number: mcNumber,
-        is_active: isActive,
+    mutationFn: ({ id, values }: { id: number; values: MemberEditForm }) =>
+      updateMember(id, {
+        cpm_number: values.cpm_number.trim().toUpperCase(),
+        mc_number: values.mc_number,
+        is_active: values.is_active,
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['members'] })
@@ -100,39 +107,44 @@ export function MembersPage() {
 
   const openEdit = (member: Member) => {
     setEditing(member)
-    setCpmNumber(member.cpm_number)
-    setMcNumber(member.mc_number)
-    setIsActive(member.is_active)
+    reset({
+      cpm_number: member.cpm_number,
+      mc_number: member.mc_number,
+      is_active: member.is_active,
+    })
   }
 
   const closeEditDialog = () => {
     setEditing(null)
-    setCpmNumber('')
-    setMcNumber('')
-    setIsActive(true)
+    reset({ cpm_number: '', mc_number: '', is_active: true })
+  }
+
+  const onSubmit = (values: MemberEditForm) => {
+    if (!editing) return
+    updateMutation.mutate({ id: editing.id, values })
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold">Members</h2>
-          <p className="text-muted-foreground">Import and manage voting members</p>
-        </div>
-        <div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".csv,.xlsx"
-            className="hidden"
-            onChange={handleFileChange}
-          />
-          <Button onClick={() => fileRef.current?.click()} disabled={importMutation.isPending}>
-            <Upload className="h-4 w-4" />
-            {importMutation.isPending ? 'Importing...' : 'Import CSV/XLSX'}
-          </Button>
-        </div>
-      </div>
+    <div className={pageLayoutClass}>
+      <PageHeader
+        title="Members"
+        description="Import and manage voting members"
+        action={
+          <>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".csv,.xlsx"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <Button onClick={() => fileRef.current?.click()} disabled={importMutation.isPending}>
+              <Upload className="h-4 w-4" />
+              {importMutation.isPending ? 'Importing...' : 'Import CSV/XLSX'}
+            </Button>
+          </>
+        }
+      />
 
       {importMutation.data && (
         <Card>
@@ -159,7 +171,7 @@ export function MembersPage() {
               )}
               {importMutation.data.duplicates.length > 0 && (
                 <div>
-                  <p className="font-medium text-amber-600">Duplicates</p>
+                  <p className="font-medium text-warning">Duplicates</p>
                   <ul className="mt-1 list-inside list-disc text-muted-foreground">
                     {importMutation.data.duplicates.slice(0, 5).map((row) => (
                       <li key={`d-${row.row}`}>
@@ -174,123 +186,98 @@ export function MembersPage() {
         </Card>
       )}
 
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="space-y-2 p-6">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full" />
-              ))}
-            </div>
-          ) : !data?.results.length ? (
-            <EmptyState
-              icon={Users}
-              title="No members yet"
-              description="Import a CSV or XLSX file with CPM and MC numbers to get started."
-            />
-          ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>CPM Number</TableHead>
-                    <TableHead>MC Number</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.results.map((member) => (
-                    <TableRow key={member.id}>
-                      <TableCell className="font-medium">{member.cpm_number}</TableCell>
-                      <TableCell>{member.mc_number || '—'}</TableCell>
-                      <TableCell>{member.is_active ? 'Active' : 'Inactive'}</TableCell>
-                      <TableCell>{formatDate(member.created_at)}</TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEdit(member)}
-                          aria-label={`Edit ${member.cpm_number}`}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeleteTarget(member)}
-                          aria-label={`Remove ${member.cpm_number}`}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <div className="flex items-center justify-between border-t p-4">
-                <p className="text-sm text-muted-foreground">{data.count} total members</p>
-                <div className="flex gap-2">
+      <DataTable
+        isLoading={isLoading}
+        isEmpty={!isLoading && !data?.results.length}
+        emptyIcon={Users}
+        emptyTitle="No members yet"
+        emptyDescription="Import a CSV or XLSX file with CPM and MC numbers to get started."
+        pagination={
+          data
+            ? {
+                page,
+                totalCount: data.count,
+                hasPrevious: !!data.previous,
+                hasNext: !!data.next,
+                onPrevious: () => setPage((p) => Math.max(1, p - 1)),
+                onNext: () => setPage((p) => p + 1),
+                itemLabel: 'members',
+              }
+            : undefined
+        }
+      >
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>CPM Number</TableHead>
+              <TableHead>MC Number</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="hidden sm:table-cell">Created</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data?.results.map((member) => (
+              <TableRow key={member.id}>
+                <TableCell className="font-medium">{member.cpm_number}</TableCell>
+                <TableCell>{member.mc_number || '—'}</TableCell>
+                <TableCell>
+                  <MemberStatusBadge isActive={member.is_active} />
+                </TableCell>
+                <TableCell className="hidden whitespace-nowrap sm:table-cell">
+                  {formatDate(member.created_at)}
+                </TableCell>
+                <TableCell className="text-right">
                   <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={!data.previous}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => openEdit(member)}
+                    aria-label={`Edit ${member.cpm_number}`}
                   >
-                    Previous
+                    <Pencil className="h-4 w-4" />
                   </Button>
                   <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={!data.next}
-                    onClick={() => setPage((p) => p + 1)}
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setDeleteTarget(member)}
+                    aria-label={`Remove ${member.cpm_number}`}
                   >
-                    Next
+                    <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
-                </div>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </DataTable>
 
       <Dialog open={!!editing} onOpenChange={(open) => !open && closeEditDialog()}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Member</DialogTitle>
           </DialogHeader>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              updateMutation.mutate()
-            }}
-            className="space-y-4"
-          >
-            <div className="space-y-2">
-              <Label htmlFor="cpm_number">CPM Number</Label>
-              <Input
-                id="cpm_number"
-                value={cpmNumber}
-                onChange={(e) => setCpmNumber(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="mc_number">MC Number</Label>
-              <Input
-                id="mc_number"
-                type="password"
-                value={mcNumber}
-                onChange={(e) => setMcNumber(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
+          <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-4">
+            <FormField
+              label="CPM Number"
+              htmlFor="cpm_number"
+              error={errors.cpm_number?.message}
+              required
+            >
+              <Input id="cpm_number" {...register('cpm_number')} />
+            </FormField>
+            <FormField
+              label="MC Number"
+              htmlFor="mc_number"
+              error={errors.mc_number?.message}
+              hint="Updating the MC number also updates the member's login password."
+              required
+            >
+              <Input id="mc_number" type="password" {...register('mc_number')} />
+            </FormField>
+            <FormField label="Status">
               <Select
                 value={isActive ? 'active' : 'inactive'}
-                onValueChange={(value) => setIsActive(value === 'active')}
+                onValueChange={(value) => setValue('is_active', value === 'active', { shouldValidate: true })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -300,12 +287,12 @@ export function MembersPage() {
                   <SelectItem value="inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </FormField>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={closeEditDialog}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={updateMutation.isPending}>
+              <Button type="submit" disabled={isSubmitting || updateMutation.isPending}>
                 {updateMutation.isPending ? 'Saving...' : 'Save'}
               </Button>
             </DialogFooter>
@@ -313,25 +300,16 @@ export function MembersPage() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove member?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Remove {deleteTarget?.cpm_number}? Members who have already voted cannot be removed.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
-            >
-              Remove
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Remove member?"
+        description={`Remove ${deleteTarget?.cpm_number}? Members who have already voted cannot be removed.`}
+        confirmLabel="Remove"
+        destructive
+        loading={deleteMutation.isPending}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+      />
     </div>
   )
 }
