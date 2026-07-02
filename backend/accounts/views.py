@@ -7,8 +7,6 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from accounts.permissions import IsAdmin, IsMember
 from accounts.serializers import LoginSerializer, LogoutSerializer, UserSerializer
 from accounts.throttling import AuthRateThrottle
-from audit.models import AuditAction
-from audit.services.logger import get_client_ip, log_action, log_action_async
 
 
 class LoginView(APIView):
@@ -20,13 +18,6 @@ class LoginView(APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         user_data = data["user"]
-
-        log_action_async(
-            action=AuditAction.LOGIN,
-            actor_id=user_data["id"],
-            ip_address=get_client_ip(request),
-            metadata={"cpm_number": user_data["cpm_number"], "role": user_data["role"]},
-        )
 
         return Response(
             {
@@ -64,12 +55,6 @@ class LogoutView(APIView):
         serializer = LogoutSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        log_action(
-            request=request,
-            action=AuditAction.LOGOUT,
-            actor=request.user,
-            metadata={"cpm_number": request.user.cpm_number},
-        )
         return Response(
             {
                 "success": True,

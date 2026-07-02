@@ -20,21 +20,15 @@ function markPrefetched(routeKey: string) {
   return true
 }
 
-/** Single API prefetch for admin landing — keeps Supabase pooler round-trips minimal. */
+/** Prefetch dashboard summary and live stats for admin landing. */
 export function prefetchAdminLanding(queryClient: QueryClient) {
   void queryClient.prefetchQuery({
     queryKey: ['dashboard-summary'],
     queryFn: () => fetchDashboardSummary(),
   })
-  scheduleIdle(() => prefetchRecentAudit(queryClient))
-}
-
-export function prefetchRecentAudit(queryClient: QueryClient) {
-  void import('@/api/audit').then(({ fetchRecentAuditLogs }) => {
-    void queryClient.prefetchQuery({
-      queryKey: ['audit-logs', 'recent'],
-      queryFn: () => fetchRecentAuditLogs(5),
-    })
+  void queryClient.prefetchQuery({
+    queryKey: ['dashboard-live'],
+    queryFn: () => fetchLiveStats(),
   })
 }
 
@@ -91,22 +85,6 @@ export function prefetchAdminNavRoute(to: string, queryClient: QueryClient) {
     case '/admin/reports':
       void import('@/pages/admin/ReportsPage')
       break
-    case '/admin/audit':
-      void import('@/pages/admin/AuditPage')
-      void import('@/api/audit').then(({ fetchAuditLogs }) => {
-        void queryClient.prefetchQuery({
-          queryKey: ['audit-logs', 1, ''],
-          queryFn: () => fetchAuditLogs({ page: 1 }),
-        })
-      })
-      break
-    case '/admin/live':
-      void import('@/pages/admin/LiveStatsPage')
-      void queryClient.prefetchQuery({
-        queryKey: ['dashboard-live'],
-        queryFn: () => fetchLiveStats(),
-      })
-      break
     default:
       prefetchedNavRoutes.delete(routeKey)
   }
@@ -121,13 +99,6 @@ export function prefetchMemberNavRoute(to: string, queryClient: QueryClient) {
       prefetchMemberLanding(queryClient)
       void import('@/pages/member/BallotPage')
       break
-    case '/my-votes':
-      void import('@/pages/member/MyVotesPage')
-      void queryClient.prefetchQuery({
-        queryKey: ['my-votes'],
-        queryFn: fetchVoteStatus,
-      })
-      break
     default:
       prefetchedNavRoutes.delete(routeKey)
   }
@@ -140,8 +111,6 @@ export function prefetchAdminRoutes() {
   void import('@/pages/admin/CandidatesPage')
   void import('@/pages/admin/ElectionsPage')
   void import('@/pages/admin/ReportsPage')
-  void import('@/pages/admin/AuditPage')
-  void import('@/pages/admin/LiveStatsPage')
 }
 
 export function prefetchMemberLanding(queryClient: QueryClient) {
@@ -149,11 +118,14 @@ export function prefetchMemberLanding(queryClient: QueryClient) {
     queryKey: ['ballot'],
     queryFn: fetchBallot,
   })
+  void queryClient.prefetchQuery({
+    queryKey: ['my-votes'],
+    queryFn: fetchVoteStatus,
+  })
 }
 
 export function prefetchMemberRoutes() {
   void import('@/pages/member/BallotPage')
-  void import('@/pages/member/MyVotesPage')
 }
 
 export function warmAdminLanding() {

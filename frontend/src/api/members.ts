@@ -1,4 +1,4 @@
-import { api, apiDelete, apiGet, apiPatch, apiUpload } from '@/api/client'
+import { api, apiDelete, apiGet, apiPatch, apiPost, apiUpload } from '@/api/client'
 import type { Member, MemberImportResult, Paginated } from '@/types/api'
 
 export async function fetchMembers(page = 1) {
@@ -14,6 +14,19 @@ export async function importMembers(file: File) {
 
 export async function fetchMember(id: number) {
   return apiGet<Member>(`/members/${id}/`)
+}
+
+export async function fetchMemberDeletionStatus() {
+  return apiGet<{ allowed: boolean }>('/members/deletion-status/')
+}
+
+export async function bulkDeleteMembers(ids: number[]) {
+  return apiPost<{
+    requested: number
+    deleted: number
+    deleted_members: { id: number; cpm_number: string }[]
+    failed: { id: number; cpm_number: string; reason: string }[]
+  }>('/members/bulk-delete/', { ids })
 }
 
 export async function deleteMember(id: number) {

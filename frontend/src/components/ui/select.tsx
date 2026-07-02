@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as SelectPrimitive from '@radix-ui/react-select'
 import { Check, ChevronDown } from 'lucide-react'
+import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { cn } from '@/lib/utils'
 
 const Select = SelectPrimitive.Root
@@ -30,26 +31,49 @@ SelectTrigger.displayName = SelectPrimitive.Trigger.displayName
 const SelectContent = React.forwardRef<
   React.ComponentRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = 'popper', ...props }, ref) => (
-  <SelectPrimitive.Portal>
+>(
+  (
+    {
+      className,
+      children,
+      position = 'popper',
+      onCloseAutoFocus,
+      onPointerDownOutside,
+      ...props
+    },
+    ref,
+  ) => (
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        'relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md',
-        position === 'popper' && 'data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1',
+        'relative z-[100] max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md',
+        position === 'popper' &&
+          'data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1',
         className,
       )}
       position={position}
+      onCloseAutoFocus={(event) => {
+        restoreBodyPointerEvents()
+        onCloseAutoFocus?.(event)
+      }}
+      onPointerDownOutside={(event) => {
+        onPointerDownOutside?.(event)
+        requestAnimationFrame(() => restoreBodyPointerEvents())
+      }}
       {...props}
     >
       <SelectPrimitive.Viewport
-        className={cn('p-1', position === 'popper' && 'h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]')}
+        className={cn(
+          'p-1',
+          position === 'popper' &&
+            'h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]',
+        )}
       >
         {children}
       </SelectPrimitive.Viewport>
     </SelectPrimitive.Content>
-  </SelectPrimitive.Portal>
-))
+  ),
+)
 SelectContent.displayName = SelectPrimitive.Content.displayName
 
 const SelectItem = React.forwardRef<

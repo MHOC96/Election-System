@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from '@/api/client'
+import { apiDelete, apiGet, apiPost } from '@/api/client'
 import type { Election, Paginated } from '@/types/api'
 
 function unwrapList<T>(data: Paginated<T> | T[]): T[] {
@@ -28,4 +28,8 @@ export async function stopElection(id: number) {
 
 export async function closeElection(id: number) {
   return apiPost<Election>(`/elections/${id}/close/`)
+}
+
+export async function deleteElection(id: number) {
+  return apiDelete(`/elections/${id}/`)
 }

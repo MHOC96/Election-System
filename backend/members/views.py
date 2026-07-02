@@ -6,11 +6,32 @@ from rest_framework.views import APIView
 
 from accounts.models import User, UserRole
 from accounts.permissions import IsAdmin
-from audit.models import AuditAction
-from audit.services.logger import log_action
-from members.serializers import MemberImportSerializer, MemberSerializer, MemberUpdateSerializer
+from members.serializers import (
+    MemberBulkDeleteSerializer,
+    MemberImportSerializer,
+    MemberSerializer,
+    MemberUpdateSerializer,
+)
+from members.services.deletion_service import (
+    MemberDeletionNotAllowedError,
+    bulk_delete_members,
+    delete_member,
+    member_deletion_allowed,
+)
 from members.services.import_service import import_members
-from voting.models import Vote
+
+
+class MemberDeletionStatusView(APIView):
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        return Response(
+            {
+                "success": True,
+                "data": {"allowed": member_deletion_allowed()},
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class MemberImportView(APIView):
@@ -37,19 +58,6 @@ class MemberImportView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        log_action(
-            request=request,
-            action=AuditAction.MEMBER_IMPORT,
-            actor=request.user,
-            metadata={
-                "filename": uploaded_file.name,
-                "total_rows": result.total_rows,
-                "successful": result.successful,
-                "failed_count": len(result.failed_rows),
-                "duplicate_count": len(result.duplicates),
-            },
-        )
-
         return Response(
             {
                 "success": True,
@@ -72,6 +80,33 @@ class MemberImportView(APIView):
                         }
                         for item in result.duplicates
                     ],
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class MemberBulkDeleteView(APIView):
+    permission_classes = [IsAdmin]
+
+    def post(self, request):
+        serializer = MemberBulkDeleteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        member_ids = serializer.validated_data["ids"]
+
+        try:
+            result = bulk_delete_members(member_ids)
+        except MemberDeletionNotAllowedError as exc:
+            raise ValidationError(str(exc)) from exc
+
+        return Response(
+            {
+                "success": True,
+                "data": {
+                    "requested": result.requested,
+                    "deleted": len(result.deleted),
+                    "deleted_members": result.deleted,
+                    "failed": result.failed,
                 },
             },
             status=status.HTTP_200_OK,
@@ -112,15 +147,6 @@ class MemberDetailView(generics.RetrieveUpdateDestroyAPIView):
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         member = serializer.save()
-        log_action(
-            request=request,
-            action=AuditAction.MEMBER_UPDATED,
-            actor=request.user,
-            metadata={
-                "member_id": member.id,
-                "cpm_number": member.cpm_number,
-            },
-        )
         return Response(
             {"success": True, "data": MemberSerializer(member).data},
             status=status.HTTP_200_OK,
@@ -128,20 +154,12 @@ class MemberDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        if Vote.objects.filter(member=instance).exists():
-            raise ValidationError("Cannot delete a member who has cast votes.")
 
-        metadata = {
-            "member_id": instance.id,
-            "cpm_number": instance.cpm_number,
-        }
-        instance.delete()
-        log_action(
-            request=request,
-            action=AuditAction.MEMBER_DELETED,
-            actor=request.user,
-            metadata=metadata,
-        )
+        try:
+            delete_member(instance)
+        except MemberDeletionNotAllowedError as exc:
+            raise ValidationError(str(exc)) from exc
+
         return Response(
             {"success": True, "message": "Member deleted successfully."},
             status=status.HTTP_200_OK,

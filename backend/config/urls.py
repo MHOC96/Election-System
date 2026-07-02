@@ -11,5 +11,4 @@ urlpatterns = [
     path("api/votes/", include("voting.urls_votes")),
     path("api/dashboard/", include("dashboard.urls")),
     path("api/reports/", include("reports.urls")),
-    path("api/audit-logs/", include("audit.urls")),
 ]

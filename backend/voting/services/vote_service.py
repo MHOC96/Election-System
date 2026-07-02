@@ -69,11 +69,24 @@ def submit_vote(*, member: User, position_id: int, candidate_id: int) -> Vote:
 
 
 def get_member_vote_status(member: User, election: Election | None = None) -> dict:
-    votes = Vote.objects.filter(member=member).select_related(
-        "position", "candidate", "election"
+    positions_total = Position.objects.count()
+    recently_closed = Election.get_recently_closed()
+
+    if election is None:
+        return {
+            "election": None,
+            "votes": [],
+            "positions_voted": 0,
+            "positions_total": positions_total,
+            "positions_remaining": positions_total,
+            "all_positions_voted": False,
+            "can_vote": False,
+            "election_ended": recently_closed is not None,
+        }
+
+    votes = Vote.objects.filter(member=member, election=election).select_related(
+        "position", "candidate"
     )
-    if election:
-        votes = votes.filter(election=election)
 
     vote_items = [
         {
@@ -86,7 +99,6 @@ def get_member_vote_status(member: User, election: Election | None = None) -> di
         for vote in votes
     ]
 
-    positions_total = Position.objects.count()
     positions_voted = len(vote_items)
 
     return {
@@ -94,12 +106,15 @@ def get_member_vote_status(member: User, election: Election | None = None) -> di
             "id": election.id,
             "name": election.name,
             "status": election.status,
-        }
-        if election
-        else None,
+            "started_at": election.started_at,
+            "stopped_at": election.stopped_at,
+            "closed_at": election.closed_at,
+        },
         "votes": vote_items,
         "positions_voted": positions_voted,
         "positions_total": positions_total,
-        "positions_remaining": positions_total - positions_voted,
-        "ballot_complete": positions_voted == positions_total and positions_total > 0,
+        "positions_remaining": max(positions_total - positions_voted, 0),
+        "all_positions_voted": positions_voted == positions_total and positions_total > 0,
+        "can_vote": election.is_voting_open,
+        "election_ended": False,
     }

@@ -2,15 +2,17 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Play, Square, Lock, Plus, Vote } from 'lucide-react'
+import { ChevronRight, Lock, Play, Plus, Square, Trash2, Vote } from 'lucide-react'
 import {
   closeElection,
   createElection,
+  deleteElection,
   fetchElections,
   startElection,
   stopElection,
 } from '@/api/elections'
 import { getApiErrorMessage } from '@/api/client'
+import { ElectionResultsSheet } from '@/components/elections/ElectionResultsSheet'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -27,16 +29,20 @@ import { EmptyState } from '@/components/shared/EmptyState'
 import { ElectionStatusBadge } from '@/components/shared/StatusBadge'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { FormField } from '@/components/design-system/FormField'
+import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import { electionSchema, type ElectionForm } from '@/lib/form-schemas'
 import type { Election } from '@/types/api'
-import { formatDate } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
 import { toast } from 'sonner'
 
 export function ElectionsPage() {
   const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [closeTarget, setCloseTarget] = useState<Election | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Election | null>(null)
+  const [resultsElection, setResultsElection] = useState<Election | null>(null)
+  const [resultsOpen, setResultsOpen] = useState(false)
 
   const {
     register,
@@ -72,6 +78,7 @@ export function ElectionsPage() {
     onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({ queryKey: ['elections'] })
       void queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
+      void queryClient.invalidateQueries({ queryKey: ['members-deletion-status'] })
       if (variables.action === 'close') {
         setCloseTarget(null)
         toast.success('Election closed')
@@ -84,6 +91,18 @@ export function ElectionsPage() {
     onError: (error) => toast.error(getApiErrorMessage(error)),
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: deleteElection,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['elections'] })
+      void queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
+      void queryClient.invalidateQueries({ queryKey: ['members-deletion-status'] })
+      toast.success('Election deleted')
+      setDeleteTarget(null)
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error)),
+  })
+
   const openCreateDialog = () => {
     reset({ name: '' })
     setDialogOpen(true)
@@ -92,10 +111,16 @@ export function ElectionsPage() {
   const closeCreateDialog = () => {
     setDialogOpen(false)
     reset({ name: '' })
+    requestAnimationFrame(() => restoreBodyPointerEvents())
   }
 
   const onCreateSubmit = (values: ElectionForm) => {
     createMutation.mutate(values)
+  }
+
+  const openResults = (election: Election) => {
+    setResultsElection(election)
+    setResultsOpen(true)
   }
 
   const renderActions = (election: Election) => {
@@ -106,7 +131,10 @@ export function ElectionsPage() {
           key="start"
           size="sm"
           disabled={actionMutation.isPending}
-          onClick={() => actionMutation.mutate({ id: election.id, action: 'start' })}
+          onClick={(event) => {
+            event.stopPropagation()
+            actionMutation.mutate({ id: election.id, action: 'start' })
+          }}
         >
           <Play className="h-4 w-4" />
           Start
@@ -120,7 +148,10 @@ export function ElectionsPage() {
           size="sm"
           variant="outline"
           disabled={actionMutation.isPending}
-          onClick={() => actionMutation.mutate({ id: election.id, action: 'stop' })}
+          onClick={(event) => {
+            event.stopPropagation()
+            actionMutation.mutate({ id: election.id, action: 'stop' })
+          }}
         >
           <Square className="h-4 w-4" />
           Stop
@@ -134,10 +165,31 @@ export function ElectionsPage() {
           size="sm"
           variant="destructive"
           disabled={actionMutation.isPending}
-          onClick={() => setCloseTarget(election)}
+          onClick={(event) => {
+            event.stopPropagation()
+            setCloseTarget(election)
+          }}
         >
           <Lock className="h-4 w-4" />
           Close
+        </Button>,
+      )
+    }
+    if (election.status === 'CLOSED') {
+      actions.push(
+        <Button
+          key="delete"
+          size="sm"
+          variant="outline"
+          className="text-destructive hover:text-destructive"
+          disabled={deleteMutation.isPending}
+          onClick={(event) => {
+            event.stopPropagation()
+            setDeleteTarget(election)
+          }}
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete
         </Button>,
       )
     }
@@ -170,24 +222,51 @@ export function ElectionsPage() {
         />
       ) : (
         <div className="grid gap-4">
-          {elections.map((election) => (
-            <Card key={election.id}>
-              <CardHeader className="flex flex-row items-start justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-lg">{election.name}</CardTitle>
-                    <ElectionStatusBadge status={election.status} />
+          {elections.map((election) => {
+            const isClosed = election.status === 'CLOSED'
+
+            return (
+              <Card
+                key={election.id}
+                className={cn(
+                  isClosed && 'cursor-pointer transition-colors hover:bg-muted/30',
+                )}
+                onClick={() => isClosed && openResults(election)}
+                onKeyDown={(event) => {
+                  if (isClosed && (event.key === 'Enter' || event.key === ' ')) {
+                    event.preventDefault()
+                    openResults(election)
+                  }
+                }}
+                tabIndex={isClosed ? 0 : undefined}
+                role={isClosed ? 'button' : undefined}
+                aria-label={isClosed ? `View results for ${election.name}` : undefined}
+              >
+                <CardHeader className="flex flex-row items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-lg">{election.name}</CardTitle>
+                      <ElectionStatusBadge status={election.status} />
+                    </div>
+                    <CardDescription className="mt-1">
+                      Created {formatDate(election.created_at)}
+                      {election.started_at && ` · Started ${formatDate(election.started_at)}`}
+                      {election.closed_at && ` · Closed ${formatDate(election.closed_at)}`}
+                    </CardDescription>
+                    {isClosed ? (
+                      <p className="mt-2 flex items-center gap-1 text-sm text-primary">
+                        View full results
+                        <ChevronRight className="h-4 w-4" aria-hidden />
+                      </p>
+                    ) : null}
                   </div>
-                  <CardDescription className="mt-1">
-                    Created {formatDate(election.created_at)}
-                    {election.started_at && ` · Started ${formatDate(election.started_at)}`}
-                    {election.closed_at && ` · Closed ${formatDate(election.closed_at)}`}
-                  </CardDescription>
-                </div>
-                {renderActions(election)}
-              </CardHeader>
-            </Card>
-          ))}
+                  <div onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
+                    {renderActions(election)}
+                  </div>
+                </CardHeader>
+              </Card>
+            )
+          })}
         </div>
       )}
 
@@ -232,6 +311,23 @@ export function ElectionsPage() {
         onConfirm={() =>
           closeTarget && actionMutation.mutate({ id: closeTarget.id, action: 'close' })
         }
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete closed election?"
+        description={`Delete "${deleteTarget?.name}" and all associated vote records? Export reports first if you need a permanent archive.`}
+        confirmLabel="Delete election"
+        destructive
+        loading={deleteMutation.isPending}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+      />
+
+      <ElectionResultsSheet
+        election={resultsElection}
+        open={resultsOpen}
+        onOpenChange={setResultsOpen}
       />
     </div>
   )

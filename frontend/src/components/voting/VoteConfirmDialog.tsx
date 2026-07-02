@@ -1,5 +1,3 @@
-import { AlertTriangle } from 'lucide-react'
-import { optimizeCloudinaryUrl } from '@/lib/cloudinary'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,6 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { optimizeCloudinaryUrl } from '@/lib/cloudinary'
 
 interface VoteConfirmDialogProps {
   open: boolean
@@ -50,11 +49,9 @@ export function VoteConfirmDialog({
                   <p className="text-sm text-muted-foreground">{positionName}</p>
                 </div>
               </div>
-              <div className="flex gap-3 rounded-lg border border-warning/30 bg-warning/10 p-3 text-left" role="alert">
-                <AlertTriangle className="h-5 w-5 shrink-0 text-warning" aria-hidden="true" />
+              <div className="flex gap-3 rounded-lg border border-muted bg-muted/40 p-3 text-left">
                 <p className="text-sm text-foreground">
-                  <strong className="font-semibold">This cannot be changed.</strong> Your vote is
-                  recorded once per position and is irreversible.
+                  Once confirmed, your choice for this position cannot be changed.
                 </p>
               </div>
             </div>

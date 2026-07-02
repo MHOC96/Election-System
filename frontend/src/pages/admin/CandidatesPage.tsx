@@ -22,19 +22,14 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { NativeSelect } from '@/components/ui/native-select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { FormField } from '@/components/design-system/FormField'
+import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import { optimizeCloudinaryUrl } from '@/lib/cloudinary'
 import { candidateSchema, type CandidateForm } from '@/lib/form-schemas'
@@ -122,6 +117,7 @@ export function CandidatesPage() {
   const closeDialog = () => {
     setDialogOpen(false)
     setEditing(null)
+    requestAnimationFrame(() => restoreBodyPointerEvents())
   }
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -218,7 +214,7 @@ export function CandidatesPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeDialog()}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit Candidate' : 'New Candidate'}</DialogTitle>
@@ -230,36 +226,42 @@ export function CandidatesPage() {
             <FormField label="Full Name" error={errors.full_name?.message} required>
               <Input {...register('full_name')} />
             </FormField>
-            <FormField label="Academic Year" required>
-              <Select
+            <FormField
+              label="Academic Year"
+              htmlFor="academic_year"
+              error={errors.academic_year?.message}
+              required
+            >
+              <NativeSelect
+                id="academic_year"
                 value={academicYear}
-                onValueChange={(v) => setValue('academic_year', v as AcademicYear)}
+                onChange={(e) =>
+                  setValue('academic_year', e.target.value as AcademicYear, { shouldValidate: true })
+                }
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="2nd Year">2nd Year</SelectItem>
-                  <SelectItem value="3rd Year">3rd Year</SelectItem>
-                </SelectContent>
-              </Select>
+                <option value="2nd Year">2nd Year</option>
+                <option value="3rd Year">3rd Year</option>
+              </NativeSelect>
             </FormField>
-            <FormField label="Position" error={errors.position?.message} required>
-              <Select
-                value={positionId ? String(positionId) : ''}
-                onValueChange={(v) => setValue('position', Number(v))}
+            <FormField
+              label="Position"
+              htmlFor="position"
+              error={errors.position?.message}
+              required
+            >
+              <NativeSelect
+                id="position"
+                value={positionId ? String(positionId) : String(positions?.[0]?.id ?? '')}
+                onChange={(e) =>
+                  setValue('position', Number(e.target.value), { shouldValidate: true })
+                }
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select position" />
-                </SelectTrigger>
-                <SelectContent>
-                  {positions?.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {positions?.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </NativeSelect>
             </FormField>
             <FormField label="Profile Photo" error={errors.photo_url?.message} required>
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => void handlePhotoUpload(e)} />

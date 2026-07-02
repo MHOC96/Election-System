@@ -171,6 +171,42 @@ class MemberAPITestCase(TestCase):
         self.assertTrue(response.data["success"])
         self.assertFalse(User.objects.filter(pk=self.member.pk).exists())
 
+    def test_cannot_delete_member_during_active_election(self):
+        from voting.models import Election, ElectionStatus
+
+        Election.objects.create(name="Active Election", status=ElectionStatus.ACTIVE)
+        self._auth_as_admin()
+        response = self.client.delete(reverse("members-detail", kwargs={"pk": self.member.pk}))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_bulk_delete_members_after_election_closed(self):
+        from voting.models import Election, ElectionStatus
+
+        Election.objects.create(name="Closed Election", status=ElectionStatus.CLOSED)
+        extra = User.objects.create_user(
+            cpm_number="CPM902",
+            mc_number="member-pass-2",
+            role=UserRole.MEMBER,
+        )
+        self._auth_as_admin()
+        response = self.client.post(
+            reverse("members-bulk-delete"),
+            {"ids": [self.member.pk, extra.pk]},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["data"]["deleted"], 2)
+        self.assertFalse(User.objects.filter(pk__in=[self.member.pk, extra.pk]).exists())
+
+    def test_deletion_status_blocked_during_active_election(self):
+        from voting.models import Election, ElectionStatus
+
+        Election.objects.create(name="Active Election", status=ElectionStatus.ACTIVE)
+        self._auth_as_admin()
+        response = self.client.get(reverse("members-deletion-status"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["data"]["allowed"])
+
     def test_member_cannot_delete(self):
         response = self.client.post(
             reverse("auth-login"),

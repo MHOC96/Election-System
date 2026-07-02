@@ -29,15 +29,3 @@ export function ElectionStatusBadge({ status }: ElectionStatusBadgeProps) {
 
   return <Badge variant={variant}>{status}</Badge>
 }
-
-interface AuditActionBadgeProps {
-  action: string
-}
-
-export function AuditActionBadge({ action }: AuditActionBadgeProps) {
-  return (
-    <Badge variant="muted" className="font-mono text-[11px] font-medium uppercase tracking-wide">
-      {action}
-    </Badge>
-  )
-}

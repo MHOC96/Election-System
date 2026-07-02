@@ -6,8 +6,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.permissions import IsAdmin, IsAdminOrReadOnly
-from audit.models import AuditAction
-from audit.services.logger import log_action
 from candidates.models import Candidate
 from candidates.serializers import CandidatePhotoUploadSerializer, CandidateSerializer
 from candidates.services.cloudinary_service import upload_candidate_photo
@@ -28,17 +26,7 @@ class CandidateListCreateView(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        candidate = serializer.save()
-        log_action(
-            request=request,
-            action=AuditAction.CANDIDATE_CREATED,
-            actor=request.user,
-            metadata={
-                "candidate_id": candidate.id,
-                "full_name": candidate.full_name,
-                "position_id": candidate.position_id,
-            },
-        )
+        serializer.save()
         return Response(
             {"success": True, "data": serializer.data},
             status=status.HTTP_201_CREATED,
@@ -67,17 +55,7 @@ class PositionCandidateListCreateView(generics.ListCreateAPIView):
         data["position"] = position.pk
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
-        candidate = serializer.save()
-        log_action(
-            request=request,
-            action=AuditAction.CANDIDATE_CREATED,
-            actor=request.user,
-            metadata={
-                "candidate_id": candidate.id,
-                "full_name": candidate.full_name,
-                "position_id": candidate.position_id,
-            },
-        )
+        serializer.save()
         return Response(
             {"success": True, "data": serializer.data},
             status=status.HTTP_201_CREATED,
@@ -103,34 +81,13 @@ class CandidateDetailView(generics.RetrieveUpdateDestroyAPIView):
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        log_action(
-            request=request,
-            action=AuditAction.CANDIDATE_UPDATED,
-            actor=request.user,
-            metadata={
-                "candidate_id": instance.id,
-                "full_name": instance.full_name,
-                "position_id": instance.position_id,
-            },
-        )
         return Response({"success": True, "data": serializer.data})
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         if instance.has_votes():
             raise ValidationError("Cannot delete a candidate who has received votes.")
-        metadata = {
-            "candidate_id": instance.id,
-            "full_name": instance.full_name,
-            "position_id": instance.position_id,
-        }
         instance.delete()
-        log_action(
-            request=request,
-            action=AuditAction.CANDIDATE_DELETED,
-            actor=request.user,
-            metadata=metadata,
-        )
         return Response(
             {"success": True, "message": "Candidate deleted successfully."},
             status=status.HTTP_200_OK,
@@ -171,16 +128,6 @@ class CandidatePhotoUploadView(APIView):
                 },
                 status=status.HTTP_502_BAD_GATEWAY,
             )
-
-        log_action(
-            request=request,
-            action=AuditAction.CANDIDATE_PHOTO_UPLOADED,
-            actor=request.user,
-            metadata={
-                "public_id": result.get("public_id"),
-                "photo_url": result.get("photo_url"),
-            },
-        )
 
         return Response(
             {"success": True, "data": result},

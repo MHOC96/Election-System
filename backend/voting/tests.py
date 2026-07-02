@@ -72,6 +72,40 @@ class ElectionLifecycleTestCase(TestCase):
         response = self.client.post(reverse("elections-close", kwargs={"pk": election.pk}))
         self.assertEqual(response.data["data"]["status"], ElectionStatus.CLOSED)
 
+    def test_delete_closed_election_cascades_votes(self):
+        from accounts.models import User, UserRole
+        from candidates.models import AcademicYear, Candidate
+        from positions.models import Position
+
+        position = Position.objects.create(name="President")
+        candidate = Candidate.objects.create(
+            full_name="Alice",
+            academic_year=AcademicYear.SECOND_YEAR,
+            photo_url="https://res.cloudinary.com/demo/image/upload/v1/a.jpg",
+            position=position,
+        )
+        member = User.objects.create_user(
+            cpm_number="CPM310",
+            mc_number="member-pass",
+            role=UserRole.MEMBER,
+        )
+        election = Election.objects.create(name="Closed Election", status=ElectionStatus.CLOSED)
+        Vote.objects.create(
+            member=member,
+            position=position,
+            candidate=candidate,
+            election=election,
+        )
+        response = self.client.delete(reverse("elections-detail", kwargs={"pk": election.pk}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(Election.objects.filter(pk=election.pk).exists())
+        self.assertFalse(Vote.objects.filter(election_id=election.pk).exists())
+
+    def test_cannot_delete_active_election(self):
+        election = Election.objects.create(name="Active Election", status=ElectionStatus.ACTIVE)
+        response = self.client.delete(reverse("elections-detail", kwargs={"pk": election.pk}))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
 
 class VotingTestCase(TestCase):
     def setUp(self):
@@ -191,11 +225,34 @@ class VotingTestCase(TestCase):
         self._login("CPM301", "member-pass")
         response = self.client.get(reverse("votes-ballot"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data["data"]["ballot"][0]["has_voted"])
+        self.assertTrue(response.data["data"]["positions"][0]["has_voted"])
         self.assertEqual(
-            response.data["data"]["ballot"][0]["my_candidate_id"],
+            response.data["data"]["positions"][0]["my_candidate_id"],
             self.candidate.pk,
         )
+
+    def test_ballot_available_when_election_stopped(self):
+        self.election.status = ElectionStatus.STOPPED
+        self.election.save()
+        self._login("CPM301", "member-pass")
+        response = self.client.get(reverse("votes-ballot"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["data"]["can_vote"])
+        self.assertEqual(response.data["data"]["election"]["status"], ElectionStatus.STOPPED)
+
+    def test_my_status_hidden_after_election_closed(self):
+        submit_vote(
+            member=self.member,
+            position_id=self.position.pk,
+            candidate_id=self.candidate.pk,
+        )
+        self.election.status = ElectionStatus.CLOSED
+        self.election.save()
+        self._login("CPM301", "member-pass")
+        response = self.client.get(reverse("votes-my-status"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["data"]["election_ended"])
+        self.assertEqual(response.data["data"]["votes"], [])
 
     def test_votes_are_immutable(self):
         vote = submit_vote(

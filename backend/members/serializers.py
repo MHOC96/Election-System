@@ -16,27 +16,21 @@ class MemberUpdateSerializer(serializers.ModelSerializer):
         fields = ("cpm_number", "mc_number", "is_active")
 
     def validate_cpm_number(self, value):
-        cpm_number = value.strip().upper()
-        if not cpm_number:
-            raise serializers.ValidationError("CPM Number is required.")
-        duplicate = User.objects.filter(cpm_number=cpm_number).exclude(pk=self.instance.pk)
-        if duplicate.exists():
-            raise serializers.ValidationError("CPM Number already exists.")
-        return cpm_number
-
-    def validate_mc_number(self, value):
-        mc_number = value.strip()
-        if not mc_number:
-            raise serializers.ValidationError("MC Number is required.")
-        return mc_number
+        normalized = value.strip().upper()
+        queryset = User.objects.filter(cpm_number__iexact=normalized)
+        if self.instance:
+            queryset = queryset.exclude(pk=self.instance.pk)
+        if queryset.exists():
+            raise serializers.ValidationError("A user with this CPM number already exists.")
+        return normalized
 
     def update(self, instance, validated_data):
         mc_number = validated_data.pop("mc_number", None)
-        for field, value in validated_data.items():
-            setattr(instance, field, value)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
         if mc_number is not None:
-            instance.mc_number = mc_number
             instance.set_password(mc_number)
+            instance.mc_number = mc_number
         instance.save()
         return instance
 
@@ -44,12 +38,10 @@ class MemberUpdateSerializer(serializers.ModelSerializer):
 class MemberImportSerializer(serializers.Serializer):
     file = serializers.FileField()
 
-    def validate_file(self, uploaded_file):
-        from members.services.import_service import validate_import_file
 
-        try:
-            validate_import_file(uploaded_file)
-        except ValueError as exc:
-            raise serializers.ValidationError(str(exc)) from exc
-        uploaded_file.seek(0)
-        return uploaded_file
+class MemberBulkDeleteSerializer(serializers.Serializer):
+    ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        allow_empty=False,
+        max_length=500,
+    )

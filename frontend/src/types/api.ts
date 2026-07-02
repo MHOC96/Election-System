@@ -90,12 +90,14 @@ export interface BallotItem {
 }
 
 export interface Ballot {
-  election: Election
-  ballot: BallotItem[]
+  election: Election | null
+  positions: BallotItem[]
+  can_vote: boolean
+  election_ended: boolean
 }
 
 export interface VoteStatus {
-  election: Pick<Election, 'id' | 'name' | 'status'> | null
+  election: Pick<Election, 'id' | 'name' | 'status' | 'started_at' | 'stopped_at' | 'closed_at'> | null
   votes: {
     position_id: number
     position_name: string
@@ -106,7 +108,9 @@ export interface VoteStatus {
   positions_voted: number
   positions_total: number
   positions_remaining: number
-  ballot_complete: boolean
+  all_positions_voted: boolean
+  can_vote: boolean
+  election_ended: boolean
 }
 
 export interface DashboardSummary {
@@ -154,16 +158,6 @@ export interface LiveStats {
   }[]
   highest_voted_overall: CandidateRanking | null
   cached_seconds?: number
-}
-
-export interface AuditLog {
-  id: number
-  actor_id: number | null
-  actor_cpm_number: string | null
-  action: string
-  ip_address: string | null
-  metadata?: Record<string, unknown>
-  created_at: string
 }
 
 export type ReportType = 'results' | 'candidates' | 'turnout' | 'participation'

@@ -44,6 +44,30 @@ class Election(models.Model):
     def get_active(cls):
         return cls.objects.filter(status=ElectionStatus.ACTIVE).first()
 
+    @classmethod
+    def get_ongoing(cls):
+        """Election in progress — members may view details and their votes until closed."""
+        active = cls.objects.filter(status=ElectionStatus.ACTIVE).first()
+        if active:
+            return active
+        return (
+            cls.objects.filter(status=ElectionStatus.STOPPED)
+            .order_by("-stopped_at", "-updated_at")
+            .first()
+        )
+
+    @classmethod
+    def get_recently_closed(cls):
+        return (
+            cls.objects.filter(status=ElectionStatus.CLOSED)
+            .order_by("-closed_at", "-updated_at")
+            .first()
+        )
+
+    @property
+    def is_voting_open(self):
+        return self.status == ElectionStatus.ACTIVE
+
     def can_start(self):
         return self.status in (ElectionStatus.DRAFT, ElectionStatus.STOPPED)
 

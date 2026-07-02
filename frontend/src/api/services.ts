@@ -8,7 +8,6 @@ import {
   downloadReport as downloadReportFile,
 } from '@/api/client'
 import type {
-  AuditLog,
   Ballot,
   Candidate,
   DashboardSummary,
@@ -90,11 +89,6 @@ export const candidatesApi = {
 export const dashboardApi = {
   summary: () => apiGet<DashboardSummary>('/dashboard/summary/'),
   liveStats: () => apiGet<LiveStats>('/dashboard/live-stats/'),
-}
-
-export const auditApi = {
-  list: (params?: Record<string, string>) =>
-    apiGet<Paginated<AuditLog>>('/audit-logs/', params),
 }
 
 export const downloadReport = downloadReportFile

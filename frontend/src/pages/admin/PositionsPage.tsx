@@ -21,6 +21,7 @@ import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { FormField } from '@/components/design-system/FormField'
+import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import { positionSchema, type PositionForm } from '@/lib/form-schemas'
 import type { Position } from '@/types/api'
@@ -86,6 +87,7 @@ export function PositionsPage() {
     setDialogOpen(false)
     setEditing(null)
     reset({ name: '' })
+    requestAnimationFrame(() => restoreBodyPointerEvents())
   }
 
   const onSubmit = (values: PositionForm) => {

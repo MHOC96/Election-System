@@ -15,9 +15,6 @@ const AdminDashboardPage = lazy(() =>
 const BallotPage = lazy(() =>
   import('@/pages/member/BallotPage').then((m) => ({ default: m.BallotPage })),
 )
-const MyVotesPage = lazy(() =>
-  import('@/pages/member/MyVotesPage').then((m) => ({ default: m.MyVotesPage })),
-)
 const ElectionsPage = lazy(() =>
   import('@/pages/admin/ElectionsPage').then((m) => ({ default: m.ElectionsPage })),
 )
@@ -32,12 +29,6 @@ const CandidatesPage = lazy(() =>
 )
 const ReportsPage = lazy(() =>
   import('@/pages/admin/ReportsPage').then((m) => ({ default: m.ReportsPage })),
-)
-const AuditPage = lazy(() =>
-  import('@/pages/admin/AuditPage').then((m) => ({ default: m.AuditPage })),
-)
-const LiveStatsPage = lazy(() =>
-  import('@/pages/admin/LiveStatsPage').then((m) => ({ default: m.LiveStatsPage })),
 )
 
 const queryClient = new QueryClient({
@@ -63,7 +54,7 @@ export default function App() {
               <Route element={<ProtectedRoute allowedRoles={['MEMBER']} />}>
                 <Route element={<MemberLayout />}>
                   <Route path="/vote" element={<BallotPage />} />
-                  <Route path="/my-votes" element={<MyVotesPage />} />
+                  <Route path="/my-votes" element={<Navigate to="/vote" replace />} />
                 </Route>
               </Route>
 
@@ -75,8 +66,7 @@ export default function App() {
                   <Route path="candidates" element={<CandidatesPage />} />
                   <Route path="elections" element={<ElectionsPage />} />
                   <Route path="reports" element={<ReportsPage />} />
-                  <Route path="audit" element={<AuditPage />} />
-                  <Route path="live" element={<LiveStatsPage />} />
+                  <Route path="live" element={<Navigate to="/admin" replace />} />
                 </Route>
               </Route>
 

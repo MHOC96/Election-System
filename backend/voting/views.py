@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework import generics, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -5,14 +6,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.permissions import IsAdmin, IsVoter
-from audit.models import AuditAction
-from audit.services.logger import log_action
 from candidates.models import Candidate
 from candidates.serializers import CandidateSerializer
 from dashboard.services.stats_service import invalidate_dashboard_cache
 from positions.models import Position
 from positions.serializers import PositionSerializer
-from voting.models import Election, ElectionStatus
+from voting.models import Election, ElectionStatus, Vote
 from voting.serializers import ElectionSerializer, VoteSubmitSerializer
 from voting.services.vote_service import VoteError, get_member_vote_status, submit_vote
 from voting.throttling import VoteRateThrottle
@@ -26,13 +25,7 @@ class ElectionListCreateView(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        election = serializer.save()
-        log_action(
-            request=request,
-            action=AuditAction.ELECTION_CREATED,
-            actor=request.user,
-            metadata={"election_id": election.id, "name": election.name},
-        )
+        serializer.save()
         invalidate_dashboard_cache()
         return Response(
             {"success": True, "data": serializer.data},
@@ -44,7 +37,7 @@ class ElectionListCreateView(generics.ListCreateAPIView):
         return Response({"success": True, "data": response.data})
 
 
-class ElectionDetailView(generics.RetrieveAPIView):
+class ElectionDetailView(generics.RetrieveDestroyAPIView):
     permission_classes = [IsAdmin]
     serializer_class = ElectionSerializer
     queryset = Election.objects.all()
@@ -52,6 +45,23 @@ class ElectionDetailView(generics.RetrieveAPIView):
     def retrieve(self, request, *args, **kwargs):
         serializer = self.get_serializer(self.get_object())
         return Response({"success": True, "data": serializer.data})
+
+    def destroy(self, request, *args, **kwargs):
+        election = self.get_object()
+        if election.status != ElectionStatus.CLOSED:
+            raise ValidationError("Only closed elections can be deleted.")
+
+        election_id = election.id
+
+        with transaction.atomic():
+            Vote.objects.filter(election=election).delete()
+            election.delete()
+
+        invalidate_dashboard_cache(election_id)
+        return Response(
+            {"success": True, "message": "Election deleted successfully."},
+            status=status.HTTP_200_OK,
+        )
 
 
 class ElectionStartView(APIView):
@@ -63,12 +73,6 @@ class ElectionStartView(APIView):
             election.start()
         except ValueError as exc:
             raise ValidationError(str(exc)) from exc
-        log_action(
-            request=request,
-            action=AuditAction.ELECTION_STARTED,
-            actor=request.user,
-            metadata={"election_id": election.id, "name": election.name, "status": election.status},
-        )
         invalidate_dashboard_cache(election.id)
         return Response(
             {"success": True, "data": ElectionSerializer(election).data},
@@ -85,12 +89,6 @@ class ElectionStopView(APIView):
             election.stop()
         except ValueError as exc:
             raise ValidationError(str(exc)) from exc
-        log_action(
-            request=request,
-            action=AuditAction.ELECTION_STOPPED,
-            actor=request.user,
-            metadata={"election_id": election.id, "name": election.name, "status": election.status},
-        )
         invalidate_dashboard_cache(election.id)
         return Response(
             {"success": True, "data": ElectionSerializer(election).data},
@@ -107,12 +105,6 @@ class ElectionCloseView(APIView):
             election.close()
         except ValueError as exc:
             raise ValidationError(str(exc)) from exc
-        log_action(
-            request=request,
-            action=AuditAction.ELECTION_CLOSED,
-            actor=request.user,
-            metadata={"election_id": election.id, "name": election.name, "status": election.status},
-        )
         invalidate_dashboard_cache(election.id)
         return Response(
             {"success": True, "data": ElectionSerializer(election).data},
@@ -167,18 +159,6 @@ class VoteSubmitView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        log_action(
-            request=request,
-            action=AuditAction.VOTE_SUBMITTED,
-            actor=request.user,
-            metadata={
-                "vote_id": vote.id,
-                "election_id": vote.election_id,
-                "position_id": vote.position_id,
-                "candidate_id": vote.candidate_id,
-            },
-        )
-
         return Response(
             {
                 "success": True,
@@ -197,34 +177,36 @@ class VoteSubmitView(APIView):
 
 
 class MyVoteStatusView(APIView):
-    """Members see only their own votes."""
+    """Members see their own votes only while an election is ongoing (not after close)."""
 
     permission_classes = [IsVoter]
 
     def get(self, request):
-        election = Election.get_active()
+        election = Election.get_ongoing()
         status_data = get_member_vote_status(request.user, election)
         return Response({"success": True, "data": status_data})
 
 
 class BallotView(APIView):
-    """Ballot for active election — positions, candidates, and member's own vote status."""
+    """Positions, candidates, and member vote status for the ongoing election."""
 
     permission_classes = [IsVoter]
 
     def get(self, request):
-        election = Election.get_active()
+        election = Election.get_ongoing()
         if election is None:
+            recently_closed = Election.get_recently_closed()
             return Response(
                 {
-                    "success": False,
-                    "error": {
-                        "code": "election_not_active",
-                        "message": "No active election.",
-                        "details": None,
+                    "success": True,
+                    "data": {
+                        "election": None,
+                        "positions": [],
+                        "can_vote": False,
+                        "election_ended": recently_closed is not None,
                     },
                 },
-                status=status.HTTP_400_BAD_REQUEST,
+                status=status.HTTP_200_OK,
             )
 
         member_votes = {
@@ -235,11 +217,11 @@ class BallotView(APIView):
         }
 
         positions = Position.objects.prefetch_related("candidates").order_by("name")
-        ballot = []
+        position_items = []
         for position in positions:
             candidates = position.candidates.all()
             my_candidate_id = member_votes.get(position.id)
-            ballot.append(
+            position_items.append(
                 {
                     "position": PositionSerializer(position).data,
                     "candidates": CandidateSerializer(candidates, many=True).data,
@@ -253,7 +235,9 @@ class BallotView(APIView):
                 "success": True,
                 "data": {
                     "election": ElectionSerializer(election).data,
-                    "ballot": ballot,
+                    "positions": position_items,
+                    "can_vote": election.is_voting_open,
+                    "election_ended": False,
                 },
             },
             status=status.HTTP_200_OK,

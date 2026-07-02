@@ -1,9 +1,17 @@
 from django.urls import path
 
-from members.views import MemberDetailView, MemberImportView, MemberListView
+from members.views import (
+    MemberBulkDeleteView,
+    MemberDeletionStatusView,
+    MemberDetailView,
+    MemberImportView,
+    MemberListView,
+)
 
 urlpatterns = [
     path("import/", MemberImportView.as_view(), name="members-import"),
+    path("deletion-status/", MemberDeletionStatusView.as_view(), name="members-deletion-status"),
+    path("bulk-delete/", MemberBulkDeleteView.as_view(), name="members-bulk-delete"),
     path("", MemberListView.as_view(), name="members-list"),
     path("<int:pk>/", MemberDetailView.as_view(), name="members-detail"),
 ]

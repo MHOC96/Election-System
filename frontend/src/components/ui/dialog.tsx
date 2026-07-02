@@ -1,12 +1,59 @@
 import * as React from 'react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
+import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { cn } from '@/lib/utils'
 
 const Dialog = DialogPrimitive.Root
 const DialogTrigger = DialogPrimitive.Trigger
 const DialogPortal = DialogPrimitive.Portal
 const DialogClose = DialogPrimitive.Close
+
+function isPortaledSelectLayer(element: Element): boolean {
+  return (
+    element.closest('[data-radix-select-content]') !== null ||
+    element.closest('[data-radix-select-viewport]') !== null ||
+    element.closest('[data-radix-popper-content-wrapper]') !== null ||
+    element.closest('[role="listbox"]') !== null
+  )
+}
+
+/** Prevent dialog dismiss when interacting with portaled Radix layers (Select, etc.). */
+function preventPortaledOverlayDismiss(event: Event) {
+  const target = event.target
+  if (target instanceof Element && isPortaledSelectLayer(target)) {
+    event.preventDefault()
+    return
+  }
+
+  const active = document.activeElement
+  if (active instanceof Element && isPortaledSelectLayer(active)) {
+    event.preventDefault()
+  }
+}
+
+function preventStalePointerEventsDismiss(event: Event) {
+  if (document.body.style.pointerEvents === 'none') {
+    restoreBodyPointerEvents()
+    event.preventDefault()
+  }
+}
+
+function preventInDialogFieldDismiss(event: Event) {
+  const detail = (event as CustomEvent<{ originalEvent: Event }>).detail
+  const target = detail?.originalEvent?.target
+  if (!(target instanceof Element)) return
+
+  if (
+    target.closest('[role="dialog"]') &&
+    (target.closest('[role="combobox"]') ||
+      target.closest('input') ||
+      target.closest('textarea') ||
+      target.closest('button'))
+  ) {
+    event.preventDefault()
+  }
+}
 
 const DialogOverlay = React.forwardRef<
   React.ComponentRef<typeof DialogPrimitive.Overlay>,
@@ -23,15 +70,36 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 const DialogContent = React.forwardRef<
   React.ComponentRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+>(({ className, children, onPointerDownOutside, onInteractOutside, onFocusOutside, onCloseAutoFocus, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 sm:rounded-lg',
+        'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 overflow-visible border bg-background p-6 shadow-lg duration-200 sm:rounded-lg',
         className,
       )}
+      onPointerDownOutside={(event) => {
+        preventStalePointerEventsDismiss(event)
+        preventInDialogFieldDismiss(event)
+        preventPortaledOverlayDismiss(event)
+        onPointerDownOutside?.(event)
+        if (!event.defaultPrevented) {
+          requestAnimationFrame(() => restoreBodyPointerEvents())
+        }
+      }}
+      onInteractOutside={(event) => {
+        preventPortaledOverlayDismiss(event)
+        onInteractOutside?.(event)
+      }}
+      onFocusOutside={(event) => {
+        preventPortaledOverlayDismiss(event)
+        onFocusOutside?.(event)
+      }}
+      onCloseAutoFocus={(event) => {
+        onCloseAutoFocus?.(event)
+        restoreBodyPointerEvents()
+      }}
       {...props}
     >
       {children}

@@ -1,4 +1,4 @@
-import { Children, cloneElement, isValidElement, useId } from 'react'
+import { Children, cloneElement, isValidElement, useId, type ReactElement } from 'react'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 
@@ -10,6 +10,20 @@ interface FormFieldProps {
   required?: boolean
   className?: string
   children: React.ReactNode
+}
+
+function canEnhanceFieldChild(child: ReactElement): boolean {
+  if (typeof child.type === 'string') return true
+
+  const props = child.props as Record<string, unknown>
+  if ('onValueChange' in props) return false
+
+  const typeName =
+    (child.type as { displayName?: string; name?: string }).displayName ??
+    (child.type as { name?: string }).name ??
+    ''
+
+  return !['Root', 'Select'].includes(typeName)
 }
 
 export function FormField({
@@ -28,15 +42,20 @@ export function FormField({
   const describedBy =
     [error ? errorId : null, hint && !error ? hintId : null].filter(Boolean).join(' ') || undefined
 
-  const child = Children.only(children)
-  const enhancedChild =
-    isValidElement(child) &&
-    cloneElement(child as React.ReactElement<Record<string, unknown>>, {
-      id: (child.props as { id?: string }).id ?? fieldId,
-      'aria-invalid': error ? true : undefined,
-      'aria-required': required ? true : undefined,
-      'aria-describedby': describedBy,
-    })
+  const childCount = Children.count(children)
+  let fieldContent: React.ReactNode = children
+
+  if (childCount === 1) {
+    const child = Children.only(children)
+    if (isValidElement(child) && canEnhanceFieldChild(child)) {
+      fieldContent = cloneElement(child as React.ReactElement<Record<string, unknown>>, {
+        id: (child.props as { id?: string }).id ?? fieldId,
+        'aria-invalid': error ? true : undefined,
+        'aria-required': required ? true : undefined,
+        'aria-describedby': describedBy,
+      })
+    }
+  }
 
   return (
     <div className={cn('space-y-2', className)}>
@@ -48,7 +67,7 @@ export function FormField({
           </span>
         ) : null}
       </Label>
-      {enhancedChild || children}
+      {fieldContent}
       {hint && !error ? (
         <p id={hintId} className="text-xs text-muted-foreground">
           {hint}
