@@ -1,17 +1,23 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Pencil, Plus, Trash2, UserCheck } from 'lucide-react'
+import { AlertTriangle, Plus, Trash2, UserCheck } from 'lucide-react'
 import {
+  clearAllCandidates,
   createCandidate,
   deleteCandidate,
   fetchCandidates,
   updateCandidate,
   uploadCandidatePhoto,
 } from '@/api/candidates'
+import { fetchMemberDeletionStatus } from '@/api/members'
 import { fetchPositions } from '@/api/positions'
 import { getApiErrorMessage } from '@/api/client'
+import {
+  buildPositionCandidateGroups,
+  CandidatePositionGroups,
+} from '@/components/candidates/CandidatePositionGroups'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -24,15 +30,16 @@ import {
 import { Input } from '@/components/ui/input'
 import { NativeSelect } from '@/components/ui/native-select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { sectionDelays, Stagger } from '@/components/motion/Stagger'
 import { FormField } from '@/components/design-system/FormField'
 import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import { optimizeCloudinaryUrl } from '@/lib/cloudinary'
 import { candidateSchema, type CandidateForm } from '@/lib/form-schemas'
+import { fetchAndSetQueryData } from '@/lib/query-sync'
 import type { AcademicYear, Candidate } from '@/types/api'
 import { toast } from 'sonner'
 
@@ -42,17 +49,38 @@ export function CandidatesPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Candidate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Candidate | null>(null)
+  const [clearAllOpen, setClearAllOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
 
-  const { data: candidates, isLoading } = useQuery({
+  const { data: candidates, isLoading: candidatesLoading, isFetching } = useQuery({
     queryKey: ['candidates'],
     queryFn: () => fetchCandidates(),
   })
 
-  const { data: positions } = useQuery({
+  const { data: positions, isLoading: positionsLoading } = useQuery({
     queryKey: ['positions'],
     queryFn: fetchPositions,
   })
+
+  const { data: deletionStatus, isLoading: deletionStatusLoading } = useQuery({
+    queryKey: ['members-deletion-status'],
+    queryFn: fetchMemberDeletionStatus,
+    refetchInterval: 30_000,
+    staleTime: 0,
+  })
+
+  const canClearCandidates = deletionStatus?.allowed === true
+  const showDeletionBlockedNotice =
+    !deletionStatusLoading && deletionStatus !== undefined && !deletionStatus.allowed
+  const totalCandidates = candidates?.length ?? 0
+
+  const groupedCandidates = useMemo(
+    () => buildPositionCandidateGroups(positions, candidates),
+    [positions, candidates],
+  )
+
+  const refreshCandidates = () =>
+    fetchAndSetQueryData(queryClient, ['candidates'], () => fetchCandidates())
 
   const {
     register,
@@ -75,8 +103,9 @@ export function CandidatesPage() {
       if (editing) return updateCandidate(editing.id, data)
       return createCandidate(data)
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['candidates'] })
+    onSuccess: async () => {
+      await refreshCandidates()
+      void queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] })
       toast.success(editing ? 'Candidate updated' : 'Candidate created')
       closeDialog()
     },
@@ -85,21 +114,68 @@ export function CandidatesPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteCandidate(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['candidates'] })
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['candidates'] })
+      const previous = queryClient.getQueryData<Candidate[]>(['candidates'])
+      queryClient.setQueryData<Candidate[]>(['candidates'], (old) =>
+        (old ?? []).filter((candidate) => candidate.id !== id),
+      )
+      return { previous }
+    },
+    onSuccess: async () => {
+      await refreshCandidates()
+      void queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] })
       toast.success('Candidate deleted')
       setDeleteTarget(null)
     },
-    onError: (error) => toast.error(getApiErrorMessage(error)),
+    onError: (error, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['candidates'], context.previous)
+      }
+      toast.error(getApiErrorMessage(error))
+    },
   })
 
-  const openCreate = () => {
+  const clearAllMutation = useMutation({
+    mutationFn: clearAllCandidates,
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['candidates'] })
+      queryClient.setQueryData<Candidate[]>(['candidates'], [])
+      setClearAllOpen(false)
+    },
+    onSuccess: async (result) => {
+      await refreshCandidates()
+      void queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] })
+      if (result.deleted === 0 && result.skipped.length === 0) {
+        toast.info('No candidates to remove')
+      } else if (result.skipped.length > 0) {
+        toast.warning(
+          `Removed ${result.deleted} candidate${result.deleted === 1 ? '' : 's'}. ${result.skipped.length} skipped because they have votes.`,
+        )
+      } else {
+        toast.success(
+          `Removed all ${result.deleted} candidate${result.deleted === 1 ? '' : 's'}`,
+        )
+      }
+    },
+    onError: (error) => {
+      void queryClient.invalidateQueries({ queryKey: ['candidates'] })
+      toast.error(getApiErrorMessage(error))
+    },
+  })
+
+  const openCreate = (preferredPositionId?: number) => {
     if (!positions?.length) {
       toast.error('Create a position first')
       return
     }
     setEditing(null)
-    reset({ full_name: '', academic_year: '2nd Year', position: positions[0].id, photo_url: '' })
+    reset({
+      full_name: '',
+      academic_year: '2nd Year',
+      position: preferredPositionId ?? positions[0].id,
+      photo_url: '',
+    })
     setDialogOpen(true)
   }
 
@@ -136,88 +212,86 @@ export function CandidatesPage() {
     }
   }
 
+  const isLoading = candidatesLoading || positionsLoading
+  const isRefreshing =
+    isFetching &&
+    !!candidates &&
+    !saveMutation.isPending &&
+    !deleteMutation.isPending &&
+    !clearAllMutation.isPending
+  const hasPositions = (positions?.length ?? 0) > 0
+
   return (
     <div className={pageLayoutClass}>
-      <PageHeader
-        title="Candidates"
-        description="Manage election candidates"
-        action={
-          <Button onClick={openCreate} disabled={!positions?.length}>
-            <Plus className="h-4 w-4" />
-            Add Candidate
-          </Button>
-        }
-      />
+      <Stagger delayMs={sectionDelays.header}>
+        <PageHeader
+          title="Candidates"
+          description="Candidates grouped by executive position"
+          action={
+            <>
+              {canClearCandidates && totalCandidates > 0 ? (
+                <Button
+                  variant="outline"
+                  className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => setClearAllOpen(true)}
+                  disabled={clearAllMutation.isPending}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Clear all candidates
+                </Button>
+              ) : null}
+              <Button onClick={() => openCreate()} disabled={!hasPositions}>
+                <Plus className="h-4 w-4" />
+                Add candidate
+              </Button>
+            </>
+          }
+        />
+      </Stagger>
 
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="space-y-2 p-6">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          ) : !candidates?.length ? (
-            <EmptyState
-              icon={UserCheck}
-              title="No candidates"
-              description="Add candidates for each position. Photos are uploaded to Cloudinary."
-            />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Photo</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Year</TableHead>
-                  <TableHead>Position</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {candidates.map((candidate) => (
-                  <TableRow key={candidate.id}>
-                    <TableCell>
-                      <img
-                        src={optimizeCloudinaryUrl(candidate.photo_url, 80)}
-                        alt={candidate.full_name}
-                        loading="lazy"
-                        decoding="async"
-                        className="h-10 w-10 rounded-full object-cover"
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium">{candidate.full_name}</TableCell>
-                    <TableCell>{candidate.academic_year}</TableCell>
-                    <TableCell>{candidate.position_name}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openEdit(candidate)}
-                        aria-label={`Edit ${candidate.full_name}`}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeleteTarget(candidate)}
-                        aria-label={`Delete ${candidate.full_name}`}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      {showDeletionBlockedNotice ? (
+        <Stagger delayMs={sectionDelays.primary}>
+          <Card className="border-warning/40 bg-warning/5">
+            <CardContent className="flex items-start gap-3 py-4">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden />
+              <p className="text-sm text-muted-foreground">
+                Clearing candidates is disabled while an election is active or paused. Close the
+                current election to remove all candidates.
+              </p>
+            </CardContent>
+          </Card>
+        </Stagger>
+      ) : null}
+
+      <Stagger delayMs={showDeletionBlockedNotice ? sectionDelays.secondary : sectionDelays.primary}>
+        <Card className={isRefreshing ? 'opacity-80 transition-opacity' : undefined}>
+          <CardContent className="p-4 sm:p-6">
+            {isLoading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-24 w-full rounded-xl" />
+                <Skeleton className="h-24 w-full rounded-xl" />
+              </div>
+            ) : !hasPositions ? (
+              <EmptyState
+                icon={UserCheck}
+                title="No positions yet"
+                description="Create executive positions first, then add candidates to each group."
+              />
+            ) : (
+              <CandidatePositionGroups
+                groups={groupedCandidates}
+                onEdit={openEdit}
+                onDelete={setDeleteTarget}
+              />
+            )}
+          </CardContent>
+        </Card>
+      </Stagger>
 
       <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeDialog()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editing ? 'Edit Candidate' : 'New Candidate'}</DialogTitle>
+            <DialogTitle>{editing ? 'Edit candidate' : 'New candidate'}</DialogTitle>
           </DialogHeader>
           <form
             onSubmit={(e) => void handleSubmit((data) => saveMutation.mutate(data))(e)}
@@ -264,12 +338,23 @@ export function CandidatesPage() {
               </NativeSelect>
             </FormField>
             <FormField label="Profile Photo" error={errors.photo_url?.message} required>
-              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => void handlePhotoUpload(e)} />
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => void handlePhotoUpload(e)}
+              />
               <div className="flex items-center gap-3">
-                <Button type="button" variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading}>
-                  {uploading ? 'Uploading...' : 'Upload Photo'}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {uploading ? 'Uploading…' : 'Upload photo'}
                 </Button>
-                {photoUrl && (
+                {photoUrl ? (
                   <img
                     src={optimizeCloudinaryUrl(photoUrl, 96)}
                     alt="Preview"
@@ -277,7 +362,7 @@ export function CandidatesPage() {
                     decoding="async"
                     className="h-12 w-12 rounded-full object-cover"
                   />
-                )}
+                ) : null}
               </div>
             </FormField>
             <DialogFooter>
@@ -285,7 +370,7 @@ export function CandidatesPage() {
                 Cancel
               </Button>
               <Button type="submit" disabled={saveMutation.isPending}>
-                Save
+                {saveMutation.isPending ? 'Saving…' : 'Save'}
               </Button>
             </DialogFooter>
           </form>
@@ -295,12 +380,23 @@ export function CandidatesPage() {
       <ConfirmDialog
         open={!!deleteTarget}
         title="Delete candidate?"
-        description={`Delete ${deleteTarget?.full_name}? Candidates with votes cannot be deleted.`}
-        confirmLabel="Delete"
+        description={`Remove ${deleteTarget?.full_name} from ${deleteTarget?.position_name}? Candidates who have received votes cannot be deleted.`}
+        confirmLabel="Delete candidate"
         destructive
         loading={deleteMutation.isPending}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+      />
+
+      <ConfirmDialog
+        open={clearAllOpen}
+        title="Clear all candidates?"
+        description={`This permanently removes all ${totalCandidates.toLocaleString()} candidate(s) without votes. Candidates who have received votes will be skipped. This cannot be undone.`}
+        confirmLabel="Clear all candidates"
+        destructive
+        loading={clearAllMutation.isPending}
+        onCancel={() => setClearAllOpen(false)}
+        onConfirm={() => clearAllMutation.mutate()}
       />
     </div>
   )

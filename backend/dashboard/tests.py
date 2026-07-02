@@ -106,6 +106,15 @@ class DashboardAPITestCase(TestCase):
         self.assertEqual(data["members_partial_ballot"], 1)
         self.assertEqual(data["members_no_votes"], 1)
 
+    def test_dashboard_overview(self):
+        response = self.client.get(reverse("dashboard-overview"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.data["data"]
+        self.assertIn("summary", data)
+        self.assertIn("live", data)
+        self.assertEqual(data["summary"]["votes_cast"], 3)
+        self.assertEqual(len(data["live"]["positions"]), 2)
+
     def test_per_position_turnout(self):
         response = self.client.get(reverse("dashboard-summary"))
         turnout = {

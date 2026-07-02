@@ -10,6 +10,7 @@ from voting.models import Election, ElectionStatus, Vote
 
 LIVE_STATS_CACHE_SECONDS = 8
 SUMMARY_CACHE_SECONDS = 15
+OVERVIEW_CACHE_SECONDS = 10
 
 
 def _cache_version(scope: str | int) -> int:
@@ -33,6 +34,11 @@ def _live_stats_cache_key(election_id: int) -> str:
     return f"dashboard:live_stats:{election_id}:v{_cache_version(election_id)}"
 
 
+def _overview_cache_key(election_id: int | None) -> str:
+    scope = election_id if election_id is not None else "default"
+    return f"dashboard:overview:{scope}:v{_cache_version(scope)}"
+
+
 def _resolve_election(election_id: int | None = None) -> Election | None:
     if election_id:
         return Election.objects.filter(pk=election_id).first()
@@ -46,6 +52,25 @@ def _pct(part: int, whole: int) -> float:
     if whole == 0:
         return 0.0
     return round((part / whole) * 100, 2)
+
+
+def get_dashboard_overview(
+    election_id: int | None = None, *, use_cache: bool = True
+) -> dict:
+    """Return summary and live stats in one response (single round trip)."""
+    cache_key = _overview_cache_key(election_id)
+    if use_cache:
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+    result = {
+        "summary": get_dashboard_summary(election_id, use_cache=use_cache),
+        "live": get_live_stats(election_id, use_cache=use_cache),
+    }
+    if use_cache:
+        cache.set(cache_key, result, OVERVIEW_CACHE_SECONDS)
+    return result
 
 
 def get_dashboard_summary(

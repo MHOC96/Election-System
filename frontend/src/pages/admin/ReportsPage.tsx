@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select'
 import type { ExportFormat, ReportType } from '@/types/api'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { sectionDelays, Stagger, StaggerChildren } from '@/components/motion/Stagger'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import { toast } from 'sonner'
 
@@ -41,27 +42,30 @@ export function ReportsPage() {
 
   return (
     <div className={pageLayoutClass}>
-      <PageHeader
-        title="Reports"
-        description="Export election data in PDF, Excel, or CSV"
-        action={
-          <div className="w-40">
-            <Select value={format} onValueChange={(v) => setFormat(v as ExportFormat)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pdf">PDF</SelectItem>
-                <SelectItem value="xlsx">Excel</SelectItem>
-                <SelectItem value="csv">CSV</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        }
-      />
+      <Stagger delayMs={sectionDelays.header}>
+        <PageHeader
+          title="Reports"
+          description="Export election data in PDF, Excel, or CSV"
+          action={
+            <div className="w-40">
+              <Select value={format} onValueChange={(v) => setFormat(v as ExportFormat)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pdf">PDF</SelectItem>
+                  <SelectItem value="xlsx">Excel</SelectItem>
+                  <SelectItem value="csv">CSV</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          }
+        />
+      </Stagger>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {reports.map((report) => (
+      <Stagger delayMs={sectionDelays.primary}>
+        <StaggerChildren className="grid gap-4 sm:grid-cols-2" staggerMs={70}>
+          {reports.map((report) => (
           <Card key={report.type}>
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -81,8 +85,9 @@ export function ReportsPage() {
               </Button>
             </CardContent>
           </Card>
-        ))}
-      </div>
+          ))}
+        </StaggerChildren>
+      </Stagger>
     </div>
   )
 }

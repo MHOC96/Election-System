@@ -230,6 +230,11 @@ class VotingTestCase(TestCase):
             response.data["data"]["positions"][0]["my_candidate_id"],
             self.candidate.pk,
         )
+        self.assertEqual(len(response.data["data"]["vote_status"]["votes"]), 1)
+        self.assertEqual(
+            response.data["data"]["vote_status"]["votes"][0]["candidate_name"],
+            "Alice",
+        )
 
     def test_ballot_available_when_election_stopped(self):
         self.election.status = ElectionStatus.STOPPED

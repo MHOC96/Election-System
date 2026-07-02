@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { optimizeCloudinaryUrl } from '@/lib/cloudinary'
 import { Check } from 'lucide-react'
 import type { Candidate } from '@/types/api'
@@ -8,10 +9,17 @@ interface CandidateCardProps {
   candidate: Pick<Candidate, 'id' | 'full_name' | 'academic_year' | 'photo_url'>
   isRecorded: boolean
   disabled: boolean
+  priority?: boolean
   onSelect: () => void
 }
 
-export function CandidateCard({ candidate, isRecorded, disabled, onSelect }: CandidateCardProps) {
+export const CandidateCard = memo(function CandidateCard({
+  candidate,
+  isRecorded,
+  disabled,
+  priority = false,
+  onSelect,
+}: CandidateCardProps) {
   return (
     <button
       type="button"
@@ -33,8 +41,12 @@ export function CandidateCard({ candidate, isRecorded, disabled, onSelect }: Can
         <img
           src={optimizeCloudinaryUrl(candidate.photo_url, 480)}
           alt=""
-          loading="lazy"
+          width={480}
+          height={360}
+          sizes="(max-width: 640px) 100vw, 480px"
+          loading={priority ? 'eager' : 'lazy'}
           decoding="async"
+          fetchPriority={priority ? 'high' : 'auto'}
           className="h-full w-full object-cover"
         />
         {isRecorded && (
@@ -60,4 +72,4 @@ export function CandidateCard({ candidate, isRecorded, disabled, onSelect }: Can
       </div>
     </button>
   )
-}
+})

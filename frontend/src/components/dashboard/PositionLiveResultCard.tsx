@@ -5,6 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn, formatPercent } from '@/lib/utils'
 import type { CandidateRanking } from '@/types/api'
 
+/** Solid theme colors for live result bars and accents (no gradients). */
+const LEADER_COLOR = 'bg-chart-1'
+const RUNNER_UP_COLOR = 'bg-chart-4'
+
 interface PositionLiveResultCardProps {
   positionName: string
   totalVotes: number
@@ -27,21 +31,19 @@ function VoteShareBar({
   value: number
   variant: 'leader' | 'runner-up'
 }) {
-  const fillClass =
-    variant === 'leader'
-      ? 'bg-gradient-to-r from-amber-500 to-emerald-500 dark:from-amber-400 dark:to-emerald-400'
-      : 'bg-gradient-to-r from-slate-400 to-slate-500 dark:from-slate-500 dark:to-slate-400'
-
   return (
     <div
-      className="h-2.5 w-full overflow-hidden rounded-full bg-muted/80"
+      className="h-2.5 w-full overflow-hidden rounded-full bg-muted"
       role="progressbar"
       aria-valuenow={Math.round(value)}
       aria-valuemin={0}
       aria-valuemax={100}
     >
       <div
-        className={cn('h-full rounded-full transition-all duration-700 ease-out', fillClass)}
+        className={cn(
+          'h-full rounded-full transition-all duration-700 ease-out',
+          variant === 'leader' ? LEADER_COLOR : RUNNER_UP_COLOR,
+        )}
         style={{ width: `${Math.min(value, 100)}%` }}
       />
     </div>
@@ -61,6 +63,7 @@ function CandidateRow({
 }) {
   const Icon = rank === 1 ? Crown : Medal
   const share = candidate ? shareOfPosition(candidate.vote_count, positionTotal) : 0
+  const isLeader = variant === 'leader'
 
   if (!candidate) {
     return (
@@ -78,10 +81,8 @@ function CandidateRow({
   return (
     <div
       className={cn(
-        'rounded-xl border px-4 py-3 transition-colors',
-        variant === 'leader'
-          ? 'border-amber-500/25 bg-gradient-to-br from-amber-500/5 via-transparent to-emerald-500/5'
-          : 'border-border bg-muted/20',
+        'rounded-xl border px-4 py-3',
+        isLeader ? 'border-chart-1/35 bg-chart-1/8' : 'border-chart-4/35 bg-chart-4/8',
       )}
     >
       <div className="mb-2.5 flex items-start justify-between gap-3">
@@ -89,9 +90,7 @@ function CandidateRow({
           <span
             className={cn(
               'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
-              variant === 'leader'
-                ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-                : 'bg-muted text-muted-foreground',
+              isLeader ? 'bg-chart-1/15 text-chart-1' : 'bg-chart-4/15 text-chart-4',
             )}
           >
             <Icon className="h-4 w-4" aria-hidden="true" />
@@ -133,7 +132,7 @@ export const PositionLiveResultCard = memo(function PositionLiveResultCard({
         className,
       )}
     >
-      <CardHeader className="space-y-3 border-b bg-gradient-to-br from-primary/5 via-transparent to-transparent pb-4">
+      <CardHeader className="space-y-3 border-b bg-muted/30 pb-4">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base font-semibold leading-tight">{positionName}</CardTitle>
           {hasVotes && (
@@ -143,7 +142,7 @@ export const PositionLiveResultCard = memo(function PositionLiveResultCard({
           )}
         </div>
 
-        <div className="rounded-xl border bg-card/80 p-3 backdrop-blur-sm">
+        <div className="rounded-xl border bg-card p-3">
           <div className="mb-2 flex items-end justify-between gap-2">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -173,7 +172,7 @@ export const PositionLiveResultCard = memo(function PositionLiveResultCard({
             aria-label={`${positionName} turnout`}
           >
             <div
-              className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70 transition-all duration-700 ease-out"
+              className="h-full rounded-full bg-primary transition-all duration-700 ease-out"
               style={{ width: `${Math.min(turnoutPercentage, 100)}%` }}
             />
           </div>
@@ -191,21 +190,21 @@ export const PositionLiveResultCard = memo(function PositionLiveResultCard({
                 <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
                   {leader && leaderShare > 0 && (
                     <div
-                      className="h-full bg-gradient-to-r from-amber-500 to-emerald-500 transition-all duration-700"
+                      className={cn('h-full transition-all duration-700', LEADER_COLOR)}
                       style={{ width: `${leaderShare}%` }}
                       title={`${leader.full_name}: ${formatPercent(leaderShare)}`}
                     />
                   )}
                   {runnerUp && runnerShare > 0 && (
                     <div
-                      className="h-full bg-gradient-to-r from-slate-400 to-slate-500 transition-all duration-700"
+                      className={cn('h-full transition-all duration-700', RUNNER_UP_COLOR)}
                       style={{ width: `${runnerShare}%` }}
                       title={`${runnerUp.full_name}: ${formatPercent(runnerShare)}`}
                     />
                   )}
                   {leaderShare + runnerShare < 100 && (
                     <div
-                      className="h-full flex-1 bg-muted-foreground/15"
+                      className="h-full bg-muted-foreground/25"
                       style={{ width: `${100 - leaderShare - runnerShare}%` }}
                       title="Other candidates"
                     />
@@ -214,13 +213,13 @@ export const PositionLiveResultCard = memo(function PositionLiveResultCard({
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
                   {leader && (
                     <span className="inline-flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-amber-500" />
+                      <span className={cn('h-2 w-2 rounded-full', LEADER_COLOR)} />
                       {leader.full_name} {formatPercent(leaderShare)}
                     </span>
                   )}
                   {runnerUp && (
                     <span className="inline-flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-slate-400" />
+                      <span className={cn('h-2 w-2 rounded-full', RUNNER_UP_COLOR)} />
                       {runnerUp.full_name} {formatPercent(runnerShare)}
                     </span>
                   )}

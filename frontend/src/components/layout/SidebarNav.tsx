@@ -32,19 +32,32 @@ export function SidebarNav({
           to={to}
           end={end}
           onClick={onNavigate}
+          onPointerDown={() => prefetch(to)}
           onMouseEnter={() => prefetch(to)}
           onFocus={() => prefetch(to)}
           className={({ isActive }) =>
             cn(
-              'relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+              'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150 ease-out-expo focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               isActive
-                ? 'bg-accent text-foreground before:absolute before:left-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-primary'
+                ? 'bg-accent text-accent-foreground shadow-xs before:absolute before:left-0 before:top-1/2 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-primary'
                 : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
             )
           }
         >
-          {Icon ? <Icon className="h-4 w-4 shrink-0" aria-hidden="true" /> : null}
-          {label}
+          {({ isActive }: { isActive: boolean }) => (
+            <>
+              {Icon ? (
+                <Icon
+                  className={cn(
+                    'h-4 w-4 shrink-0 transition-colors',
+                    isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground',
+                  )}
+                  aria-hidden="true"
+                />
+              ) : null}
+              {label}
+            </>
+          )}
         </NavLink>
       ))}
     </nav>

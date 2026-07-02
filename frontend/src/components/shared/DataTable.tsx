@@ -18,6 +18,7 @@ interface DataTablePaginationConfig {
 
 interface DataTableProps {
   isLoading?: boolean
+  isRefreshing?: boolean
   isEmpty?: boolean
   emptyIcon?: LucideIcon
   emptyTitle?: string
@@ -31,6 +32,7 @@ interface DataTableProps {
 
 export function DataTable({
   isLoading,
+  isRefreshing,
   isEmpty,
   emptyIcon,
   emptyTitle = 'No data',
@@ -45,9 +47,18 @@ export function DataTable({
     <Card className={className}>
       <CardContent className="p-0">
         {isLoading ? (
-          <div className="space-y-2 p-6">
+          <div className="divide-y">
+            <div className="flex items-center gap-4 bg-muted/40 px-6 py-3">
+              <Skeleton className="h-3.5 w-28" />
+              <Skeleton className="h-3.5 w-20" />
+              <Skeleton className="ml-auto h-3.5 w-16" />
+            </div>
             {Array.from({ length: skeletonRows }).map((_, i) => (
-              <Skeleton key={i} className="h-10 w-full" />
+              <div key={i} className="flex items-center gap-4 px-6 py-3.5">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="ml-auto h-8 w-8 rounded-lg" />
+              </div>
             ))}
           </div>
         ) : isEmpty ? (
@@ -55,7 +66,16 @@ export function DataTable({
         ) : (
           <>
             {mobileView ? <div className="md:hidden">{mobileView}</div> : null}
-            <div className={cn(mobileView && 'hidden md:block')}>{children}</div>
+            <div
+              className={cn(
+                'relative transition-opacity duration-150',
+                mobileView && 'hidden md:block',
+                isRefreshing && 'opacity-60',
+              )}
+              aria-busy={isRefreshing}
+            >
+              {children}
+            </div>
             {pagination ? (
               <DataTablePagination
                 page={pagination.page}

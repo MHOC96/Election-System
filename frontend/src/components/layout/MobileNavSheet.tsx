@@ -1,6 +1,9 @@
+import { useEffect } from 'react'
 import type { NavItem } from '@/lib/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { SidebarNav } from '@/components/layout/SidebarNav'
+import { warmAdminConsole } from '@/lib/prefetch'
 
 interface MobileNavSheetProps {
   open: boolean
@@ -21,6 +24,13 @@ export function MobileNavSheet({
   footer,
   prefetchScope,
 }: MobileNavSheetProps) {
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    if (!open || prefetchScope !== 'admin') return
+    warmAdminConsole(queryClient)
+  }, [open, prefetchScope, queryClient])
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="flex w-[min(100vw-2rem,20rem)] flex-col p-0">

@@ -58,7 +58,12 @@ def submit_vote(*, member: User, position_id: int, candidate_id: int) -> Vote:
     return Vote.objects.select_related("position", "candidate").get(pk=vote.pk)
 
 
-def get_member_vote_status(member: User, election: Election | None = None) -> dict:
+def build_member_vote_status(
+    member: User,
+    election: Election | None,
+    *,
+    votes: list[Vote] | None = None,
+) -> dict:
     positions_total = Position.objects.count()
     recently_closed = Election.get_recently_closed()
 
@@ -74,9 +79,12 @@ def get_member_vote_status(member: User, election: Election | None = None) -> di
             "election_ended": recently_closed is not None,
         }
 
-    votes = Vote.objects.filter(member=member, election=election).select_related(
-        "position", "candidate"
-    )
+    if votes is None:
+        votes = list(
+            Vote.objects.filter(member=member, election=election).select_related(
+                "position", "candidate"
+            )
+        )
 
     vote_items = [
         {
@@ -108,3 +116,7 @@ def get_member_vote_status(member: User, election: Election | None = None) -> di
         "can_vote": election.is_voting_open,
         "election_ended": False,
     }
+
+
+def get_member_vote_status(member: User, election: Election | None = None) -> dict:
+    return build_member_vote_status(member, election)

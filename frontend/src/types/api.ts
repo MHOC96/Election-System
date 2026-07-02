@@ -94,6 +94,12 @@ export interface Ballot {
   positions: BallotItem[]
   can_vote: boolean
   election_ended: boolean
+  vote_status: VoteStatus
+}
+
+export interface DashboardOverview {
+  summary: DashboardSummary
+  live: LiveStats
 }
 
 export interface VoteStatus {

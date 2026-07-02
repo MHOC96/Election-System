@@ -15,6 +15,7 @@ from members.serializers import (
 from members.services.deletion_service import (
     MemberDeletionNotAllowedError,
     bulk_delete_members,
+    clear_all_members,
     delete_member,
     member_deletion_allowed,
 )
@@ -86,6 +87,25 @@ class MemberImportView(APIView):
         )
 
 
+class MemberClearAllView(APIView):
+    permission_classes = [IsAdmin]
+
+    def post(self, request):
+        try:
+            result = clear_all_members()
+        except MemberDeletionNotAllowedError as exc:
+            raise ValidationError(str(exc)) from exc
+
+        return Response(
+            {
+                "success": True,
+                "data": {"deleted": result.deleted},
+                "message": f"Removed {result.deleted} member(s).",
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
 class MemberBulkDeleteView(APIView):
     permission_classes = [IsAdmin]
 
@@ -123,6 +143,10 @@ class MemberListView(generics.ListAPIView):
             .only("id", "cpm_number", "mc_number", "is_active", "created_at")
             .order_by("cpm_number")
         )
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        return Response({"success": True, "data": response.data})
 
 
 class MemberDetailView(generics.RetrieveUpdateDestroyAPIView):

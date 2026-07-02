@@ -14,7 +14,12 @@ from positions.models import Position
 from positions.serializers import PositionSerializer
 from voting.models import Election, ElectionStatus, Vote
 from voting.serializers import ElectionSerializer, VoteSubmitSerializer
-from voting.services.vote_service import VoteError, get_member_vote_status, submit_vote
+from voting.services.vote_service import (
+    VoteError,
+    build_member_vote_status,
+    get_member_vote_status,
+    submit_vote,
+)
 from voting.throttling import VoteRateThrottle
 
 
@@ -197,6 +202,7 @@ class BallotView(APIView):
         election = Election.get_ongoing()
         if election is None:
             recently_closed = Election.get_recently_closed()
+            vote_status = build_member_vote_status(request.user, None)
             return Response(
                 {
                     "success": True,
@@ -205,17 +211,16 @@ class BallotView(APIView):
                         "positions": [],
                         "can_vote": False,
                         "election_ended": recently_closed is not None,
+                        "vote_status": vote_status,
                     },
                 },
                 status=status.HTTP_200_OK,
             )
 
-        member_votes = {
-            vote.position_id: vote.candidate_id
-            for vote in request.user.votes.filter(election=election).select_related(
-                "position", "candidate"
-            )
-        }
+        member_votes_qs = list(
+            request.user.votes.filter(election=election).select_related("position", "candidate")
+        )
+        member_votes = {vote.position_id: vote.candidate_id for vote in member_votes_qs}
 
         positions = Position.objects.prefetch_related(
             Prefetch(
@@ -244,6 +249,11 @@ class BallotView(APIView):
                     "positions": position_items,
                     "can_vote": election.is_voting_open,
                     "election_ended": False,
+                    "vote_status": build_member_vote_status(
+                        request.user,
+                        election,
+                        votes=member_votes_qs,
+                    ),
                 },
             },
             status=status.HTTP_200_OK,

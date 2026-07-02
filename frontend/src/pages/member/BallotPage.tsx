@@ -1,9 +1,7 @@
 import { useState } from 'react'
-import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query'
-import { FadeIn } from '@/components/motion/FadeIn'
-import { usePrefersReducedMotion } from '@/lib/usePrefersReducedMotion'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarCheck, CheckCircle2, Vote } from 'lucide-react'
-import { fetchBallot, fetchVoteStatus, submitVote } from '@/api/votes'
+import { fetchBallot, submitVote } from '@/api/votes'
 import { getApiErrorMessage } from '@/api/client'
 import { ElectionProgressCard } from '@/components/voting/ElectionProgressCard'
 import { CandidateCard } from '@/components/voting/CandidateCard'
@@ -14,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { sectionDelays, Stagger, StaggerChildren } from '@/components/motion/Stagger'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import { handleRadioGroupKeyDown } from '@/lib/a11y'
 import { cn } from '@/lib/utils'
@@ -30,14 +29,12 @@ interface PendingVote {
 
 export function BallotPage() {
   const queryClient = useQueryClient()
-  const reduceMotion = usePrefersReducedMotion()
   const [pendingVote, setPendingVote] = useState<PendingVote | null>(null)
 
-  const [ballotQuery, statusQuery] = useQueries({
-    queries: [
-      { queryKey: ['ballot'], queryFn: fetchBallot, retry: false },
-      { queryKey: ['my-votes'], queryFn: fetchVoteStatus, retry: false },
-    ],
+  const ballotQuery = useQuery({
+    queryKey: ['ballot'],
+    queryFn: fetchBallot,
+    retry: false,
   })
 
   const voteMutation = useMutation({
@@ -45,7 +42,6 @@ export function BallotPage() {
       submitVote(positionId, candidateId),
     onSuccess: (result) => {
       void queryClient.invalidateQueries({ queryKey: ['ballot'] })
-      void queryClient.invalidateQueries({ queryKey: ['my-votes'] })
       toast.success(`Your vote for ${result.candidate_name} was recorded`)
       setPendingVote(null)
     },
@@ -55,9 +51,7 @@ export function BallotPage() {
     },
   })
 
-  const isLoading = ballotQuery.isLoading || statusQuery.isLoading
-
-  if (isLoading) {
+  if (ballotQuery.isLoading) {
     return (
       <div className={cn(pageLayoutClass, 'mx-auto max-w-3xl')}>
         <Skeleton className="h-10 w-64" />
@@ -68,7 +62,7 @@ export function BallotPage() {
   }
 
   const ballot = ballotQuery.data
-  const voteStatus = statusQuery.data
+  const voteStatus = ballot?.vote_status
   const electionEnded = ballot?.election_ended || voteStatus?.election_ended
 
   if (electionEnded) {
@@ -105,21 +99,26 @@ export function BallotPage() {
 
   return (
     <div className={cn(pageLayoutClass, 'mx-auto max-w-3xl space-y-8')}>
-      <PageHeader
-        title="Executive Election"
-        description="View election details and submit your votes"
-      />
+      <Stagger delayMs={sectionDelays.header}>
+        <PageHeader
+          title="Executive Election"
+          description="View election details and submit your votes"
+        />
+      </Stagger>
 
-      <ElectionProgressCard
-        electionName={ballot.election.name}
-        status={ballot.election.status}
-        votedCount={votedCount}
-        total={total}
-        canVote={canVote}
-      />
+      <Stagger delayMs={sectionDelays.primary}>
+        <ElectionProgressCard
+          electionName={ballot.election.name}
+          status={ballot.election.status}
+          votedCount={votedCount}
+          total={total}
+          canVote={canVote}
+        />
+      </Stagger>
 
       {selections.length > 0 && (
-        <section aria-labelledby="my-selections-heading" className="space-y-3">
+        <Stagger delayMs={sectionDelays.secondary}>
+          <section aria-labelledby="my-selections-heading" className="space-y-3">
           <div className="flex items-center justify-between gap-2">
             <div>
               <h2 id="my-selections-heading" className="text-lg font-semibold">
@@ -133,7 +132,7 @@ export function BallotPage() {
               {votedCount}/{total}
             </Badge>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <StaggerChildren className="grid gap-3 sm:grid-cols-2" staggerMs={60}>
             {selections.map((vote) => (
               <MemberSelectionItem
                 key={vote.position_id}
@@ -142,11 +141,13 @@ export function BallotPage() {
                 votedAt={vote.voted_at}
               />
             ))}
-          </div>
-        </section>
+          </StaggerChildren>
+          </section>
+        </Stagger>
       )}
 
-      <section aria-labelledby="vote-positions-heading" className="space-y-4">
+      <Stagger delayMs={selections.length > 0 ? sectionDelays.tertiary : sectionDelays.secondary}>
+        <section aria-labelledby="vote-positions-heading" className="space-y-4">
         <div>
           <h2 id="vote-positions-heading" className="text-lg font-semibold">
             {canVote ? 'Cast your votes' : 'Election positions'}
@@ -158,25 +159,27 @@ export function BallotPage() {
           </p>
         </div>
 
-        {positions.map((item, index) => (
-          <PositionSection
-            key={item.position.id}
-            item={item}
-            index={index}
-            canVote={canVote}
-            reduceMotion={reduceMotion}
-            onSelect={(candidate) =>
-              setPendingVote({
-                positionId: item.position.id,
-                candidateId: candidate.id,
-                candidateName: candidate.full_name,
-                candidatePhoto: candidate.photo_url,
-                positionName: item.position.name,
-              })
-            }
-          />
-        ))}
-      </section>
+        <StaggerChildren className="space-y-4" staggerMs={80} initialDelayMs={40}>
+          {positions.map((item, index) => (
+            <PositionSection
+              key={item.position.id}
+              item={item}
+              index={index}
+              canVote={canVote}
+              onSelect={(candidate) =>
+                setPendingVote({
+                  positionId: item.position.id,
+                  candidateId: candidate.id,
+                  candidateName: candidate.full_name,
+                  candidatePhoto: candidate.photo_url,
+                  positionName: item.position.name,
+                })
+              }
+            />
+          ))}
+        </StaggerChildren>
+        </section>
+      </Stagger>
 
       {pendingVote && (
         <VoteConfirmDialog
@@ -202,19 +205,17 @@ function PositionSection({
   item,
   index,
   canVote,
-  reduceMotion,
   onSelect,
 }: {
   item: BallotItem
   index: number
   canVote: boolean
-  reduceMotion: boolean
   onSelect: (candidate: Candidate) => void
 }) {
   const sectionId = `position-${item.position.id}-label`
   const votingDisabled = !canVote || item.has_voted
 
-  const content = (
+  return (
     <Card
       className={cn(
         'overflow-hidden shadow-sm',
@@ -254,7 +255,7 @@ function PositionSection({
             className="grid gap-3 sm:grid-cols-2"
             onKeyDown={handleRadioGroupKeyDown}
           >
-            {item.candidates.map((candidate) => {
+            {item.candidates.map((candidate, candidateIndex) => {
               const isRecorded = item.has_voted && item.my_candidate_id === candidate.id
 
               return (
@@ -263,6 +264,7 @@ function PositionSection({
                   candidate={candidate}
                   isRecorded={isRecorded}
                   disabled={votingDisabled}
+                  priority={index === 0 && candidateIndex === 0}
                   onSelect={() => onSelect(candidate)}
                 />
               )
@@ -271,15 +273,5 @@ function PositionSection({
         )}
       </CardContent>
     </Card>
-  )
-
-  if (reduceMotion) {
-    return content
-  }
-
-  return (
-    <FadeIn delay={index * 0.04} y={10}>
-      {content}
-    </FadeIn>
   )
 }

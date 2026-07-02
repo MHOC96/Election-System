@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { fetchMe, login as apiLogin, logout as apiLogout, type LoginPayload } from '@/api/auth'
 import { clearAuth, consumeFreshLogin, getAccessToken, getStoredUser } from '@/lib/auth-storage'
+import { scheduleIdle } from '@/lib/schedule-idle'
 import type { User } from '@/types/api'
 
 interface AuthContextValue {
@@ -48,9 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    void refreshUser().catch(() => {
-      clearAuth()
-      setUser(null)
+    scheduleIdle(() => {
+      void refreshUser().catch(() => {
+        clearAuth()
+        setUser(null)
+      })
     })
   }, [refreshUser])
 

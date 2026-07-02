@@ -163,6 +163,69 @@ class CandidateAPITestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["data"]["photo_url"], self.photo_url)
 
+    def test_clear_all_candidates(self):
+        Candidate.objects.create(
+            full_name="Alice",
+            academic_year=AcademicYear.SECOND_YEAR,
+            photo_url=self.photo_url,
+            position=self.position,
+        )
+        Candidate.objects.create(
+            full_name="Bob",
+            academic_year=AcademicYear.THIRD_YEAR,
+            photo_url=self.photo_url,
+            position=self.position,
+        )
+        self._login("ADM200", "admin-pass")
+        response = self.client.post(reverse("candidates-clear-all"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["data"]["deleted"], 2)
+        self.assertEqual(Candidate.objects.count(), 0)
+
+    def test_clear_all_skips_candidates_with_votes(self):
+        from voting.models import Election, ElectionStatus, Vote
+
+        candidate = Candidate.objects.create(
+            full_name="Voted Candidate",
+            academic_year=AcademicYear.SECOND_YEAR,
+            photo_url=self.photo_url,
+            position=self.position,
+        )
+        Candidate.objects.create(
+            full_name="No Votes",
+            academic_year=AcademicYear.THIRD_YEAR,
+            photo_url=self.photo_url,
+            position=self.position,
+        )
+        election = Election.objects.create(name="Test", status=ElectionStatus.CLOSED)
+        Vote.objects.create(
+            member=self.member,
+            position=self.position,
+            candidate=candidate,
+            election=election,
+        )
+        self._login("ADM200", "admin-pass")
+        response = self.client.post(reverse("candidates-clear-all"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["data"]["deleted"], 1)
+        self.assertEqual(len(response.data["data"]["skipped"]), 1)
+        self.assertEqual(Candidate.objects.count(), 1)
+
+    def test_cannot_clear_all_during_active_election(self):
+        from voting.models import Election, ElectionStatus
+
+        Candidate.objects.create(
+            full_name="Alice",
+            academic_year=AcademicYear.SECOND_YEAR,
+            photo_url=self.photo_url,
+            position=self.position,
+        )
+        Election.objects.create(name="Active", status=ElectionStatus.ACTIVE)
+        self._login("ADM200", "admin-pass")
+        response = self.client.post(reverse("candidates-clear-all"))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Candidate.objects.count(), 1)
+
 
 class CandidateModelTestCase(TestCase):
     def test_full_name_stripped(self):

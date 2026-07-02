@@ -29,10 +29,10 @@ export function ChartCard({
 }: ChartCardProps) {
   return (
     <Card className={cn('overflow-hidden border shadow-sm', className)}>
-      <CardHeader className="border-b bg-muted/20 pb-4">
+      <CardHeader className="border-b bg-muted/30 pb-4">
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-            <BarChart3 className="h-4 w-4 text-primary" aria-hidden="true" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-inset ring-primary/15">
+            <BarChart3 className="h-4 w-4" aria-hidden="true" />
           </div>
           <div className="min-w-0 space-y-1">
             <CardTitle className="text-base">{title}</CardTitle>

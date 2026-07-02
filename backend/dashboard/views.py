@@ -4,6 +4,7 @@ from rest_framework.views import APIView
 
 from accounts.permissions import IsAdmin
 from dashboard.services.stats_service import (
+    get_dashboard_overview,
     get_dashboard_summary,
     get_live_stats,
     get_position_rankings,
@@ -17,6 +18,16 @@ class DashboardSummaryView(APIView):
         election_id = request.query_params.get("election_id")
         election_id = int(election_id) if election_id else None
         data = get_dashboard_summary(election_id)
+        return Response({"success": True, "data": data}, status=status.HTTP_200_OK)
+
+
+class DashboardOverviewView(APIView):
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        election_id = request.query_params.get("election_id")
+        election_id = int(election_id) if election_id else None
+        data = get_dashboard_overview(election_id)
         return Response({"success": True, "data": data}, status=status.HTTP_200_OK)
 
 

@@ -20,6 +20,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { sectionDelays, Stagger } from '@/components/motion/Stagger'
 import { FormField } from '@/components/design-system/FormField'
 import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass } from '@/lib/design-tokens'
@@ -96,17 +97,20 @@ export function PositionsPage() {
 
   return (
     <div className={pageLayoutClass}>
-      <PageHeader
-        title="Positions"
-        description="Manage executive committee positions"
-        action={
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" />
-            Add Position
-          </Button>
-        }
-      />
+      <Stagger delayMs={sectionDelays.header}>
+        <PageHeader
+          title="Positions"
+          description="Manage executive committee positions"
+          action={
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4" />
+              Add Position
+            </Button>
+          }
+        />
+      </Stagger>
 
+      <Stagger delayMs={sectionDelays.primary}>
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
@@ -157,6 +161,7 @@ export function PositionsPage() {
           )}
         </CardContent>
       </Card>
+      </Stagger>
 
       <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeDialog()}>
         <DialogContent>

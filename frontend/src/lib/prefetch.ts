@@ -1,12 +1,17 @@
 import type { QueryClient } from '@tanstack/react-query'
+import { scheduleIdle } from '@/lib/schedule-idle'
+import {
+  CandidatesPage,
+  ElectionsPage,
+  MembersPage,
+  PositionsPage,
+  preloadAdminPageModules,
+  ReportsPage,
+} from '@/routes/adminPages'
+import { preloadAdminShell, preloadMemberShell } from '@/routes/corePages'
+import { preloadMemberPageModules } from '@/routes/memberPages'
 
-export function scheduleIdle(task: () => void) {
-  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-    window.requestIdleCallback(task)
-    return
-  }
-  globalThis.setTimeout(task, 150)
-}
+export { scheduleIdle } from '@/lib/schedule-idle'
 
 const prefetchedNavRoutes = new Set<string>()
 
@@ -18,16 +23,12 @@ function markPrefetched(routeKey: string) {
   return true
 }
 
-/** Prefetch dashboard summary and live stats for admin landing. */
+/** Prefetch dashboard overview for admin landing. */
 export function prefetchAdminLanding(queryClient: QueryClient) {
-  void import('@/api/dashboard').then(({ fetchDashboardSummary, fetchLiveStats }) => {
+  void import('@/api/dashboard').then(({ fetchDashboardOverview }) => {
     void queryClient.prefetchQuery({
-      queryKey: ['dashboard-summary'],
-      queryFn: () => fetchDashboardSummary(),
-    })
-    void queryClient.prefetchQuery({
-      queryKey: ['dashboard-live'],
-      queryFn: () => fetchLiveStats(),
+      queryKey: ['dashboard-overview'],
+      queryFn: () => fetchDashboardOverview(),
     })
   })
 }
@@ -41,6 +42,71 @@ export function prefetchPositions(queryClient: QueryClient) {
   })
 }
 
+function prefetchMembersData(queryClient: QueryClient) {
+  void import('@/api/members').then(({ fetchMembers, fetchMemberDeletionStatus }) => {
+    void queryClient.prefetchQuery({
+      queryKey: ['members', 1],
+      queryFn: () => fetchMembers(1),
+    })
+    void queryClient.prefetchQuery({
+      queryKey: ['members-deletion-status'],
+      queryFn: fetchMemberDeletionStatus,
+    })
+  })
+}
+
+function prefetchCandidatesData(queryClient: QueryClient) {
+  prefetchPositions(queryClient)
+  void import('@/api/candidates').then(({ fetchCandidates }) => {
+    void queryClient.prefetchQuery({
+      queryKey: ['candidates'],
+      queryFn: () => fetchCandidates(undefined),
+    })
+  })
+}
+
+function prefetchElectionsData(queryClient: QueryClient) {
+  void import('@/api/elections').then(({ fetchElections }) => {
+    void queryClient.prefetchQuery({
+      queryKey: ['elections'],
+      queryFn: fetchElections,
+    })
+  })
+}
+
+function prefetchSecondaryAdminData(queryClient: QueryClient) {
+  prefetchPositions(queryClient)
+  prefetchMembersData(queryClient)
+  prefetchCandidatesData(queryClient)
+  prefetchElectionsData(queryClient)
+}
+
+/** Warm admin shell immediately; defer heavy module/API prefetch until idle. */
+export function warmAdminConsole(queryClient: QueryClient) {
+  void preloadAdminShell()
+  prefetchAdminLanding(queryClient)
+
+  scheduleIdle(() => {
+    void preloadAdminPageModules()
+    prefetchSecondaryAdminData(queryClient)
+
+    for (const route of ADMIN_NAV_PATHS) {
+      prefetchedNavRoutes.add(`admin:${route}`)
+    }
+  })
+}
+
+/** Warm member shell immediately; defer ballot API until idle. */
+export function warmMemberConsole(queryClient: QueryClient) {
+  void preloadMemberShell()
+
+  scheduleIdle(() => {
+    void preloadMemberPageModules()
+    prefetchMemberLanding(queryClient)
+    prefetchedNavRoutes.add('member:/vote')
+  })
+}
+
 export function prefetchAdminNavRoute(to: string, queryClient: QueryClient) {
   const routeKey = `admin:${to}`
   if (!markPrefetched(routeKey)) return
@@ -48,42 +114,25 @@ export function prefetchAdminNavRoute(to: string, queryClient: QueryClient) {
   switch (to) {
     case '/admin':
       prefetchAdminLanding(queryClient)
-      void import('@/pages/admin/AdminDashboardPage')
       break
     case '/admin/members':
-      void import('@/pages/admin/MembersPage')
-      void import('@/api/members').then(({ fetchMembers }) => {
-        void queryClient.prefetchQuery({
-          queryKey: ['members', 1],
-          queryFn: () => fetchMembers(1),
-        })
-      })
+      void MembersPage.preload()
+      prefetchMembersData(queryClient)
       break
     case '/admin/positions':
-      void import('@/pages/admin/PositionsPage')
+      void PositionsPage.preload()
       prefetchPositions(queryClient)
       break
     case '/admin/candidates':
-      void import('@/pages/admin/CandidatesPage')
-      prefetchPositions(queryClient)
-      void import('@/api/candidates').then(({ fetchCandidates }) => {
-        void queryClient.prefetchQuery({
-          queryKey: ['candidates'],
-          queryFn: () => fetchCandidates(),
-        })
-      })
+      void CandidatesPage.preload()
+      prefetchCandidatesData(queryClient)
       break
     case '/admin/elections':
-      void import('@/pages/admin/ElectionsPage')
-      void import('@/api/elections').then(({ fetchElections }) => {
-        void queryClient.prefetchQuery({
-          queryKey: ['elections'],
-          queryFn: fetchElections,
-        })
-      })
+      void ElectionsPage.preload()
+      prefetchElectionsData(queryClient)
       break
     case '/admin/reports':
-      void import('@/pages/admin/ReportsPage')
+      void ReportsPage.preload()
       break
     default:
       prefetchedNavRoutes.delete(routeKey)
@@ -97,7 +146,6 @@ export function prefetchMemberNavRoute(to: string, queryClient: QueryClient) {
   switch (to) {
     case '/vote':
       prefetchMemberLanding(queryClient)
-      void import('@/pages/member/BallotPage')
       break
     default:
       prefetchedNavRoutes.delete(routeKey)
@@ -105,17 +153,22 @@ export function prefetchMemberNavRoute(to: string, queryClient: QueryClient) {
 }
 
 export function prefetchMemberLanding(queryClient: QueryClient) {
-  void import('@/api/votes').then(({ fetchBallot, fetchVoteStatus }) => {
+  void import('@/api/votes').then(({ fetchBallot }) => {
     void queryClient.prefetchQuery({
       queryKey: ['ballot'],
       queryFn: fetchBallot,
     })
-    void queryClient.prefetchQuery({
-      queryKey: ['my-votes'],
-      queryFn: fetchVoteStatus,
-    })
   })
 }
+
+const ADMIN_NAV_PATHS = [
+  '/admin',
+  '/admin/members',
+  '/admin/positions',
+  '/admin/candidates',
+  '/admin/elections',
+  '/admin/reports',
+] as const
 
 export function handleNavPrefetch(
   to: string,

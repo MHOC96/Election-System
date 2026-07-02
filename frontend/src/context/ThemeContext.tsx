@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 
 type Theme = 'light' | 'dark'
 
@@ -21,7 +21,6 @@ function applyTheme(theme: Theme) {
   root.classList.toggle('dark', theme === 'dark')
   localStorage.setItem('election_theme', theme)
 
-  // Force a reflow so the theme class applies before transitions are re-enabled.
   void root.offsetHeight
 
   requestAnimationFrame(() => {
@@ -36,11 +35,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     applyTheme(theme)
   }, [theme])
 
-  const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
-
-  return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>{children}</ThemeContext.Provider>
+  const toggleTheme = useCallback(
+    () => setTheme((current) => (current === 'dark' ? 'light' : 'dark')),
+    [],
   )
+
+  const value = useMemo(() => ({ theme, toggleTheme }), [theme, toggleTheme])
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
 }
 
 export function useTheme() {

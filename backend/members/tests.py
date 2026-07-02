@@ -39,7 +39,7 @@ class MemberImportServiceTestCase(TestCase):
         result = import_members(self._csv_file(content))
         self.assertEqual(result.successful, 1)
         self.assertEqual(len(result.duplicates), 1)
-        self.assertEqual(result.duplicates[0].reason, "duplicate_in_file")
+        self.assertEqual(result.duplicates[0].reason, "Duplicate CPM Number in this file.")
 
     def test_duplicate_in_database(self):
         User.objects.create_user(cpm_number="CPM300", mc_number="existing", role=UserRole.MEMBER)
@@ -47,7 +47,7 @@ class MemberImportServiceTestCase(TestCase):
         result = import_members(self._csv_file(content))
         self.assertEqual(result.successful, 0)
         self.assertEqual(len(result.duplicates), 1)
-        self.assertEqual(result.duplicates[0].reason, "already_exists")
+        self.assertEqual(result.duplicates[0].reason, "CPM Number already exists in the database.")
 
     def test_xlsx_import(self):
         workbook = Workbook()
@@ -76,6 +76,23 @@ class MemberImportServiceTestCase(TestCase):
         import_members(self._csv_file(content))
         user = User.objects.get(cpm_number="CPM500")
         self.assertTrue(user.check_password("plain-secret"))
+
+    def test_semicolon_delimited_csv(self):
+        content = "CPM Number;MC Number\nCPM600;secret600\nCPM601;secret601\n"
+        result = import_members(self._csv_file(content))
+        self.assertEqual(result.successful, 2)
+        self.assertTrue(User.objects.filter(cpm_number="CPM600").exists())
+
+    def test_csv_with_bom(self):
+        content = "\ufeffCPM Number,MC Number\nCPM700,secret700\n"
+        result = import_members(self._csv_file(content))
+        self.assertEqual(result.successful, 1)
+
+    def test_cpm_number_normalized_to_uppercase(self):
+        content = "CPM Number,MC Number\ncpm800,secret800\n"
+        result = import_members(self._csv_file(content))
+        self.assertEqual(result.successful, 1)
+        self.assertTrue(User.objects.filter(cpm_number="CPM800").exists())
 
 
 class MemberAPITestCase(TestCase):
@@ -136,7 +153,8 @@ class MemberAPITestCase(TestCase):
         self._auth_as_admin()
         response = self.client.get(reverse("members-list"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertGreaterEqual(len(response.data["results"]), 1)
+        self.assertTrue(response.data["success"])
+        self.assertGreaterEqual(len(response.data["data"]["results"]), 1)
 
     def test_member_detail(self):
         self._auth_as_admin()
@@ -179,6 +197,29 @@ class MemberAPITestCase(TestCase):
         response = self.client.delete(reverse("members-detail", kwargs={"pk": self.member.pk}))
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_clear_all_members_after_election_closed(self):
+        from voting.models import Election, ElectionStatus
+
+        Election.objects.create(name="Closed Election", status=ElectionStatus.CLOSED)
+        User.objects.create_user(
+            cpm_number="CPM902",
+            mc_number="member-pass-2",
+            role=UserRole.MEMBER,
+        )
+        self._auth_as_admin()
+        response = self.client.post(reverse("members-clear-all"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["data"]["deleted"], 2)
+        self.assertEqual(User.objects.filter(role=UserRole.MEMBER).count(), 0)
+
+    def test_cannot_clear_all_members_during_active_election(self):
+        from voting.models import Election, ElectionStatus
+
+        Election.objects.create(name="Active Election", status=ElectionStatus.ACTIVE)
+        self._auth_as_admin()
+        response = self.client.post(reverse("members-clear-all"))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_bulk_delete_members_after_election_closed(self):
         from voting.models import Election, ElectionStatus
 
@@ -206,6 +247,38 @@ class MemberAPITestCase(TestCase):
         response = self.client.get(reverse("members-deletion-status"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(response.data["data"]["allowed"])
+
+    def test_deletion_status_allowed_after_election_closed(self):
+        from voting.models import Election, ElectionStatus
+
+        Election.objects.create(name="Closed Election", status=ElectionStatus.CLOSED)
+        self._auth_as_admin()
+        response = self.client.get(reverse("members-deletion-status"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["data"]["allowed"])
+
+    def test_deletion_allowed_when_newer_closed_election_supersedes_old_stopped(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from voting.models import Election, ElectionStatus
+
+        now = timezone.now()
+        Election.objects.create(
+            name="Old Paused Election",
+            status=ElectionStatus.STOPPED,
+            stopped_at=now - timedelta(days=2),
+        )
+        Election.objects.create(
+            name="Closed Election",
+            status=ElectionStatus.CLOSED,
+            closed_at=now - timedelta(days=1),
+        )
+        self._auth_as_admin()
+        response = self.client.get(reverse("members-deletion-status"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["data"]["allowed"])
 
     def test_member_cannot_delete(self):
         response = self.client.post(

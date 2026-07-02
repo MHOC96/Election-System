@@ -28,6 +28,7 @@ import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { ElectionStatusBadge } from '@/components/shared/StatusBadge'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { sectionDelays, Stagger, StaggerChildren } from '@/components/motion/Stagger'
 import { FormField } from '@/components/design-system/FormField'
 import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass } from '@/lib/design-tokens'
@@ -77,8 +78,7 @@ export function ElectionsPage() {
     },
     onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({ queryKey: ['elections'] })
-      void queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
-      void queryClient.invalidateQueries({ queryKey: ['dashboard-live'] })
+      void queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] })
       void queryClient.invalidateQueries({ queryKey: ['members-deletion-status'] })
       if (variables.action === 'close') {
         setCloseTarget(null)
@@ -96,8 +96,7 @@ export function ElectionsPage() {
     mutationFn: deleteElection,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['elections'] })
-      void queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
-      void queryClient.invalidateQueries({ queryKey: ['dashboard-live'] })
+      void queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] })
       void queryClient.invalidateQueries({ queryKey: ['members-deletion-status'] })
       toast.success('Election deleted')
       setDeleteTarget(null)
@@ -200,30 +199,33 @@ export function ElectionsPage() {
 
   return (
     <div className={pageLayoutClass}>
-      <PageHeader
-        title="Elections"
-        description="Create and manage election lifecycle"
-        action={
-          <Button onClick={openCreateDialog}>
-            <Plus className="h-4 w-4" />
-            New Election
-          </Button>
-        }
-      />
+      <Stagger delayMs={sectionDelays.header}>
+        <PageHeader
+          title="Elections"
+          description="Create and manage election lifecycle"
+          action={
+            <Button onClick={openCreateDialog}>
+              <Plus className="h-4 w-4" />
+              New Election
+            </Button>
+          }
+        />
+      </Stagger>
 
-      {isLoading ? (
-        <div className="space-y-4">
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-32 w-full" />
-        </div>
-      ) : !elections?.length ? (
+      <Stagger delayMs={sectionDelays.primary}>
+        {isLoading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+        ) : !elections?.length ? (
         <EmptyState
           icon={Vote}
           title="No elections"
           description="Create an election, then start it when ready for voting."
         />
       ) : (
-        <div className="grid gap-4">
+        <StaggerChildren className="grid gap-4" staggerMs={70}>
           {elections.map((election) => {
             const isClosed = election.status === 'CLOSED'
 
@@ -269,8 +271,9 @@ export function ElectionsPage() {
               </Card>
             )
           })}
-        </div>
+        </StaggerChildren>
       )}
+      </Stagger>
 
       <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeCreateDialog()}>
         <DialogContent>

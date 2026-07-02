@@ -92,10 +92,18 @@ class Election(models.Model):
                 .exists()
             ):
                 raise ValueError("Another election is already active.")
+            now = timezone.now()
+            Election.objects.filter(status=ElectionStatus.STOPPED).exclude(
+                pk=election.pk
+            ).update(
+                status=ElectionStatus.CLOSED,
+                closed_at=now,
+                updated_at=now,
+            )
             election.status = ElectionStatus.ACTIVE
             election.stopped_at = None
             if not election.started_at:
-                election.started_at = timezone.now()
+                election.started_at = now
             election.save(
                 update_fields=["status", "started_at", "stopped_at", "updated_at"]
             )
@@ -111,9 +119,16 @@ class Election(models.Model):
     def close(self):
         if not self.can_close():
             raise ValueError(f"Cannot close an election with status '{self.status}'.")
-        self.status = ElectionStatus.CLOSED
-        self.closed_at = timezone.now()
-        self.save(update_fields=["status", "closed_at", "updated_at"])
+        now = timezone.now()
+        with transaction.atomic():
+            Election.objects.filter(status=ElectionStatus.STOPPED).exclude(pk=self.pk).update(
+                status=ElectionStatus.CLOSED,
+                closed_at=now,
+                updated_at=now,
+            )
+            self.status = ElectionStatus.CLOSED
+            self.closed_at = now
+            self.save(update_fields=["status", "closed_at", "updated_at"])
 
 
 class Vote(models.Model):

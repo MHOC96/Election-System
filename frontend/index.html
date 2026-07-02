@@ -3,6 +3,13 @@
 
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta
+    name="description"
+    content="Secure executive committee election portal for members and administrators."
+  />
+  <meta name="theme-color" content="#2f6fed" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0f1729" media="(prefers-color-scheme: dark)" />
   <script>
     (function () {
       var stored = localStorage.getItem('election_theme')
@@ -12,13 +19,93 @@
       }
     })()
   </script>
+  <style>
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background-color: hsl(210 20% 96%);
+      color: hsl(222 47% 11%);
+    }
+
+    html.dark body {
+      background-color: hsl(222 47% 6%);
+      color: hsl(210 40% 98%);
+    }
+
+    #root {
+      min-height: 100%;
+    }
+
+    .boot-shell {
+      display: flex;
+      min-height: 100vh;
+      flex-direction: column;
+      background-color: hsl(210 20% 96% / 0.3);
+    }
+
+    html.dark .boot-shell {
+      background-color: hsl(222 47% 6% / 0.3);
+    }
+
+    .boot-main {
+      display: flex;
+      flex: 1;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    .boot-card {
+      width: 100%;
+      max-width: 28rem;
+      border: 1px solid hsl(214 20% 90%);
+      border-radius: 0.5rem;
+      background: hsl(0 0% 100%);
+      box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+      padding: 2rem 1.5rem;
+      text-align: center;
+    }
+
+    html.dark .boot-card {
+      border-color: hsl(217 20% 18%);
+      background: hsl(222 47% 8%);
+    }
+
+    .boot-title {
+      margin: 0 0 0.5rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    .boot-text {
+      margin: 0;
+      font-size: 0.875rem;
+      color: hsl(215 16% 42%);
+    }
+
+    html.dark .boot-text {
+      color: hsl(215 15% 65%);
+    }
+  </style>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="dns-prefetch" href="https://res.cloudinary.com" />
   <title>EC Election System</title>
 </head>
 
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <div class="boot-shell" aria-hidden="true">
+      <main class="boot-main">
+        <div class="boot-card">
+          <h1 class="boot-title">Sign in</h1>
+          <p class="boot-text">Loading election portal…</p>
+        </div>
+      </main>
+    </div>
+  </div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
 

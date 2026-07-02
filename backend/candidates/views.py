@@ -9,6 +9,8 @@ from accounts.permissions import IsAdmin, IsAdminOrReadOnly
 from candidates.models import Candidate
 from candidates.serializers import CandidatePhotoUploadSerializer, CandidateSerializer
 from candidates.services.cloudinary_service import upload_candidate_photo
+from candidates.services.deletion_service import clear_all_candidates
+from members.services.deletion_service import MemberDeletionNotAllowedError
 from positions.models import Position
 
 
@@ -90,6 +92,35 @@ class CandidateDetailView(generics.RetrieveUpdateDestroyAPIView):
         instance.delete()
         return Response(
             {"success": True, "message": "Candidate deleted successfully."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class CandidateClearAllView(APIView):
+    permission_classes = [IsAdmin]
+
+    def post(self, request):
+        try:
+            result = clear_all_candidates()
+        except MemberDeletionNotAllowedError as exc:
+            raise ValidationError(str(exc)) from exc
+
+        return Response(
+            {
+                "success": True,
+                "data": {
+                    "deleted": result.deleted,
+                    "skipped": [
+                        {
+                            "id": item.id,
+                            "full_name": item.full_name,
+                            "reason": item.reason,
+                        }
+                        for item in result.skipped
+                    ],
+                },
+                "message": f"Removed {result.deleted} candidate(s).",
+            },
             status=status.HTTP_200_OK,
         )
 

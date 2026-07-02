@@ -1,34 +1,27 @@
-import { lazy } from 'react'
+import { lazy, Suspense } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import { Toaster } from 'sonner'
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
 import { AuthProvider } from '@/context/AuthContext'
 import { ThemeProvider } from '@/context/ThemeContext'
-import { AdminLayout } from '@/components/layout/AdminLayout'
-import { MemberLayout } from '@/components/layout/MemberLayout'
+import { PageLoader } from '@/components/shared/PageLoader'
 import { LoginPage } from '@/pages/LoginPage'
+import {
+  AdminDashboardPage,
+  AdminLayout,
+  BallotPage,
+  MemberLayout,
+} from '@/routes/corePages'
+import {
+  CandidatesPage,
+  ElectionsPage,
+  MembersPage,
+  PositionsPage,
+  ReportsPage,
+} from '@/routes/adminPages'
 
-const AdminDashboardPage = lazy(() =>
-  import('@/pages/admin/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage })),
-)
-const BallotPage = lazy(() =>
-  import('@/pages/member/BallotPage').then((m) => ({ default: m.BallotPage })),
-)
-const ElectionsPage = lazy(() =>
-  import('@/pages/admin/ElectionsPage').then((m) => ({ default: m.ElectionsPage })),
-)
-const MembersPage = lazy(() =>
-  import('@/pages/admin/MembersPage').then((m) => ({ default: m.MembersPage })),
-)
-const PositionsPage = lazy(() =>
-  import('@/pages/admin/PositionsPage').then((m) => ({ default: m.PositionsPage })),
-)
-const CandidatesPage = lazy(() =>
-  import('@/pages/admin/CandidatesPage').then((m) => ({ default: m.CandidatesPage })),
-)
-const ReportsPage = lazy(() =>
-  import('@/pages/admin/ReportsPage').then((m) => ({ default: m.ReportsPage })),
+const AppToaster = lazy(() =>
+  import('@/components/shared/AppToaster').then((m) => ({ default: m.AppToaster })),
 )
 
 const queryClient = new QueryClient({
@@ -42,6 +35,9 @@ const queryClient = new QueryClient({
   },
 })
 
+const layoutFallback = <PageLoader className="min-h-screen" />
+const pageFallback = <PageLoader className="min-h-[50vh]" />
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -52,20 +48,82 @@ export default function App() {
               <Route path="/login" element={<LoginPage />} />
 
               <Route element={<ProtectedRoute allowedRoles={['MEMBER']} />}>
-                <Route element={<MemberLayout />}>
-                  <Route path="/vote" element={<BallotPage />} />
+                <Route
+                  element={
+                    <Suspense fallback={layoutFallback}>
+                      <MemberLayout />
+                    </Suspense>
+                  }
+                >
+                  <Route
+                    path="/vote"
+                    element={
+                      <Suspense fallback={pageFallback}>
+                        <BallotPage />
+                      </Suspense>
+                    }
+                  />
                   <Route path="/my-votes" element={<Navigate to="/vote" replace />} />
                 </Route>
               </Route>
 
               <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
-                <Route path="/admin" element={<AdminLayout />}>
-                  <Route index element={<AdminDashboardPage />} />
-                  <Route path="members" element={<MembersPage />} />
-                  <Route path="positions" element={<PositionsPage />} />
-                  <Route path="candidates" element={<CandidatesPage />} />
-                  <Route path="elections" element={<ElectionsPage />} />
-                  <Route path="reports" element={<ReportsPage />} />
+                <Route
+                  path="/admin"
+                  element={
+                    <Suspense fallback={layoutFallback}>
+                      <AdminLayout />
+                    </Suspense>
+                  }
+                >
+                  <Route
+                    index
+                    element={
+                      <Suspense fallback={pageFallback}>
+                        <AdminDashboardPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="members"
+                    element={
+                      <Suspense fallback={pageFallback}>
+                        <MembersPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="positions"
+                    element={
+                      <Suspense fallback={pageFallback}>
+                        <PositionsPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="candidates"
+                    element={
+                      <Suspense fallback={pageFallback}>
+                        <CandidatesPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="elections"
+                    element={
+                      <Suspense fallback={pageFallback}>
+                        <ElectionsPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="reports"
+                    element={
+                      <Suspense fallback={pageFallback}>
+                        <ReportsPage />
+                      </Suspense>
+                    }
+                  />
                   <Route path="live" element={<Navigate to="/admin" replace />} />
                 </Route>
               </Route>
@@ -73,7 +131,9 @@ export default function App() {
               <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
           </BrowserRouter>
-          <Toaster richColors closeButton position="top-right" containerAriaLabel="Notifications" />
+          <Suspense fallback={null}>
+            <AppToaster />
+          </Suspense>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

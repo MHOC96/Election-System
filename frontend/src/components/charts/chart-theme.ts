@@ -15,7 +15,7 @@ export const chartTooltipStyle = {
   borderRadius: 'var(--radius)',
   color: 'hsl(var(--popover-foreground))',
   fontSize: 12,
-  boxShadow: '0 4px 12px hsl(222 47% 11% / 0.08)',
+  boxShadow: 'var(--shadow-lg)',
 }
 
 export const chartAnimation = {

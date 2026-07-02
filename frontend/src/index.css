@@ -5,67 +5,98 @@
 @layer base {
   :root {
     color-scheme: light;
-    --background: 0 0% 99%;
+
+    /* Surfaces & text — light theme designed independently for elegant, airy surfaces */
+    --background: 210 40% 98%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 221 70% 45%;
+
+    /* Brand + semantic (tuned for WCAG AA on their foregrounds) */
+    --primary: 224 76% 48%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 20% 96%;
+    --secondary: 210 40% 96%;
     --secondary-foreground: 222 47% 11%;
-    --muted: 210 20% 96%;
+    --muted: 210 40% 96%;
     --muted-foreground: 215 16% 42%;
-    --accent: 210 20% 96%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 214 95% 96%;
+    --accent-foreground: 224 76% 40%;
     --destructive: 0 72% 48%;
     --destructive-foreground: 0 0% 100%;
-    --success: 152 60% 38%;
+    --success: 142 65% 34%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 45%;
-    --warning-foreground: 222 47% 11%;
-    --border: 214 20% 90%;
-    --input: 214 20% 90%;
-    --ring: 221 70% 45%;
-    --radius: 0.5rem;
-    --chart-1: 221 70% 45%;
-    --chart-2: 152 60% 38%;
-    --chart-3: 215 16% 42%;
-    --chart-4: 38 92% 45%;
-    --chart-5: 0 72% 48%;
+    --warning: 32 95% 44%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 214 22% 90%;
+    --input: 214 22% 89%;
+    --ring: 224 76% 48%;
+    --radius: 0.625rem;
+
+    /* Chart palette (theme-aware) */
+    --chart-1: 224 76% 52%;
+    --chart-2: 142 65% 38%;
+    --chart-3: 262 68% 58%;
+    --chart-4: 32 95% 48%;
+    --chart-5: 199 89% 48%;
+
+    /* Elevation — theme-aware, soft and layered like Stripe/Linear */
+    --shadow-color: 220 43% 11%;
+    --shadow-xs: 0 1px 2px 0 hsl(var(--shadow-color) / 0.05);
+    --shadow-sm: 0 1px 3px 0 hsl(var(--shadow-color) / 0.08), 0 1px 2px -1px hsl(var(--shadow-color) / 0.06);
+    --shadow-md: 0 6px 16px -4px hsl(var(--shadow-color) / 0.1), 0 2px 6px -2px hsl(var(--shadow-color) / 0.06);
+    --shadow-lg: 0 14px 32px -8px hsl(var(--shadow-color) / 0.14), 0 6px 14px -6px hsl(var(--shadow-color) / 0.08);
+    --shadow-xl: 0 28px 56px -14px hsl(var(--shadow-color) / 0.2), 0 10px 24px -10px hsl(var(--shadow-color) / 0.1);
+
+    /* Decorative gradients */
+    --gradient-brand: linear-gradient(135deg, hsl(224 76% 54%), hsl(262 68% 58%));
   }
 
   .dark {
     color-scheme: dark;
-    --background: 222 47% 6%;
+
+    --background: 224 44% 6%;
     --foreground: 210 40% 98%;
-    --card: 222 47% 8%;
+    --card: 224 36% 9%;
     --card-foreground: 210 40% 98%;
-    --popover: 222 47% 8%;
+    --popover: 224 34% 11%;
     --popover-foreground: 210 40% 98%;
-    --primary: 217 85% 62%;
-    --primary-foreground: 222 47% 11%;
-    --secondary: 217 25% 14%;
+
+    --primary: 217 91% 65%;
+    --primary-foreground: 224 44% 8%;
+    --secondary: 217 28% 15%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217 25% 14%;
-    --muted-foreground: 215 15% 65%;
-    --accent: 217 25% 14%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 65% 55%;
-    --destructive-foreground: 210 40% 98%;
-    --success: 152 55% 45%;
-    --success-foreground: 222 47% 11%;
-    --warning: 38 90% 55%;
-    --warning-foreground: 222 47% 11%;
-    --border: 217 20% 18%;
-    --input: 217 20% 18%;
-    --ring: 217 85% 62%;
-    --chart-1: 217 85% 62%;
-    --chart-2: 152 55% 45%;
-    --chart-3: 215 15% 65%;
-    --chart-4: 38 90% 55%;
-    --chart-5: 0 65% 55%;
+    --muted: 217 28% 15%;
+    --muted-foreground: 216 18% 66%;
+    --accent: 217 33% 18%;
+    --accent-foreground: 213 96% 82%;
+    --destructive: 0 72% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142 60% 48%;
+    --success-foreground: 224 44% 8%;
+    --warning: 35 92% 58%;
+    --warning-foreground: 224 44% 8%;
+
+    --border: 216 22% 17%;
+    --input: 216 22% 20%;
+    --ring: 217 91% 65%;
+
+    --chart-1: 217 91% 65%;
+    --chart-2: 142 60% 50%;
+    --chart-3: 262 72% 70%;
+    --chart-4: 35 92% 60%;
+    --chart-5: 199 89% 60%;
+
+    --shadow-color: 224 60% 2%;
+    --shadow-xs: 0 1px 2px 0 hsl(var(--shadow-color) / 0.4);
+    --shadow-sm: 0 1px 3px 0 hsl(var(--shadow-color) / 0.5), 0 1px 2px -1px hsl(var(--shadow-color) / 0.4);
+    --shadow-md: 0 6px 18px -4px hsl(var(--shadow-color) / 0.6), 0 2px 6px -2px hsl(var(--shadow-color) / 0.45);
+    --shadow-lg: 0 16px 36px -8px hsl(var(--shadow-color) / 0.7), 0 6px 14px -6px hsl(var(--shadow-color) / 0.5);
+    --shadow-xl: 0 30px 60px -14px hsl(var(--shadow-color) / 0.78), 0 12px 26px -10px hsl(var(--shadow-color) / 0.6);
+
+    --gradient-brand: linear-gradient(135deg, hsl(217 91% 62%), hsl(262 72% 66%));
   }
 }
 
@@ -83,13 +114,55 @@
 
   body {
     @apply bg-background font-sans text-foreground antialiased;
+    font-feature-settings: 'cv11', 'ss01', 'liga', 'calt';
+    letter-spacing: -0.011em;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.02em;
+  }
+
+  /* Consistent, accessible focus ring across custom/interactive elements */
+  :focus-visible {
+    outline: none;
+  }
+
+  /* Refined scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.28);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.45);
+  }
+
+  ::selection {
+    background-color: hsl(var(--primary) / 0.22);
+    color: hsl(var(--foreground));
   }
 
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
   input:-webkit-autofill:focus,
   input:-webkit-autofill:active {
-    -webkit-box-shadow: 0 0 0 1000px hsl(var(--background)) inset !important;
+    -webkit-box-shadow: 0 0 0 1000px hsl(var(--card)) inset !important;
     -webkit-text-fill-color: hsl(var(--foreground)) !important;
     caret-color: hsl(var(--foreground));
     transition: background-color 5000s ease-in-out 0s;
@@ -103,6 +176,61 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Frosted glass surface for premium headers/overlays */
+  .glass {
+    background-color: hsl(var(--card) / 0.72);
+    backdrop-filter: saturate(180%) blur(12px);
+    -webkit-backdrop-filter: saturate(180%) blur(12px);
+  }
+
+  /* Gradient brand text (logos, hero numbers) */
+  .text-gradient {
+    background: var(--gradient-brand);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .bg-gradient-brand {
+    background: var(--gradient-brand);
+  }
+
+  /* Subtle dotted grid background for hero/empty canvases */
+  .bg-grid {
+    background-image: radial-gradient(hsl(var(--muted-foreground) / 0.12) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+}
+
+@layer utilities {
+  /* Shimmer sweep for skeletons */
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--foreground) / 0.06),
+      transparent
+    );
+    animation: shimmer 1.6s infinite;
+  }
+
+  @keyframes shimmer {
+    100% {
+      transform: translateX(100%);
     }
   }
 }

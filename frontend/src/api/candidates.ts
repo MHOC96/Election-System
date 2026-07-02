@@ -38,6 +38,13 @@ export async function deleteCandidate(id: number) {
   return apiDelete(`/candidates/${id}/`)
 }
 
+export async function clearAllCandidates() {
+  return apiPost<{
+    deleted: number
+    skipped: { id: number; full_name: string; reason: string }[]
+  }>('/candidates/clear-all/')
+}
+
 export async function uploadCandidatePhoto(file: File) {
   const formData = new FormData()
   formData.append('photo', file)

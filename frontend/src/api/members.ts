@@ -1,9 +1,8 @@
-import { api, apiDelete, apiGet, apiPatch, apiPost, apiUpload } from '@/api/client'
+import { apiDelete, apiGet, apiPatch, apiPost, apiUpload } from '@/api/client'
 import type { Member, MemberImportResult, Paginated } from '@/types/api'
 
 export async function fetchMembers(page = 1) {
-  const { data } = await api.get<Paginated<Member>>('/members/', { params: { page } })
-  return data
+  return apiGet<Paginated<Member>>('/members/', { page })
 }
 
 export async function importMembers(file: File) {
@@ -18,6 +17,10 @@ export async function fetchMember(id: number) {
 
 export async function fetchMemberDeletionStatus() {
   return apiGet<{ allowed: boolean }>('/members/deletion-status/')
+}
+
+export async function clearAllMembers() {
+  return apiPost<{ deleted: number }>('/members/clear-all/')
 }
 
 export async function bulkDeleteMembers(ids: number[]) {
