@@ -1,6 +1,4 @@
 import type { QueryClient } from '@tanstack/react-query'
-import { fetchDashboardSummary, fetchLiveStats } from '@/api/dashboard'
-import { fetchBallot, fetchVoteStatus } from '@/api/votes'
 
 export function scheduleIdle(task: () => void) {
   if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
@@ -22,13 +20,15 @@ function markPrefetched(routeKey: string) {
 
 /** Prefetch dashboard summary and live stats for admin landing. */
 export function prefetchAdminLanding(queryClient: QueryClient) {
-  void queryClient.prefetchQuery({
-    queryKey: ['dashboard-summary'],
-    queryFn: () => fetchDashboardSummary(),
-  })
-  void queryClient.prefetchQuery({
-    queryKey: ['dashboard-live'],
-    queryFn: () => fetchLiveStats(),
+  void import('@/api/dashboard').then(({ fetchDashboardSummary, fetchLiveStats }) => {
+    void queryClient.prefetchQuery({
+      queryKey: ['dashboard-summary'],
+      queryFn: () => fetchDashboardSummary(),
+    })
+    void queryClient.prefetchQuery({
+      queryKey: ['dashboard-live'],
+      queryFn: () => fetchLiveStats(),
+    })
   })
 }
 
@@ -104,36 +104,17 @@ export function prefetchMemberNavRoute(to: string, queryClient: QueryClient) {
   }
 }
 
-export function prefetchAdminRoutes() {
-  void import('@/pages/admin/AdminDashboardPage')
-  void import('@/pages/admin/MembersPage')
-  void import('@/pages/admin/PositionsPage')
-  void import('@/pages/admin/CandidatesPage')
-  void import('@/pages/admin/ElectionsPage')
-  void import('@/pages/admin/ReportsPage')
-}
-
 export function prefetchMemberLanding(queryClient: QueryClient) {
-  void queryClient.prefetchQuery({
-    queryKey: ['ballot'],
-    queryFn: fetchBallot,
+  void import('@/api/votes').then(({ fetchBallot, fetchVoteStatus }) => {
+    void queryClient.prefetchQuery({
+      queryKey: ['ballot'],
+      queryFn: fetchBallot,
+    })
+    void queryClient.prefetchQuery({
+      queryKey: ['my-votes'],
+      queryFn: fetchVoteStatus,
+    })
   })
-  void queryClient.prefetchQuery({
-    queryKey: ['my-votes'],
-    queryFn: fetchVoteStatus,
-  })
-}
-
-export function prefetchMemberRoutes() {
-  void import('@/pages/member/BallotPage')
-}
-
-export function warmAdminLanding() {
-  scheduleIdle(prefetchAdminRoutes)
-}
-
-export function warmMemberLanding() {
-  scheduleIdle(prefetchMemberRoutes)
 }
 
 export function handleNavPrefetch(

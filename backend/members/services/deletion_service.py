@@ -47,25 +47,30 @@ def bulk_delete_members(member_ids: list[int]) -> BulkMemberDeleteResult:
     result = BulkMemberDeleteResult(requested=len(member_ids), deleted=[], failed=[])
     unique_ids = list(dict.fromkeys(member_ids))
 
+    members = list(User.objects.filter(pk__in=unique_ids, role=UserRole.MEMBER))
+    members_by_id = {member.id: member for member in members}
+
     for member_id in unique_ids:
-        try:
-            member = User.objects.get(pk=member_id, role=UserRole.MEMBER)
-        except User.DoesNotExist:
+        if member_id not in members_by_id:
             result.failed.append(
                 {"id": member_id, "cpm_number": "", "reason": "Member not found."}
             )
-            continue
 
-        try:
-            with transaction.atomic():
-                Vote.objects.filter(member=member).delete()
-                cpm_number = member.cpm_number
-                member.delete()
-            result.deleted.append({"id": member_id, "cpm_number": cpm_number})
-        except Exception as exc:  # noqa: BLE001 — collect per-row failures for bulk UI
+    if not members:
+        return result
+
+    member_pks = [member.id for member in members]
+    try:
+        with transaction.atomic():
+            Vote.objects.filter(member_id__in=member_pks).delete()
+            User.objects.filter(pk__in=member_pks, role=UserRole.MEMBER).delete()
+        for member in members:
+            result.deleted.append({"id": member.id, "cpm_number": member.cpm_number})
+    except Exception as exc:  # noqa: BLE001 — surface batch failure to caller
+        for member in members:
             result.failed.append(
                 {
-                    "id": member_id,
+                    "id": member.id,
                     "cpm_number": member.cpm_number,
                     "reason": str(exc),
                 }

@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Vote } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { shellContentClass } from '@/lib/design-tokens'
-import { prefetchMemberLanding, warmMemberLanding } from '@/lib/prefetch'
+import { prefetchMemberLanding } from '@/lib/prefetch'
 import { ShellActions } from '@/components/layout/ShellActions'
 import { SkipToContent } from '@/components/shared/SkipToContent'
 import { PageLoader } from '@/components/shared/PageLoader'
@@ -19,7 +19,6 @@ export function MemberLayout() {
 
   useEffect(() => {
     prefetchMemberLanding(queryClient)
-    warmMemberLanding()
   }, [queryClient])
 
   const handleLogout = useCallback(async () => {

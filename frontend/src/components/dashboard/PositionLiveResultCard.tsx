@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Crown, Medal } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -112,7 +113,7 @@ function CandidateRow({
   )
 }
 
-export function PositionLiveResultCard({
+export const PositionLiveResultCard = memo(function PositionLiveResultCard({
   positionName,
   totalVotes,
   totalMembers,
@@ -238,4 +239,4 @@ export function PositionLiveResultCard({
       </CardContent>
     </Card>
   )
-}
+})

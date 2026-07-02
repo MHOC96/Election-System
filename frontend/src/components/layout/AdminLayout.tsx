@@ -5,7 +5,7 @@ import { Vote } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { adminNavItems } from '@/lib/navigation'
 import { shellContentClass } from '@/lib/design-tokens'
-import { prefetchAdminLanding, warmAdminLanding } from '@/lib/prefetch'
+import { prefetchAdminLanding } from '@/lib/prefetch'
 import { MobileNavSheet } from '@/components/layout/MobileNavSheet'
 import { ShellActions } from '@/components/layout/ShellActions'
 import { SidebarNav } from '@/components/layout/SidebarNav'
@@ -23,7 +23,6 @@ export function AdminLayout() {
 
   useEffect(() => {
     prefetchAdminLanding(queryClient)
-    warmAdminLanding()
   }, [queryClient])
 
   const handleLogout = useCallback(async () => {

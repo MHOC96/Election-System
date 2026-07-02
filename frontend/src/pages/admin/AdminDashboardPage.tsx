@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useQueries } from '@tanstack/react-query'
 import { FadeIn } from '@/components/motion/FadeIn'
+import { useDocumentVisible } from '@/lib/useDocumentVisible'
 import { usePrefersReducedMotion } from '@/lib/usePrefersReducedMotion'
 import { Activity, Plus, TrendingUp, Trophy, Users, Vote } from 'lucide-react'
 import { fetchDashboardSummary, fetchLiveStats } from '@/api/dashboard'
@@ -19,7 +20,8 @@ import { StatCard } from '@/components/shared/StatCard'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import { formatPercent } from '@/lib/utils'
 
-const POLL_INTERVAL_SECONDS = 10
+const LIVE_POLL_INTERVAL_MS = 10_000
+const SUMMARY_POLL_INTERVAL_MS = 30_000
 
 function formatCount(value: number): string {
   return value.toLocaleString()
@@ -27,19 +29,20 @@ function formatCount(value: number): string {
 
 export function AdminDashboardPage() {
   const reduceMotion = usePrefersReducedMotion()
+  const documentVisible = useDocumentVisible()
 
   const [summaryQuery, liveQuery] = useQueries({
     queries: [
       {
         queryKey: ['dashboard-summary'],
         queryFn: () => fetchDashboardSummary(),
-        refetchInterval: POLL_INTERVAL_SECONDS * 1000,
+        refetchInterval: documentVisible ? SUMMARY_POLL_INTERVAL_MS : false,
         refetchIntervalInBackground: false,
       },
       {
         queryKey: ['dashboard-live'],
         queryFn: () => fetchLiveStats(),
-        refetchInterval: POLL_INTERVAL_SECONDS * 1000,
+        refetchInterval: documentVisible ? LIVE_POLL_INTERVAL_MS : false,
         refetchIntervalInBackground: false,
       },
     ],
@@ -137,7 +140,7 @@ export function AdminDashboardPage() {
             <LiveUpdateIndicator
               isActive={isLive}
               updatedAt={dataUpdatedAt}
-              pollIntervalSeconds={POLL_INTERVAL_SECONDS}
+              pollIntervalSeconds={LIVE_POLL_INTERVAL_MS / 1000}
             />
             <Badge variant={isLive ? 'success' : 'secondary'}>
               {data.election.name} — {data.election.status}

@@ -18,8 +18,6 @@ import { loginSchema, type LoginForm } from '@/lib/form-schemas'
 import {
   prefetchAdminLanding,
   prefetchMemberLanding,
-  warmAdminLanding,
-  warmMemberLanding,
 } from '@/lib/prefetch'
 import { toast } from 'sonner'
 
@@ -51,11 +49,9 @@ export function LoginPage() {
 
       if (loggedIn.role === 'ADMIN') {
         prefetchAdminLanding(queryClient)
-        warmAdminLanding()
         navigate('/admin')
       } else {
         prefetchMemberLanding(queryClient)
-        warmMemberLanding()
         navigate('/vote')
       }
 

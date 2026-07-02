@@ -11,5 +11,4 @@ export { MemberStatusBadge, ElectionStatusBadge } from '@/components/shared/Stat
 export { SkipToContent } from '@/components/shared/SkipToContent'
 export { ChartDataTable } from '@/components/charts/ChartDataTable'
 export { FormField } from '@/components/design-system/FormField'
-export { SecureSessionBanner } from '@/components/layout/SecureSessionBanner'
 export { SidebarNav } from '@/components/layout/SidebarNav'

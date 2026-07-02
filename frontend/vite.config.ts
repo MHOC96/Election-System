@@ -27,6 +27,19 @@ export default defineConfig({
           if (id.includes('@tanstack/react-query')) {
             return 'query'
           }
+          if (id.includes('axios')) {
+            return 'http'
+          }
+          if (
+            id.includes('react-hook-form') ||
+            id.includes('@hookform') ||
+            id.includes('/zod/')
+          ) {
+            return 'forms'
+          }
+          if (id.includes('lucide-react')) {
+            return 'icons'
+          }
           if (
             id.includes('react-dom') ||
             id.includes('react-router') ||

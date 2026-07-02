@@ -27,7 +27,7 @@ def _require_election(election_id: int | None = None):
 
 def get_results_report_data(election_id: int | None = None) -> dict:
     election = _require_election(election_id)
-    stats = get_live_stats(election.id, use_cache=False)
+    stats = get_live_stats(election.id, use_cache=True)
     rows = []
     for position in stats["positions"]:
         for ranking in position["rankings"]:

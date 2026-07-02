@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from django.core.cache import cache
 from django.db.models import Count, Q
 
@@ -8,6 +10,27 @@ from voting.models import Election, ElectionStatus, Vote
 
 LIVE_STATS_CACHE_SECONDS = 8
 SUMMARY_CACHE_SECONDS = 15
+
+
+def _cache_version(scope: str | int) -> int:
+    return cache.get(f"dashboard:ver:{scope}", 0)
+
+
+def _bump_cache_version(scope: str | int) -> None:
+    key = f"dashboard:ver:{scope}"
+    try:
+        cache.incr(key)
+    except ValueError:
+        cache.set(key, 1, timeout=None)
+
+
+def _summary_cache_key(election_id: int | None) -> str:
+    scope = election_id if election_id is not None else "default"
+    return f"dashboard:summary:{scope}:v{_cache_version(scope)}"
+
+
+def _live_stats_cache_key(election_id: int) -> str:
+    return f"dashboard:live_stats:{election_id}:v{_cache_version(election_id)}"
 
 
 def _resolve_election(election_id: int | None = None) -> Election | None:
@@ -28,7 +51,7 @@ def _pct(part: int, whole: int) -> float:
 def get_dashboard_summary(
     election_id: int | None = None, *, use_cache: bool = True
 ) -> dict:
-    cache_key = f"dashboard:summary:{election_id if election_id is not None else 'default'}"
+    cache_key = _summary_cache_key(election_id)
     if use_cache:
         cached = cache.get(cache_key)
         if cached is not None:
@@ -126,7 +149,7 @@ def get_live_stats(election_id: int | None = None, *, use_cache: bool = True) ->
             "highest_voted_overall": None,
         }
 
-    cache_key = f"dashboard:live_stats:{election.id}"
+    cache_key = _live_stats_cache_key(election.id)
     if use_cache:
         cached = cache.get(cache_key)
         if cached is not None:
@@ -140,9 +163,10 @@ def get_live_stats(election_id: int | None = None, *, use_cache: bool = True) ->
         .order_by("position__name", "-vote_count", "full_name")
     )
 
-    total_votes = Vote.objects.filter(election=election).count()
+    total_votes = 0
     candidate_stats = []
     for candidate in candidates:
+        total_votes += candidate.vote_count
         candidate_stats.append(
             {
                 "candidate_id": candidate.id,
@@ -150,16 +174,24 @@ def get_live_stats(election_id: int | None = None, *, use_cache: bool = True) ->
                 "position_id": candidate.position_id,
                 "position_name": candidate.position.name,
                 "vote_count": candidate.vote_count,
-                "vote_percentage": _pct(candidate.vote_count, total_votes),
+                "vote_percentage": 0.0,
             }
         )
+
+    if total_votes > 0:
+        for item in candidate_stats:
+            item["vote_percentage"] = _pct(item["vote_count"], total_votes)
+
+    candidates_by_position: dict[int, list[dict]] = defaultdict(list)
+    for item in candidate_stats:
+        candidates_by_position[item["position_id"]].append(item)
 
     positions = Position.objects.all().order_by("name")
     position_stats = []
     highest_overall = None
 
     for position in positions:
-        position_candidates = [c for c in candidate_stats if c["position_id"] == position.id]
+        position_candidates = candidates_by_position.get(position.id, [])
         position_candidates.sort(key=lambda item: (-item["vote_count"], item["full_name"]))
 
         rankings = []
@@ -248,8 +280,7 @@ def _election_payload(election: Election | None) -> dict | None:
 
 
 def invalidate_dashboard_cache(election_id: int | None = None) -> None:
-    """Clear dashboard caches after votes or election changes."""
-    cache.delete("dashboard:summary:default")
+    """Bump cache versions so readers miss stale entries without delete storms."""
+    _bump_cache_version("default")
     if election_id is not None:
-        cache.delete(f"dashboard:summary:{election_id}")
-        cache.delete(f"dashboard:live_stats:{election_id}")
+        _bump_cache_version(election_id)

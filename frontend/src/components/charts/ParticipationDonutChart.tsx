@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Cell, Label, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import { ChartTooltip } from '@/components/charts/ChartTooltip'
 import { chartAnimation, chartLegendStyle, participationSegmentColors } from '@/components/charts/chart-theme'
@@ -45,6 +46,11 @@ export function ParticipationDonutChart({
   ].filter((d) => d.value > 0)
 
   const total = completed + partial + none
+  const [animateChart, setAnimateChart] = useState(true)
+
+  useEffect(() => {
+    setAnimateChart(false)
+  }, [])
 
   if (total === 0) {
     return null
@@ -66,7 +72,7 @@ export function ParticipationDonutChart({
             paddingAngle={3}
             stroke="hsl(var(--card))"
             strokeWidth={3}
-            animationDuration={chartAnimation.duration}
+            animationDuration={animateChart ? chartAnimation.duration : 0}
             animationEasing={chartAnimation.easing}
           >
             {data.map((entry) => (

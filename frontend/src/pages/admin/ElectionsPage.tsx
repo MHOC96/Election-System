@@ -78,6 +78,7 @@ export function ElectionsPage() {
     onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({ queryKey: ['elections'] })
       void queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
+      void queryClient.invalidateQueries({ queryKey: ['dashboard-live'] })
       void queryClient.invalidateQueries({ queryKey: ['members-deletion-status'] })
       if (variables.action === 'close') {
         setCloseTarget(null)
@@ -96,6 +97,7 @@ export function ElectionsPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['elections'] })
       void queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
+      void queryClient.invalidateQueries({ queryKey: ['dashboard-live'] })
       void queryClient.invalidateQueries({ queryKey: ['members-deletion-status'] })
       toast.success('Election deleted')
       setDeleteTarget(null)

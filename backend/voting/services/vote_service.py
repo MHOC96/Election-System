@@ -18,11 +18,7 @@ def submit_vote(*, member: User, position_id: int, candidate_id: int) -> Vote:
         raise VoteError("Only active members are allowed to vote.", code="not_authorized")
 
     with transaction.atomic():
-        election = (
-            Election.objects.select_for_update()
-            .filter(status=ElectionStatus.ACTIVE)
-            .first()
-        )
+        election = Election.objects.filter(status=ElectionStatus.ACTIVE).first()
         if election is None:
             raise VoteError("No active election.", code="election_not_active")
 
@@ -42,12 +38,6 @@ def submit_vote(*, member: User, position_id: int, candidate_id: int) -> Vote:
                 code="candidate_position_mismatch",
             )
 
-        if Vote.objects.filter(member=member, position=position).exists():
-            raise VoteError(
-                "You have already voted for this position.",
-                code="duplicate_vote",
-            )
-
         try:
             vote = Vote.objects.create(
                 member=member,
@@ -65,7 +55,7 @@ def submit_vote(*, member: User, position_id: int, candidate_id: int) -> Vote:
 
     invalidate_dashboard_cache(election.id)
 
-    return vote
+    return Vote.objects.select_related("position", "candidate").get(pk=vote.pk)
 
 
 def get_member_vote_status(member: User, election: Election | None = None) -> dict:

@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.db.models import Prefetch
 from rest_framework import generics, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -216,7 +217,12 @@ class BallotView(APIView):
             )
         }
 
-        positions = Position.objects.prefetch_related("candidates").order_by("name")
+        positions = Position.objects.prefetch_related(
+            Prefetch(
+                "candidates",
+                queryset=Candidate.objects.select_related("position"),
+            )
+        ).order_by("name")
         position_items = []
         for position in positions:
             candidates = position.candidates.all()
