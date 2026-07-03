@@ -10,6 +10,13 @@ import type { ApiFailure, ApiResponse } from '@/types/api'
 
 const API_URL = import.meta.env.VITE_API_URL ?? '/api'
 
+if (import.meta.env.PROD && API_URL.startsWith('/')) {
+  console.error(
+    '[API] VITE_API_URL is relative (%s). Set it in Vercel to your Render URL, e.g. https://your-service.onrender.com/api',
+    API_URL,
+  )
+}
+
 export const api = axios.create({
   baseURL: API_URL,
   headers: { 'Content-Type': 'application/json' },
@@ -90,6 +97,13 @@ api.interceptors.response.use(
   },
 )
 
+function unwrapApiResponse<T>(response: ApiResponse<T>): T {
+  if (response.success === false) {
+    throw new Error(response.error.message)
+  }
+  return response.data
+}
+
 export function getApiErrorMessage(error: unknown, fallback = 'Something went wrong.'): string {
   if (axios.isAxiosError<ApiFailure>(error)) {
     const apiError = error.response?.data?.error
@@ -111,25 +125,22 @@ export function getApiErrorMessage(error: unknown, fallback = 'Something went wr
 
 export async function apiGet<T>(url: string, params?: Record<string, unknown>) {
   const { data } = await api.get<ApiResponse<T>>(url, { params })
-  if (!data.success) throw new Error(data.error.message)
-  return data.data
+  return unwrapApiResponse(data)
 }
 
 export async function apiPost<T>(url: string, body?: unknown) {
   const { data } = await api.post<ApiResponse<T>>(url, body)
-  if (!data.success) throw new Error(data.error.message)
-  return data.data
+  return unwrapApiResponse(data)
 }
 
 export async function apiPatch<T>(url: string, body?: unknown) {
   const { data } = await api.patch<ApiResponse<T>>(url, body)
-  if (!data.success) throw new Error(data.error.message)
-  return data.data
+  return unwrapApiResponse(data)
 }
 
 export async function apiDelete(url: string) {
   const { data } = await api.delete<ApiResponse<unknown>>(url)
-  if (!data.success) throw new Error(data.error.message)
+  unwrapApiResponse(data)
 }
 
 export async function apiUpload<T>(url: string, formData: FormData) {
@@ -141,8 +152,7 @@ export async function apiUpload<T>(url: string, formData: FormData) {
       return payload
     }],
   })
-  if (!data.success) throw new Error(data.error.message)
-  return data.data
+  return unwrapApiResponse(data)
 }
 
 export async function downloadReport(
