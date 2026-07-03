@@ -16,7 +16,6 @@ import {
   ReportsPage,
 } from '@/routes/adminPages'
 import { AdminDashboardPage, preloadAdminShell, preloadMemberShell } from '@/routes/corePages'
-import { preloadMemberPageModules } from '@/routes/memberPages'
 
 export { scheduleIdle } from '@/lib/schedule-idle'
 
