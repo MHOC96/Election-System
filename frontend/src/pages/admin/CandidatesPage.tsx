@@ -18,6 +18,7 @@ import {
   buildPositionCandidateGroups,
   CandidatePositionGroups,
 } from '@/components/candidates/CandidatePositionGroups'
+import { PhotoCropDialog } from '@/components/shared/PhotoCropDialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -39,7 +40,8 @@ import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import { optimizeCloudinaryUrl } from '@/lib/cloudinary'
 import { candidateSchema, type CandidateForm } from '@/lib/form-schemas'
-import { fetchAndSetQueryData } from '@/lib/query-sync'
+import { markQueriesStale } from '@/lib/query-sync'
+import { readFileAsObjectUrl } from '@/lib/image-crop'
 import type { AcademicYear, Candidate } from '@/types/api'
 import { toast } from 'sonner'
 
@@ -51,6 +53,7 @@ export function CandidatesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Candidate | null>(null)
   const [clearAllOpen, setClearAllOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
 
   const { data: candidates, isLoading: candidatesLoading, isFetching } = useQuery({
     queryKey: ['candidates'],
@@ -74,13 +77,23 @@ export function CandidatesPage() {
     !deletionStatusLoading && deletionStatus !== undefined && !deletionStatus.allowed
   const totalCandidates = candidates?.length ?? 0
 
-  const groupedCandidates = useMemo(
-    () => buildPositionCandidateGroups(positions, candidates),
-    [positions, candidates],
-  )
+  const groupedCandidates = useMemo(() => {
+    const groups = buildPositionCandidateGroups(positions, candidates)
+    return groups.filter((group) => group.candidates.length > 0)
+  }, [positions, candidates])
 
-  const refreshCandidates = () =>
-    fetchAndSetQueryData(queryClient, ['candidates'], () => fetchCandidates())
+  const syncCandidateInCache = (saved: Candidate) => {
+    queryClient.setQueryData<Candidate[]>(['candidates'], (old) => {
+      const list = old ?? []
+      const index = list.findIndex((candidate) => candidate.id === saved.id)
+      if (index >= 0) {
+        const next = [...list]
+        next[index] = saved
+        return next
+      }
+      return [...list, saved]
+    })
+  }
 
   const {
     register,
@@ -103,9 +116,9 @@ export function CandidatesPage() {
       if (editing) return updateCandidate(editing.id, data)
       return createCandidate(data)
     },
-    onSuccess: async () => {
-      await refreshCandidates()
-      void queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] })
+    onSuccess: (saved) => {
+      syncCandidateInCache(saved)
+      markQueriesStale(queryClient, ['dashboard-overview'])
       toast.success(editing ? 'Candidate updated' : 'Candidate created')
       closeDialog()
     },
@@ -120,13 +133,12 @@ export function CandidatesPage() {
       queryClient.setQueryData<Candidate[]>(['candidates'], (old) =>
         (old ?? []).filter((candidate) => candidate.id !== id),
       )
+      setDeleteTarget(null)
       return { previous }
     },
-    onSuccess: async () => {
-      await refreshCandidates()
-      void queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] })
+    onSuccess: () => {
+      markQueriesStale(queryClient, ['dashboard-overview'])
       toast.success('Candidate deleted')
-      setDeleteTarget(null)
     },
     onError: (error, _id, context) => {
       if (context?.previous) {
@@ -140,12 +152,13 @@ export function CandidatesPage() {
     mutationFn: clearAllCandidates,
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ['candidates'] })
+      const previous = queryClient.getQueryData<Candidate[]>(['candidates'])
       queryClient.setQueryData<Candidate[]>(['candidates'], [])
       setClearAllOpen(false)
+      return { previous }
     },
-    onSuccess: async (result) => {
-      await refreshCandidates()
-      void queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] })
+    onSuccess: (result) => {
+      markQueriesStale(queryClient, ['dashboard-overview'])
       if (result.deleted === 0 && result.skipped.length === 0) {
         toast.info('No candidates to remove')
       } else if (result.skipped.length > 0) {
@@ -158,8 +171,10 @@ export function CandidatesPage() {
         )
       }
     },
-    onError: (error) => {
-      void queryClient.invalidateQueries({ queryKey: ['candidates'] })
+    onError: (error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['candidates'], context.previous)
+      }
       toast.error(getApiErrorMessage(error))
     },
   })
@@ -196,9 +211,23 @@ export function CandidatesPage() {
     requestAnimationFrame(() => restoreBodyPointerEvents())
   }
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
+    e.target.value = ''
     if (!file) return
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please choose an image file')
+      return
+    }
+    try {
+      const objectUrl = await readFileAsObjectUrl(file)
+      setCropImageSrc(objectUrl)
+    } catch {
+      toast.error('Could not read the selected image')
+    }
+  }
+
+  const handleCroppedPhotoUpload = async (file: File) => {
     setUploading(true)
     try {
       const result = await uploadCandidatePhoto(file)
@@ -206,10 +235,14 @@ export function CandidatesPage() {
       toast.success('Photo uploaded')
     } catch (error) {
       toast.error(getApiErrorMessage(error))
+      throw error
     } finally {
       setUploading(false)
-      e.target.value = ''
     }
+  }
+
+  const closeCropDialog = () => {
+    setCropImageSrc(null)
   }
 
   const isLoading = candidatesLoading || positionsLoading
@@ -277,6 +310,12 @@ export function CandidatesPage() {
                 title="No positions yet"
                 description="Create executive positions first, then add candidates to each group."
               />
+            ) : groupedCandidates.length === 0 ? (
+              <EmptyState
+                icon={UserCheck}
+                title="No candidates yet"
+                description="Add candidates using the button above and assign them to a position."
+              />
             ) : (
               <CandidatePositionGroups
                 groups={groupedCandidates}
@@ -343,7 +382,7 @@ export function CandidatesPage() {
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={(e) => void handlePhotoUpload(e)}
+                onChange={(e) => void handlePhotoSelect(e)}
               />
               <div className="flex items-center gap-3">
                 <Button
@@ -352,7 +391,7 @@ export function CandidatesPage() {
                   onClick={() => fileRef.current?.click()}
                   disabled={uploading}
                 >
-                  {uploading ? 'Uploading…' : 'Upload photo'}
+                  {uploading ? 'Uploading…' : 'Choose photo'}
                 </Button>
                 {photoUrl ? (
                   <img
@@ -376,6 +415,13 @@ export function CandidatesPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <PhotoCropDialog
+        open={!!cropImageSrc}
+        imageSrc={cropImageSrc}
+        onCancel={closeCropDialog}
+        onConfirm={handleCroppedPhotoUpload}
+      />
 
       <ConfirmDialog
         open={!!deleteTarget}

@@ -55,7 +55,7 @@ export function LoginPage() {
         navigate('/vote')
       }
 
-      void notifySuccess('Welcome back!')
+      void notifySuccess('Signed in successfully')
     } catch (error) {
       void notifyError(getApiErrorMessage(error, 'Invalid credentials'))
     }
@@ -83,9 +83,13 @@ export function LoginPage() {
             <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-brand text-white shadow-md">
               <Vote className="h-7 w-7" aria-hidden="true" />
             </div>
-            <h1 className="text-2xl font-semibold leading-none tracking-tight">Welcome back</h1>
+            <h1 className="text-2xl font-semibold leading-none tracking-tight">
+              {isSubmitting ? 'Signing in…' : 'Member Sign In'}
+            </h1>
             <CardDescription>
-              Use your CPM Number and MC Number to access the election portal
+              {isSubmitting
+                ? 'Verifying your credentials…'
+                : 'Use your CPM Number and MC Number to access the election portal'}
             </CardDescription>
           </CardHeader>
           <CardContent>
