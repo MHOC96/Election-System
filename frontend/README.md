@@ -1,32 +1,119 @@
-# React + TypeScript + Vite
+# Executive Committee Election — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React SPA for the Executive Committee Election Management System.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React 19 + TypeScript
+- Vite
+- Tailwind CSS + shadcn/ui
+- TanStack Query
+- React Hook Form + Zod
+- React Router
+- Recharts
+- Framer Motion
 
-## React Compiler
+## Prerequisites
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Node.js 20+
+- npm
 
-## Expanding the Oxlint configuration
+The backend API must be running for full functionality (see `../backend/README.md`).
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+## Setup
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+1. Install dependencies:
+
+```bash
+cd frontend
+npm install
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+2. Copy environment variables:
+
+```bash
+cp .env.example .env
+```
+
+For local development, the default `VITE_API_URL=/api` is sufficient. Vite proxies `/api` to `http://localhost:8000`.
+
+3. Start the dev server:
+
+```bash
+npm run dev
+```
+
+Open `http://localhost:5173`.
+
+## Environment variables
+
+| Variable | Description |
+|----------|-------------|
+| `VITE_API_URL` | API base URL. Use `/api` locally (Vite proxy). In production, set to your backend URL including `/api`. |
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start Vite dev server with HMR |
+| `npm run build` | Type-check and production build |
+| `npm run preview` | Preview production build locally |
+| `npm run lint` | Run Oxlint |
+
+## Project structure
+
+```
+src/
+├── api/           # API client and endpoint modules
+├── components/    # UI, layout, charts, shared components
+├── context/       # Auth and theme providers
+├── lib/           # Schemas, utilities, prefetch helpers
+├── pages/         # Route pages (login, admin, member ballot)
+├── routes/        # Route configuration
+└── types/         # Shared TypeScript types
+```
+
+## Routes
+
+| Path | Access | Description |
+|------|--------|-------------|
+| `/login` | Public | Member sign-in (CPM + MC) |
+| `/vote` | Member | Ballot and voting |
+| `/admin` | Admin | Dashboard |
+| `/admin/members` | Admin | Member import and management |
+| `/admin/positions` | Admin | Position management |
+| `/admin/candidates` | Admin | Candidate management |
+| `/admin/election` | Admin | Election control |
+
+## Authentication
+
+Users log in with **CPM Number** and **MC Number**. JWT tokens are stored client-side and attached to API requests automatically.
+
+- Admins are redirected to `/admin`
+- Members are redirected to `/vote`
+
+## Local development proxy
+
+`vite.config.ts` proxies `/api` to `http://localhost:8000`, so you do not need CORS changes when both servers run locally.
+
+## Production build
+
+```bash
+npm run build
+```
+
+Deploy the `dist/` folder (e.g. Vercel). Set `VITE_API_URL` to your production backend URL, for example:
+
+```
+VITE_API_URL=https://your-backend.onrender.com/api
+```
+
+Redeploy after changing environment variables.
+
+## UI features
+
+- Dark / light theme toggle
+- Responsive, mobile-first layout
+- Skeleton loaders and empty states
+- Toast notifications
+- Accessible forms and navigation

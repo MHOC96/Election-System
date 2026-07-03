@@ -293,7 +293,9 @@ export function MembersPage() {
               <Input
                 id="cpm_number"
                 autoComplete="off"
-                autoCapitalize="characters"
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
                 {...register('cpm_number')}
               />
             </FormField>
@@ -305,7 +307,15 @@ export function MembersPage() {
               hint="Updating the MC number also updates the member's login password."
               required
             >
-              <Input id="mc_number" type="password" autoComplete="new-password" {...register('mc_number')} />
+              <Input
+                id="mc_number"
+                type="password"
+                autoComplete="new-password"
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
+                {...register('mc_number')}
+              />
             </FormField>
             <FormField label="Status" htmlFor="member_status" hint="Inactive members cannot sign in or vote.">
               <NativeSelect

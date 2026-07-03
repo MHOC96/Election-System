@@ -105,7 +105,7 @@ export function LoginPage() {
                   id="cpm_number"
                   placeholder="Enter CPM Number"
                   autoComplete="username"
-                  autoCapitalize="characters"
+                  autoCapitalize="off"
                   autoCorrect="off"
                   spellCheck={false}
                   inputMode="text"
