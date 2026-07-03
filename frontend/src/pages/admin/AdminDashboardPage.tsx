@@ -238,11 +238,13 @@ export function AdminDashboardPage() {
 
   const isLive = summary.election.status === 'ACTIVE'
 
-  const positions = live?.positions ?? []
+  const positions = (live?.positions ?? []).filter((position) => position.rankings.length > 0)
+
+  const positionTurnout = summary.position_turnout
 
   const turnoutByPosition = new Map(
 
-    summary.position_turnout.map((item) => [item.position_id, item]),
+    positionTurnout.map((item) => [item.position_id, item]),
 
   )
 
@@ -334,9 +336,9 @@ export function AdminDashboardPage() {
 
             <EmptyState
 
-              title="No results yet"
+              title="No candidates yet"
 
-              description="Position results will appear here once voting begins."
+              description="Live results will appear once candidates are registered for positions."
 
               className="py-8"
 
@@ -453,7 +455,7 @@ export function AdminDashboardPage() {
                 </p>
               </div>
 
-              {summary.position_turnout.length === 0 ? (
+              {positionTurnout.length === 0 ? (
 
                 <p className="text-sm text-muted-foreground">No positions configured yet.</p>
 
@@ -461,7 +463,7 @@ export function AdminDashboardPage() {
 
                 <StaggerChildren className="space-y-3" staggerMs={50} initialDelayMs={20}>
 
-                  {summary.position_turnout.map((item) => (
+                  {positionTurnout.map((item) => (
 
                     <div
 

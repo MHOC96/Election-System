@@ -230,7 +230,9 @@ class BallotView(APIView):
         ).order_by("name")
         position_items = []
         for position in positions:
-            candidates = position.candidates.all()
+            candidates = list(position.candidates.all())
+            if not candidates:
+                continue
             my_candidate_id = member_votes.get(position.id)
             position_items.append(
                 {
@@ -253,6 +255,7 @@ class BallotView(APIView):
                         request.user,
                         election,
                         votes=member_votes_qs,
+                        positions_total=len(position_items),
                     ),
                 },
             },

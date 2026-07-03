@@ -1,4 +1,5 @@
 from django.db import IntegrityError, transaction
+from django.db.models import Count
 
 from accounts.models import User
 from candidates.models import Candidate
@@ -58,13 +59,23 @@ def submit_vote(*, member: User, position_id: int, candidate_id: int) -> Vote:
     return Vote.objects.select_related("position", "candidate").get(pk=vote.pk)
 
 
+def count_votable_positions() -> int:
+    return (
+        Position.objects.annotate(candidate_count=Count("candidates"))
+        .filter(candidate_count__gt=0)
+        .count()
+    )
+
+
 def build_member_vote_status(
     member: User,
     election: Election | None,
     *,
     votes: list[Vote] | None = None,
+    positions_total: int | None = None,
 ) -> dict:
-    positions_total = Position.objects.count()
+    if positions_total is None:
+        positions_total = count_votable_positions()
     recently_closed = Election.get_recently_closed()
 
     if election is None:

@@ -7,6 +7,7 @@ from accounts.models import User, UserRole
 from candidates.models import Candidate
 from positions.models import Position
 from voting.models import Election, ElectionStatus, Vote
+from voting.services.vote_service import count_votable_positions
 
 LIVE_STATS_CACHE_SECONDS = 8
 SUMMARY_CACHE_SECONDS = 15
@@ -92,11 +93,16 @@ def get_dashboard_summary(
     members_partial_ballot = 0
     members_no_votes = total_members
     votes_cast = 0
+    votable_positions_count = count_votable_positions()
 
-    if election and total_positions > 0 and total_members > 0:
+    if election and votable_positions_count > 0 and total_members > 0:
         vote_filter = Q(votes__election_id=election.id)
         annotated_positions = (
-            Position.objects.annotate(votes_cast=Count("votes", filter=vote_filter))
+            Position.objects.annotate(
+                votes_cast=Count("votes", filter=vote_filter),
+                candidate_count=Count("candidates"),
+            )
+            .filter(candidate_count__gt=0)
             .order_by("name")
         )
 
@@ -120,7 +126,7 @@ def get_dashboard_summary(
         )
         for row in member_vote_counts:
             count = row["positions_voted"]
-            if count >= total_positions:
+            if count >= votable_positions_count:
                 members_completed_ballot += 1
             elif count > 0:
                 members_partial_ballot += 1
@@ -211,12 +217,18 @@ def get_live_stats(election_id: int | None = None, *, use_cache: bool = True) ->
     for item in candidate_stats:
         candidates_by_position[item["position_id"]].append(item)
 
-    positions = Position.objects.all().order_by("name")
+    positions = (
+        Position.objects.annotate(candidate_count=Count("candidates"))
+        .filter(candidate_count__gt=0)
+        .order_by("name")
+    )
     position_stats = []
     highest_overall = None
 
     for position in positions:
         position_candidates = candidates_by_position.get(position.id, [])
+        if not position_candidates:
+            continue
         position_candidates.sort(key=lambda item: (-item["vote_count"], item["full_name"]))
 
         rankings = []

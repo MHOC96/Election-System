@@ -145,10 +145,12 @@ export function ElectionResultsSheet({ election, open, onOpenChange }: ElectionR
 
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold">Results by position</h3>
-                {liveStats.positions.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No position results recorded.</p>
+                {liveStats.positions.filter((position) => position.rankings.length > 0).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No candidates registered for any position yet.</p>
                 ) : (
-                  liveStats.positions.map((position) => {
+                  liveStats.positions
+                    .filter((position) => position.rankings.length > 0)
+                    .map((position) => {
                     const winner = position.highest_voted_candidate
                     const turnout = summary.position_turnout.find(
                       (item) => item.position_id === position.position_id,

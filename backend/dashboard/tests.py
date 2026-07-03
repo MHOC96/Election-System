@@ -174,3 +174,15 @@ class DashboardAPITestCase(TestCase):
             first.data["data"]["total_votes"],
             second.data["data"]["total_votes"],
         )
+
+    def test_empty_position_excluded_from_dashboard(self):
+        Position.objects.create(name="Treasurer")
+        response = self.client.get(reverse("dashboard-overview"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.data["data"]
+        live_names = [item["position_name"] for item in data["live"]["positions"]]
+        turnout_names = [item["position_name"] for item in data["summary"]["position_turnout"]]
+        self.assertNotIn("Treasurer", live_names)
+        self.assertNotIn("Treasurer", turnout_names)
+        self.assertEqual(len(live_names), 2)
+        self.assertEqual(len(turnout_names), 2)

@@ -94,11 +94,24 @@ export function BallotPage() {
     )
   }
 
-  const positions = ballot.positions
+  const positions = ballot.positions.filter((item) => item.candidates.length > 0)
   const votedCount = voteStatus?.positions_voted ?? positions.filter((p) => p.has_voted).length
   const total = voteStatus?.positions_total ?? positions.length
   const canVote = ballot.can_vote
   const selections = voteStatus?.votes ?? []
+
+  if (positions.length === 0) {
+    return (
+      <div className={cn(pageLayoutClass, 'mx-auto max-w-3xl')}>
+        <PageHeader title="Executive Election" description="Member voting portal" />
+        <EmptyState
+          icon={Vote}
+          title="No candidates yet"
+          description="Positions will appear here once candidates are registered for the election."
+        />
+      </div>
+    )
+  }
 
   return (
     <div className={cn(pageLayoutClass, 'mx-auto max-w-3xl space-y-8')}>
@@ -248,32 +261,28 @@ function PositionSection({
         </div>
       </CardHeader>
       <CardContent className="pt-5">
-        {item.candidates.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No candidates registered for this position.</p>
-        ) : (
-          <div
-            role="radiogroup"
-            aria-labelledby={sectionId}
-            aria-readonly={votingDisabled || undefined}
-            className="grid gap-3 sm:grid-cols-2"
-            onKeyDown={handleRadioGroupKeyDown}
-          >
-            {item.candidates.map((candidate, candidateIndex) => {
-              const isRecorded = item.has_voted && item.my_candidate_id === candidate.id
+        <div
+          role="radiogroup"
+          aria-labelledby={sectionId}
+          aria-readonly={votingDisabled || undefined}
+          className="grid gap-3 sm:grid-cols-2"
+          onKeyDown={handleRadioGroupKeyDown}
+        >
+          {item.candidates.map((candidate, candidateIndex) => {
+            const isRecorded = item.has_voted && item.my_candidate_id === candidate.id
 
-              return (
-                <CandidateCard
-                  key={candidate.id}
-                  candidate={candidate}
-                  isRecorded={isRecorded}
-                  disabled={votingDisabled}
-                  priority={index === 0 && candidateIndex === 0}
-                  onSelect={() => onSelect(candidate)}
-                />
-              )
-            })}
-          </div>
-        )}
+            return (
+              <CandidateCard
+                key={candidate.id}
+                candidate={candidate}
+                isRecorded={isRecorded}
+                disabled={votingDisabled}
+                priority={index === 0 && candidateIndex === 0}
+                onSelect={() => onSelect(candidate)}
+              />
+            )
+          })}
+        </div>
       </CardContent>
     </Card>
   )
