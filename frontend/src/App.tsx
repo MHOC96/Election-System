@@ -5,6 +5,7 @@ import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
 import { AuthProvider } from '@/context/AuthContext'
 import { ThemeProvider } from '@/context/ThemeContext'
 import { PageLoader } from '@/components/shared/PageLoader'
+import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton'
 import { LoginPage } from '@/pages/LoginPage'
 import {
   AdminDashboardPage,
@@ -37,6 +38,14 @@ const queryClient = new QueryClient({
 
 const layoutFallback = <PageLoader className="min-h-screen" />
 const pageFallback = <PageLoader className="min-h-[50vh]" />
+const dashboardFallback = <DashboardSkeleton />
+const ballotFallback = (
+  <div className="mx-auto max-w-3xl space-y-4 p-4">
+    <div className="h-10 w-64 animate-pulse rounded-lg bg-muted" />
+    <div className="h-36 w-full animate-pulse rounded-xl bg-muted" />
+    <div className="h-64 w-full animate-pulse rounded-xl bg-muted" />
+  </div>
+)
 
 export default function App() {
   return (
@@ -58,7 +67,7 @@ export default function App() {
                   <Route
                     path="/vote"
                     element={
-                      <Suspense fallback={pageFallback}>
+                      <Suspense fallback={ballotFallback}>
                         <BallotPage />
                       </Suspense>
                     }
@@ -79,7 +88,7 @@ export default function App() {
                   <Route
                     index
                     element={
-                      <Suspense fallback={pageFallback}>
+                      <Suspense fallback={dashboardFallback}>
                         <AdminDashboardPage />
                       </Suspense>
                     }

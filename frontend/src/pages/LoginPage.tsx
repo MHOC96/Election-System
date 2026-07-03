@@ -45,13 +45,13 @@ export function LoginPage() {
         mc_number: data.mc_number,
       })
 
-      const { warmAdminConsole, warmMemberConsole } = await import('@/lib/prefetch')
+      const { prepareAdminEntry, prepareMemberEntry } = await import('@/lib/prefetch')
 
       if (loggedIn.role === 'ADMIN') {
-        warmAdminConsole(queryClient)
+        await prepareAdminEntry(queryClient)
         navigate('/admin')
       } else {
-        warmMemberConsole(queryClient)
+        await prepareMemberEntry(queryClient)
         navigate('/vote')
       }
 

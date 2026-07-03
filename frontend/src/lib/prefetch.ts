@@ -1,6 +1,11 @@
 import type { QueryClient } from '@tanstack/react-query'
+import {
+  BALLOT_QUERY_KEY,
+  BALLOT_STALE_MS,
+  DASHBOARD_QUERY_KEY,
+  DASHBOARD_STALE_MS,
+} from '@/lib/query-sync'
 import { scheduleIdle } from '@/lib/schedule-idle'
-import { DASHBOARD_QUERY_KEY } from '@/lib/query-sync'
 import {
   CandidatesPage,
   ElectionsPage,
@@ -9,7 +14,7 @@ import {
   preloadAdminPageModules,
   ReportsPage,
 } from '@/routes/adminPages'
-import { preloadAdminShell, preloadMemberShell } from '@/routes/corePages'
+import { AdminDashboardPage, preloadAdminShell, preloadMemberShell } from '@/routes/corePages'
 import { preloadMemberPageModules } from '@/routes/memberPages'
 
 export { scheduleIdle } from '@/lib/schedule-idle'
@@ -24,20 +29,40 @@ function markPrefetched(routeKey: string) {
   return true
 }
 
-/** Prefetch dashboard overview for admin landing. */
+/** Load admin shell, page chunk, and dashboard API before first paint. */
+export async function prepareAdminEntry(queryClient: QueryClient) {
+  const { fetchDashboardOverview } = await import('@/api/dashboard')
+  await Promise.all([
+    preloadAdminShell(),
+    queryClient.ensureQueryData({
+      queryKey: DASHBOARD_QUERY_KEY,
+      queryFn: () => fetchDashboardOverview(),
+      staleTime: DASHBOARD_STALE_MS,
+    }),
+  ])
+}
+
+/** Load member shell, ballot page chunk, and ballot API before first paint. */
+export async function prepareMemberEntry(queryClient: QueryClient) {
+  const { fetchBallot } = await import('@/api/votes')
+  await Promise.all([
+    preloadMemberShell(),
+    queryClient.ensureQueryData({
+      queryKey: BALLOT_QUERY_KEY,
+      queryFn: fetchBallot,
+      staleTime: BALLOT_STALE_MS,
+    }),
+  ])
+}
+
 export function prefetchAdminLanding(queryClient: QueryClient) {
   void import('@/api/dashboard').then(({ fetchDashboardOverview }) => {
     void queryClient.prefetchQuery({
       queryKey: DASHBOARD_QUERY_KEY,
       queryFn: () => fetchDashboardOverview(),
-      staleTime: 0,
+      staleTime: DASHBOARD_STALE_MS,
     })
   })
-}
-
-/** Force-refresh dashboard when navigating to the admin home route. */
-export function refreshAdminLanding(queryClient: QueryClient) {
-  void queryClient.refetchQueries({ queryKey: DASHBOARD_QUERY_KEY, type: 'all' })
 }
 
 export function prefetchPositions(queryClient: QueryClient) {
@@ -88,10 +113,11 @@ function prefetchSecondaryAdminData(queryClient: QueryClient) {
   prefetchElectionsData(queryClient)
 }
 
-/** Warm admin shell immediately; defer heavy module/API prefetch until idle. */
+/** Warm admin console after login or when the admin shell mounts. */
 export function warmAdminConsole(queryClient: QueryClient) {
-  void preloadAdminShell()
-  prefetchAdminLanding(queryClient)
+  void prepareAdminEntry(queryClient).catch(() => {
+    prefetchAdminLanding(queryClient)
+  })
 
   scheduleIdle(() => {
     void preloadAdminPageModules()
@@ -103,14 +129,10 @@ export function warmAdminConsole(queryClient: QueryClient) {
   })
 }
 
-/** Warm member shell immediately; defer ballot API until idle. */
+/** Warm member console after login or when the member shell mounts. */
 export function warmMemberConsole(queryClient: QueryClient) {
-  void preloadMemberShell()
-
-  scheduleIdle(() => {
-    void preloadMemberPageModules()
+  void prepareMemberEntry(queryClient).catch(() => {
     prefetchMemberLanding(queryClient)
-    prefetchedNavRoutes.add('member:/vote')
   })
 }
 
@@ -120,7 +142,8 @@ export function prefetchAdminNavRoute(to: string, queryClient: QueryClient) {
 
   switch (to) {
     case '/admin':
-      refreshAdminLanding(queryClient)
+      void AdminDashboardPage.preload()
+      prefetchAdminLanding(queryClient)
       break
     case '/admin/members':
       void MembersPage.preload()
@@ -162,8 +185,9 @@ export function prefetchMemberNavRoute(to: string, queryClient: QueryClient) {
 export function prefetchMemberLanding(queryClient: QueryClient) {
   void import('@/api/votes').then(({ fetchBallot }) => {
     void queryClient.prefetchQuery({
-      queryKey: ['ballot'],
+      queryKey: BALLOT_QUERY_KEY,
       queryFn: fetchBallot,
+      staleTime: BALLOT_STALE_MS,
     })
   })
 }

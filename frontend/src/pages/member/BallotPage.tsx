@@ -14,6 +14,7 @@ import { EmptyState } from '@/components/shared/EmptyState'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { sectionDelays, Stagger, StaggerChildren } from '@/components/motion/Stagger'
 import { pageLayoutClass } from '@/lib/design-tokens'
+import { BALLOT_QUERY_KEY, BALLOT_STALE_MS } from '@/lib/query-sync'
 import { handleRadioGroupKeyDown } from '@/lib/a11y'
 import { cn } from '@/lib/utils'
 import type { BallotItem, Candidate } from '@/types/api'
@@ -32,8 +33,10 @@ export function BallotPage() {
   const [pendingVote, setPendingVote] = useState<PendingVote | null>(null)
 
   const ballotQuery = useQuery({
-    queryKey: ['ballot'],
+    queryKey: BALLOT_QUERY_KEY,
     queryFn: fetchBallot,
+    staleTime: BALLOT_STALE_MS,
+    placeholderData: (previous) => previous,
     retry: false,
   })
 
@@ -41,7 +44,7 @@ export function BallotPage() {
     mutationFn: ({ positionId, candidateId }: { positionId: number; candidateId: number }) =>
       submitVote(positionId, candidateId),
     onSuccess: (result) => {
-      void queryClient.invalidateQueries({ queryKey: ['ballot'] })
+      void queryClient.invalidateQueries({ queryKey: BALLOT_QUERY_KEY })
       toast.success(`Your vote for ${result.candidate_name} was recorded`)
       setPendingVote(null)
     },
@@ -51,7 +54,7 @@ export function BallotPage() {
     },
   })
 
-  if (ballotQuery.isLoading) {
+  if (ballotQuery.isPending && !ballotQuery.data) {
     return (
       <div className={cn(pageLayoutClass, 'mx-auto max-w-3xl')}>
         <Skeleton className="h-10 w-64" />

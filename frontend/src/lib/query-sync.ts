@@ -1,6 +1,13 @@
 import type { QueryClient, QueryKey } from '@tanstack/react-query'
 
 export const DASHBOARD_QUERY_KEY = ['dashboard-overview'] as const
+export const BALLOT_QUERY_KEY = ['ballot'] as const
+
+/** Dashboard cache TTL — aligned with backend overview cache (~10s). */
+export const DASHBOARD_STALE_MS = 15_000
+
+/** Ballot cache TTL — stable while the member reviews candidates. */
+export const BALLOT_STALE_MS = 30_000
 
 /** Fetch fresh data and write it directly into the query cache (bypasses staleTime). */
 export async function fetchAndSetQueryData<T>(

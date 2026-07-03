@@ -34,7 +34,7 @@ import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { StatCard } from '@/components/shared/StatCard'
 
 import { pageLayoutClass } from '@/lib/design-tokens'
-import { DASHBOARD_QUERY_KEY } from '@/lib/query-sync'
+import { DASHBOARD_QUERY_KEY, DASHBOARD_STALE_MS } from '@/lib/query-sync'
 
 import { cn, formatPercent } from '@/lib/utils'
 
@@ -60,15 +60,15 @@ export function AdminDashboardPage() {
 
 
 
-  const { data, isLoading, isError, isFetching, dataUpdatedAt, refetch } = useQuery({
+  const { data, isPending, isError, isFetching, dataUpdatedAt, refetch } = useQuery({
 
     queryKey: DASHBOARD_QUERY_KEY,
 
     queryFn: () => fetchDashboardOverview(),
 
-    staleTime: 0,
+    staleTime: DASHBOARD_STALE_MS,
 
-    refetchOnMount: 'always',
+    placeholderData: (previous) => previous,
 
     refetchOnWindowFocus: true,
 
@@ -88,7 +88,7 @@ export function AdminDashboardPage() {
 
 
 
-  if (isLoading) {
+  if (isPending && !data) {
 
     return <DashboardSkeleton />
 
