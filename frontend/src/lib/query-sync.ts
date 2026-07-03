@@ -9,6 +9,11 @@ export const DASHBOARD_STALE_MS = 15_000
 /** Ballot cache TTL — stable while the member reviews candidates. */
 export const BALLOT_STALE_MS = 30_000
 
+/** Members list cache TTL. */
+export const MEMBERS_STALE_MS = 30_000
+
+export const MEMBERS_QUERY_KEY = ['members'] as const
+
 /** Fetch fresh data and write it directly into the query cache (bypasses staleTime). */
 export async function fetchAndSetQueryData<T>(
   queryClient: QueryClient,

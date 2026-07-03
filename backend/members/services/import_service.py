@@ -1,5 +1,6 @@
 import csv
 import io
+import os
 import re
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -15,6 +16,9 @@ MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024
 MAX_IMPORT_ROWS = 10_000
 CPM_MAX_LENGTH = 50
 MC_MAX_LENGTH = 100
+EXISTING_LOOKUP_CHUNK = 2_000
+BULK_CREATE_BATCH = 1_000
+PASSWORD_HASH_WORKERS = min(16, max(4, (os.cpu_count() or 4) * 2))
 
 CPM_COLUMN_ALIASES = {
     "cpm number",
@@ -230,6 +234,40 @@ def parse_member_file(uploaded_file) -> tuple[list[str], list[dict]]:
     raise ValueError("Invalid file type. Only CSV and XLSX files are allowed.")
 
 
+def _fetch_existing_cpms(cpm_numbers: list[str]) -> set[str]:
+    if not cpm_numbers:
+        return set()
+
+    existing: set[str] = set()
+    for start in range(0, len(cpm_numbers), EXISTING_LOOKUP_CHUNK):
+        chunk = cpm_numbers[start : start + EXISTING_LOOKUP_CHUNK]
+        existing.update(
+            User.objects.filter(cpm_number__in=chunk).values_list("cpm_number", flat=True)
+        )
+    return existing
+
+
+def _hash_mc_numbers(mc_numbers: list[str]) -> list[str]:
+    if not mc_numbers:
+        return []
+
+    with ThreadPoolExecutor(max_workers=PASSWORD_HASH_WORKERS) as executor:
+        return list(executor.map(make_password, mc_numbers))
+
+
+def _bulk_create_members(users: list[User]) -> int:
+    if not users:
+        return 0
+
+    created = 0
+    with transaction.atomic():
+        for start in range(0, len(users), BULK_CREATE_BATCH):
+            batch = users[start : start + BULK_CREATE_BATCH]
+            User.objects.bulk_create(batch, batch_size=BULK_CREATE_BATCH)
+            created += len(batch)
+    return created
+
+
 def import_members(uploaded_file) -> ImportResult:
     headers, rows = parse_member_file(uploaded_file)
     _validate_columns(headers)
@@ -292,9 +330,7 @@ def import_members(uploaded_file) -> ImportResult:
         return result
 
     cpm_numbers = [cpm for _, cpm, _ in valid_rows]
-    existing_cpms = set(
-        User.objects.filter(cpm_number__in=cpm_numbers).values_list("cpm_number", flat=True)
-    )
+    existing_cpms = _fetch_existing_cpms(cpm_numbers)
 
     pending_users: list[tuple[int, str, str]] = []
     for row_num, cpm_number, mc_number in valid_rows:
@@ -310,28 +346,21 @@ def import_members(uploaded_file) -> ImportResult:
 
         pending_users.append((row_num, cpm_number, mc_number))
 
-    users_to_create: list[User] = []
     if pending_users:
         mc_numbers = [mc_number for _, _, mc_number in pending_users]
-        with ThreadPoolExecutor(max_workers=4) as executor:
-            hashed_passwords = list(executor.map(make_password, mc_numbers))
-
-        for (_, cpm_number, mc_number), hashed_password in zip(
-            pending_users, hashed_passwords, strict=True
-        ):
-            users_to_create.append(
-                User(
-                    cpm_number=cpm_number,
-                    mc_number=mc_number,
-                    password=hashed_password,
-                    role=UserRole.MEMBER,
-                    is_active=True,
-                )
+        hashed_passwords = _hash_mc_numbers(mc_numbers)
+        users_to_create = [
+            User(
+                cpm_number=cpm_number,
+                mc_number=mc_number,
+                password=hashed_password,
+                role=UserRole.MEMBER,
+                is_active=True,
             )
+            for (_, cpm_number, mc_number), hashed_password in zip(
+                pending_users, hashed_passwords, strict=True
+            )
+        ]
+        result.successful = _bulk_create_members(users_to_create)
 
-    if users_to_create:
-        with transaction.atomic():
-            User.objects.bulk_create(users_to_create, batch_size=500)
-
-    result.successful = len(users_to_create)
     return result

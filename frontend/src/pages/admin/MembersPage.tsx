@@ -32,7 +32,12 @@ import { FormField } from '@/components/design-system/FormField'
 import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import { memberEditSchema, type MemberEditForm } from '@/lib/form-schemas'
-import { fetchAndSetQueryData, markQueriesStale, refreshDashboard } from '@/lib/query-sync'
+import {
+  fetchAndSetQueryData,
+  markQueriesStale,
+  MEMBERS_STALE_MS,
+  refreshDashboard,
+} from '@/lib/query-sync'
 import type { Member, MemberImportResult, Paginated } from '@/types/api'
 import { toast } from 'sonner'
 
@@ -74,9 +79,11 @@ export function MembersPage() {
   const mcNumber = watch('mc_number')
   const isActive = watch('is_active')
 
-  const { data, isLoading, isFetching } = useQuery({
+  const { data, isPending, isFetching } = useQuery({
     queryKey: ['members', page],
     queryFn: () => fetchMembers(page),
+    staleTime: MEMBERS_STALE_MS,
+    placeholderData: (previous) => previous,
   })
 
   const { data: deletionStatus, isLoading: deletionStatusLoading } = useQuery({
@@ -93,14 +100,11 @@ export function MembersPage() {
   const totalMembers = data?.count ?? 0
 
   const importMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const result = await importMembers(file)
-      await refreshMembersPage(queryClient, 1)
-      markQueriesStale(queryClient, ['members'])
-      return result
-    },
+    mutationFn: (file: File) => importMembers(file),
     onSuccess: (result) => {
       setPage(1)
+      void refreshMembersPage(queryClient, 1)
+      markQueriesStale(queryClient, ['members'])
       refreshDashboard(queryClient)
       setImportResult(result)
 
@@ -152,7 +156,7 @@ export function MembersPage() {
     onError: (error) => toast.error(getApiErrorMessage(error)),
   })
 
-  const tableLoading = isLoading && !data
+  const tableLoading = isPending && !data
   const tableRefreshing =
     isFetching && !!data && !importMutation.isPending && !clearAllMutation.isPending
 

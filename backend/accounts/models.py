@@ -56,6 +56,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         ordering = ["cpm_number"]
         indexes = [
             models.Index(fields=["role", "is_active"]),
+            models.Index(fields=["role", "cpm_number"], name="accounts_user_role_cpm_idx"),
         ]
 
     def __str__(self):

@@ -6,6 +6,8 @@ from rest_framework.views import APIView
 
 from accounts.models import User, UserRole
 from accounts.permissions import IsAdmin
+from dashboard.services.stats_service import invalidate_dashboard_cache
+from members.pagination import MemberListPagination
 from members.serializers import (
     MemberBulkDeleteSerializer,
     MemberImportSerializer,
@@ -58,6 +60,9 @@ class MemberImportView(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        if result.successful:
+            invalidate_dashboard_cache()
 
         return Response(
             {
@@ -136,6 +141,7 @@ class MemberBulkDeleteView(APIView):
 class MemberListView(generics.ListAPIView):
     permission_classes = [IsAdmin]
     serializer_class = MemberSerializer
+    pagination_class = MemberListPagination
 
     def get_queryset(self):
         return (

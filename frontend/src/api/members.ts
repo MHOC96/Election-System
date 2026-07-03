@@ -1,8 +1,8 @@
 import { apiDelete, apiGet, apiPatch, apiPost, apiUpload } from '@/api/client'
 import type { Member, MemberImportResult, Paginated } from '@/types/api'
 
-export async function fetchMembers(page = 1) {
-  return apiGet<Paginated<Member>>('/members/', { page })
+export async function fetchMembers(page = 1, pageSize = 50) {
+  return apiGet<Paginated<Member>>('/members/', { page, page_size: pageSize })
 }
 
 export async function importMembers(file: File) {

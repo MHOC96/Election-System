@@ -4,6 +4,7 @@ import {
   BALLOT_STALE_MS,
   DASHBOARD_QUERY_KEY,
   DASHBOARD_STALE_MS,
+  MEMBERS_STALE_MS,
 } from '@/lib/query-sync'
 import { scheduleIdle } from '@/lib/schedule-idle'
 import {
@@ -79,12 +80,25 @@ function prefetchMembersData(queryClient: QueryClient) {
     void queryClient.prefetchQuery({
       queryKey: ['members', 1],
       queryFn: () => fetchMembers(1),
+      staleTime: MEMBERS_STALE_MS,
     })
     void queryClient.prefetchQuery({
       queryKey: ['members-deletion-status'],
       queryFn: fetchMemberDeletionStatus,
     })
   })
+}
+
+export async function prepareMembersPage(queryClient: QueryClient, page = 1) {
+  const { fetchMembers } = await import('@/api/members')
+  await Promise.all([
+    MembersPage.preload(),
+    queryClient.ensureQueryData({
+      queryKey: ['members', page],
+      queryFn: () => fetchMembers(page),
+      staleTime: MEMBERS_STALE_MS,
+    }),
+  ])
 }
 
 function prefetchCandidatesData(queryClient: QueryClient) {
@@ -146,8 +160,10 @@ export function prefetchAdminNavRoute(to: string, queryClient: QueryClient) {
       prefetchAdminLanding(queryClient)
       break
     case '/admin/members':
-      void MembersPage.preload()
-      prefetchMembersData(queryClient)
+      void prepareMembersPage(queryClient, 1).catch(() => {
+        void MembersPage.preload()
+        prefetchMembersData(queryClient)
+      })
       break
     case '/admin/positions':
       void PositionsPage.preload()
