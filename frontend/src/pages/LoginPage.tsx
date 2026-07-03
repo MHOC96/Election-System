@@ -62,7 +62,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="bg-grid relative flex min-h-screen flex-col bg-muted/30">
+    <div className="bg-grid relative flex min-h-[100dvh] flex-col bg-muted/30">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 -z-0 h-72 bg-gradient-to-b from-primary/[0.07] to-transparent"
@@ -76,9 +76,9 @@ export function LoginPage() {
       <main
         id={MAIN_CONTENT_ID}
         tabIndex={-1}
-        className="relative flex flex-1 flex-col items-center justify-center px-4 py-8 outline-none"
+        className="relative flex flex-1 flex-col items-center justify-start px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-4 outline-none sm:justify-center sm:py-8"
       >
-        <Card className="w-full max-w-md animate-scale-in border shadow-lg">
+        <Card className="w-full max-w-md animate-scale-in border shadow-lg max-sm:scroll-mt-4">
           <CardHeader className="text-center">
             <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-brand text-white shadow-md">
               <Vote className="h-7 w-7" aria-hidden="true" />
@@ -106,6 +106,11 @@ export function LoginPage() {
                   placeholder="Enter CPM Number"
                   autoComplete="username"
                   autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  inputMode="text"
+                  enterKeyHint="next"
+                  className="scroll-mt-24"
                   {...register('cpm_number')}
                 />
               </FormField>
@@ -121,6 +126,12 @@ export function LoginPage() {
                   type="password"
                   placeholder="Enter MC Number"
                   autoComplete="current-password"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  inputMode="text"
+                  enterKeyHint="done"
+                  className="scroll-mt-24"
                   {...register('mc_number')}
                 />
               </FormField>

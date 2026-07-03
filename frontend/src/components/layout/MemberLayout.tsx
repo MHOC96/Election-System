@@ -40,8 +40,8 @@ export function MemberLayout() {
   return (
     <div className="flex min-h-screen flex-col bg-muted/30">
       <SkipToContent />
-      <header className="glass sticky top-0 z-40 border-b">
-        <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-4 px-4">
+      <header className="glass sticky top-0 z-40 w-full border-b">
+        <div className="flex h-14 w-full items-center justify-between gap-2 px-3 sm:gap-4 sm:px-4">
           <Link to="/vote" className="flex min-w-0 items-center gap-2.5">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-brand text-white shadow-sm">
               <Vote className="h-[18px] w-[18px]" aria-hidden="true" />

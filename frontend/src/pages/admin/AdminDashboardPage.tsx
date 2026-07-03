@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query'
-
 import { Link } from 'react-router-dom'
 
 import { Activity, Plus, TrendingUp, Trophy, Users, Vote } from 'lucide-react'
@@ -35,6 +34,7 @@ import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { StatCard } from '@/components/shared/StatCard'
 
 import { pageLayoutClass } from '@/lib/design-tokens'
+import { DASHBOARD_QUERY_KEY } from '@/lib/query-sync'
 
 import { cn, formatPercent } from '@/lib/utils'
 
@@ -42,7 +42,7 @@ import { cn, formatPercent } from '@/lib/utils'
 
 const LIVE_POLL_INTERVAL_MS = 10_000
 
-const SUMMARY_POLL_INTERVAL_MS = 30_000
+const SUMMARY_POLL_INTERVAL_MS = 15_000
 
 
 
@@ -62,9 +62,15 @@ export function AdminDashboardPage() {
 
   const { data, isLoading, isError, isFetching, dataUpdatedAt, refetch } = useQuery({
 
-    queryKey: ['dashboard-overview'],
+    queryKey: DASHBOARD_QUERY_KEY,
 
     queryFn: () => fetchDashboardOverview(),
+
+    staleTime: 0,
+
+    refetchOnMount: 'always',
+
+    refetchOnWindowFocus: true,
 
     refetchInterval: (query) => {
 

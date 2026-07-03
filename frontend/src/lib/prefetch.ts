@@ -1,5 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { scheduleIdle } from '@/lib/schedule-idle'
+import { DASHBOARD_QUERY_KEY } from '@/lib/query-sync'
 import {
   CandidatesPage,
   ElectionsPage,
@@ -27,10 +28,16 @@ function markPrefetched(routeKey: string) {
 export function prefetchAdminLanding(queryClient: QueryClient) {
   void import('@/api/dashboard').then(({ fetchDashboardOverview }) => {
     void queryClient.prefetchQuery({
-      queryKey: ['dashboard-overview'],
+      queryKey: DASHBOARD_QUERY_KEY,
       queryFn: () => fetchDashboardOverview(),
+      staleTime: 0,
     })
   })
+}
+
+/** Force-refresh dashboard when navigating to the admin home route. */
+export function refreshAdminLanding(queryClient: QueryClient) {
+  void queryClient.refetchQueries({ queryKey: DASHBOARD_QUERY_KEY, type: 'all' })
 }
 
 export function prefetchPositions(queryClient: QueryClient) {
@@ -113,7 +120,7 @@ export function prefetchAdminNavRoute(to: string, queryClient: QueryClient) {
 
   switch (to) {
     case '/admin':
-      prefetchAdminLanding(queryClient)
+      refreshAdminLanding(queryClient)
       break
     case '/admin/members':
       void MembersPage.preload()

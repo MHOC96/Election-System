@@ -40,7 +40,7 @@ import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import { optimizeCloudinaryUrl } from '@/lib/cloudinary'
 import { candidateSchema, type CandidateForm } from '@/lib/form-schemas'
-import { markQueriesStale } from '@/lib/query-sync'
+import { markQueriesStale, refreshDashboard } from '@/lib/query-sync'
 import { readFileAsObjectUrl } from '@/lib/image-crop'
 import type { AcademicYear, Candidate } from '@/types/api'
 import { toast } from 'sonner'
@@ -118,7 +118,7 @@ export function CandidatesPage() {
     },
     onSuccess: (saved) => {
       syncCandidateInCache(saved)
-      markQueriesStale(queryClient, ['dashboard-overview'])
+      refreshDashboard(queryClient)
       toast.success(editing ? 'Candidate updated' : 'Candidate created')
       closeDialog()
     },
@@ -137,7 +137,7 @@ export function CandidatesPage() {
       return { previous }
     },
     onSuccess: () => {
-      markQueriesStale(queryClient, ['dashboard-overview'])
+      refreshDashboard(queryClient)
       toast.success('Candidate deleted')
     },
     onError: (error, _id, context) => {
@@ -158,7 +158,7 @@ export function CandidatesPage() {
       return { previous }
     },
     onSuccess: (result) => {
-      markQueriesStale(queryClient, ['dashboard-overview'])
+      refreshDashboard(queryClient)
       if (result.deleted === 0 && result.skipped.length === 0) {
         toast.info('No candidates to remove')
       } else if (result.skipped.length > 0) {

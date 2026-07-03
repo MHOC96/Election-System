@@ -32,6 +32,7 @@ import { sectionDelays, Stagger, StaggerChildren } from '@/components/motion/Sta
 import { FormField } from '@/components/design-system/FormField'
 import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass } from '@/lib/design-tokens'
+import { refreshDashboard } from '@/lib/query-sync'
 import { electionSchema, type ElectionForm } from '@/lib/form-schemas'
 import type { Election } from '@/types/api'
 import { cn, formatDate } from '@/lib/utils'
@@ -64,6 +65,7 @@ export function ElectionsPage() {
     mutationFn: (values: ElectionForm) => createElection(values.name),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['elections'] })
+      refreshDashboard(queryClient)
       toast.success('Election created')
       closeCreateDialog()
     },
@@ -78,7 +80,7 @@ export function ElectionsPage() {
     },
     onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({ queryKey: ['elections'] })
-      void queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] })
+      refreshDashboard(queryClient)
       void queryClient.invalidateQueries({ queryKey: ['members-deletion-status'] })
       if (variables.action === 'close') {
         setCloseTarget(null)
@@ -96,7 +98,7 @@ export function ElectionsPage() {
     mutationFn: deleteElection,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['elections'] })
-      void queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] })
+      refreshDashboard(queryClient)
       void queryClient.invalidateQueries({ queryKey: ['members-deletion-status'] })
       toast.success('Election deleted')
       setDeleteTarget(null)

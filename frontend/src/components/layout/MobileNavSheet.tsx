@@ -33,7 +33,7 @@ export function MobileNavSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="left" className="flex w-[min(100vw-2rem,20rem)] flex-col p-0">
+      <SheetContent side="left" className="flex h-full w-[min(100vw,20rem)] max-w-none flex-col border-r p-0 sm:max-w-xs">
         <SheetHeader className="border-b px-6 py-5 text-left">
           <SheetTitle>{title}</SheetTitle>
           {description ? <SheetDescription>{description}</SheetDescription> : null}

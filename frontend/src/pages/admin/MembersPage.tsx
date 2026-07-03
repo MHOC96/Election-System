@@ -32,7 +32,7 @@ import { FormField } from '@/components/design-system/FormField'
 import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import { memberEditSchema, type MemberEditForm } from '@/lib/form-schemas'
-import { fetchAndSetQueryData, markQueriesStale } from '@/lib/query-sync'
+import { fetchAndSetQueryData, markQueriesStale, refreshDashboard } from '@/lib/query-sync'
 import type { Member, MemberImportResult, Paginated } from '@/types/api'
 import { toast } from 'sonner'
 
@@ -101,7 +101,7 @@ export function MembersPage() {
     },
     onSuccess: (result) => {
       setPage(1)
-      void queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] })
+      refreshDashboard(queryClient)
       setImportResult(result)
 
       if (result.failed_rows.length === 0 && result.duplicates.length === 0) {
@@ -124,7 +124,7 @@ export function MembersPage() {
     onSuccess: async (result) => {
       markQueriesStale(queryClient, ['members'])
       await refreshMembersPage(queryClient, 1)
-      void queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] })
+      refreshDashboard(queryClient)
       if (result.deleted === 0) {
         toast.info('No members to remove')
       } else {

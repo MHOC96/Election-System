@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, Outlet, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { Vote } from 'lucide-react'
+import { Vote, Menu } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
 import { adminNavItems } from '@/lib/navigation'
 import { shellContentClass } from '@/lib/design-tokens'
@@ -68,24 +69,36 @@ export function AdminLayout() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="glass sticky top-0 z-40 border-b">
-          <div className="flex h-14 items-center justify-between gap-3 px-4 lg:px-8">
-            <div className="flex min-w-0 items-center gap-2 lg:hidden">
-              <Link to="/admin" className="flex min-w-0 items-center gap-2">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-brand text-white shadow-sm">
-                  <Vote className="h-4 w-4" aria-hidden="true" />
-                </div>
-                <span className="truncate text-sm font-semibold">Admin Console</span>
-              </Link>
+        <header className="glass sticky top-0 z-40 w-full border-b">
+          <div className="flex h-14 w-full items-center gap-1 px-2 sm:gap-2 sm:px-4 lg:px-8">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="shrink-0 lg:hidden"
+              onClick={() => setMobileNavOpen(true)}
+              aria-label="Open navigation menu"
+            >
+              <Menu className="h-5 w-5" aria-hidden="true" />
+            </Button>
+
+            <Link to="/admin" className="flex min-w-0 flex-1 items-center gap-2 lg:hidden">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-brand text-white shadow-sm">
+                <Vote className="h-4 w-4" aria-hidden="true" />
+              </div>
+              <span className="truncate text-sm font-semibold">Admin Console</span>
+            </Link>
+
+            <div className="hidden flex-1 lg:block" aria-hidden="true" />
+
+            <div className="ml-auto shrink-0">
+              <ShellActions
+                cpmNumber={user?.cpm_number}
+                onLogout={() => void handleLogout()}
+                isLoggingOut={isLoggingOut}
+                showMenuButton={false}
+              />
             </div>
-            <div className="hidden lg:block" aria-hidden="true" />
-            <ShellActions
-              cpmNumber={user?.cpm_number}
-              onLogout={() => void handleLogout()}
-              isLoggingOut={isLoggingOut}
-              showMenuButton
-              onMenuClick={() => setMobileNavOpen(true)}
-            />
           </div>
         </header>
 
