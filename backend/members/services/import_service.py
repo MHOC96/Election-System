@@ -110,7 +110,24 @@ def _detect_csv_dialect(sample: str) -> csv.Dialect:
         return csv.excel
 
 
-def _parse_csv(file_obj) -> tuple[list[str], list[dict]]:
+# Parsed data row: (file row number, raw CPM value, raw MC value).
+ParsedRow = tuple[int, str, str]
+
+
+def _find_column_index(headers: list[str], aliases: set[str]) -> int | None:
+    for index, header in enumerate(headers):
+        if header in aliases:
+            return index
+    return None
+
+
+def _cell_at(values, index: int | None) -> str:
+    if index is None or index >= len(values):
+        return ""
+    return _cell_value(values[index])
+
+
+def _parse_csv(file_obj) -> tuple[list[str], list[ParsedRow]]:
     raw = file_obj.read()
     if isinstance(raw, str):
         content = raw
@@ -122,66 +139,57 @@ def _parse_csv(file_obj) -> tuple[list[str], list[dict]]:
 
     sample = content[:4096]
     dialect = _detect_csv_dialect(sample)
-    reader = csv.DictReader(io.StringIO(content), dialect=dialect)
-    if not reader.fieldnames:
-        raise ValueError("File is empty or missing a header row.")
-
-    headers = [_normalize_header(name) for name in reader.fieldnames if name]
-    if not headers:
-        raise ValueError("File is empty or missing a header row.")
-
-    header_map = {
-        original: normalized
-        for original, normalized in zip(reader.fieldnames, [_normalize_header(name) for name in reader.fieldnames])
-        if original and normalized
-    }
-
-    rows: list[dict] = []
-    for raw_row in reader:
-        normalized: dict[str, str] = {}
-        for original_key, normalized_key in header_map.items():
-            normalized[normalized_key] = _cell_value(raw_row.get(original_key))
-
-        if not any(normalized.values()):
-            continue
-
-        rows.append(normalized)
-
-    return headers, rows
-
-
-def _parse_xlsx(file_obj) -> tuple[list[str], list[dict]]:
-    workbook = load_workbook(file_obj, read_only=True, data_only=True)
-    sheet = workbook.active
-    row_iter = sheet.iter_rows(values_only=True)
+    reader = csv.reader(io.StringIO(content), dialect=dialect)
 
     try:
-        header_row = next(row_iter)
+        header_cells = next(reader)
     except StopIteration as exc:
         raise ValueError("File is empty or missing a header row.") from exc
 
-    headers = [_normalize_header(cell) for cell in header_row if cell is not None]
-    rows = []
-    for values in row_iter:
-        if not values or all(cell is None or str(cell).strip() == "" for cell in values):
+    headers = [_normalize_header(name) for name in header_cells]
+    if not any(headers):
+        raise ValueError("File is empty or missing a header row.")
+
+    cpm_index = _find_column_index(headers, CPM_COLUMN_ALIASES)
+    mc_index = _find_column_index(headers, MC_COLUMN_ALIASES)
+
+    rows: list[ParsedRow] = []
+    for row_number, cells in enumerate(reader, start=2):
+        cpm_raw = _cell_at(cells, cpm_index)
+        mc_raw = _cell_at(cells, mc_index)
+        if not cpm_raw and not mc_raw:
             continue
-        row_dict = {}
-        for index, header in enumerate(headers):
-            if not header:
-                continue
-            value = values[index] if index < len(values) else None
-            row_dict[header] = _cell_value(value)
-        if any(row_dict.values()):
-            rows.append(row_dict)
-    workbook.close()
+        rows.append((row_number, cpm_raw, mc_raw))
+
     return headers, rows
 
 
-def _resolve_column_key(row: dict, aliases: set[str]) -> str:
-    for key, value in row.items():
-        if key in aliases:
-            return value
-    return ""
+def _parse_xlsx(file_obj) -> tuple[list[str], list[ParsedRow]]:
+    workbook = load_workbook(file_obj, read_only=True, data_only=True)
+    try:
+        sheet = workbook.active
+        row_iter = sheet.iter_rows(values_only=True)
+
+        try:
+            header_row = next(row_iter)
+        except StopIteration as exc:
+            raise ValueError("File is empty or missing a header row.") from exc
+
+        headers = [_normalize_header(cell) for cell in header_row]
+        cpm_index = _find_column_index(headers, CPM_COLUMN_ALIASES)
+        mc_index = _find_column_index(headers, MC_COLUMN_ALIASES)
+
+        rows: list[ParsedRow] = []
+        for row_number, values in enumerate(row_iter, start=2):
+            cpm_raw = _cell_at(values, cpm_index)
+            mc_raw = _cell_at(values, mc_index)
+            if not cpm_raw and not mc_raw:
+                continue
+            rows.append((row_number, cpm_raw, mc_raw))
+    finally:
+        workbook.close()
+
+    return headers, rows
 
 
 def _validate_columns(headers: list[str]) -> None:
@@ -224,7 +232,7 @@ def validate_import_file(uploaded_file) -> None:
         raise ValueError("Invalid file type. Only CSV and XLSX files are allowed.")
 
 
-def parse_member_file(uploaded_file) -> tuple[list[str], list[dict]]:
+def parse_member_file(uploaded_file) -> tuple[list[str], list[ParsedRow]]:
     validate_import_file(uploaded_file)
     name = uploaded_file.name.lower()
     if name.endswith(".csv"):
@@ -279,13 +287,7 @@ def import_members(uploaded_file) -> ImportResult:
     seen_cpms: dict[str, int] = {}
     valid_rows: list[tuple[int, str, str]] = []
 
-    for index, row in enumerate(rows, start=2):
-        cpm_raw = _resolve_column_key(row, CPM_COLUMN_ALIASES)
-        mc_raw = _resolve_column_key(row, MC_COLUMN_ALIASES)
-
-        if not cpm_raw and not mc_raw:
-            continue
-
+    for index, cpm_raw, mc_raw in rows:
         if not cpm_raw:
             result.failed_rows.append(
                 RowError(row=index, cpm_number=None, reason="Missing CPM Number.")

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
@@ -20,10 +20,7 @@ import {
   PositionsPage,
   ReportsPage,
 } from '@/routes/adminPages'
-
-const AppToaster = lazy(() =>
-  import('@/components/shared/AppToaster').then((m) => ({ default: m.AppToaster })),
-)
+import { AppToaster } from '@/components/shared/AppToaster'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -140,9 +137,7 @@ export default function App() {
               <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
           </BrowserRouter>
-          <Suspense fallback={null}>
-            <AppToaster />
-          </Suspense>
+          <AppToaster />
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

@@ -55,9 +55,9 @@ export function LoginPage() {
         navigate('/vote')
       }
 
-      void notifySuccess('Signed in successfully')
+      notifySuccess('Signed in successfully')
     } catch (error) {
-      void notifyError(getApiErrorMessage(error, 'Invalid credentials'))
+      notifyError(getApiErrorMessage(error, 'Invalid credentials'))
     }
   }
 

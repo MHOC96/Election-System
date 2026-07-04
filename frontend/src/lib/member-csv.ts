@@ -95,18 +95,16 @@ function parseCsvLine(line: string, delimiter: string): string[] {
   return cells
 }
 
-function resolveColumn(headers: string[], aliases: Set<string>, cells: string[]): string {
+function findColumnIndex(headers: string[], aliases: Set<string>): number {
   for (let i = 0; i < headers.length; i += 1) {
-    if (aliases.has(headers[i])) {
-      return cells[i]?.trim() ?? ''
-    }
+    if (aliases.has(headers[i])) return i
   }
-  return ''
+  return -1
 }
 
 function buildPreviewFromRows(
   headers: string[],
-  rows: string[][],
+  rows: readonly unknown[][],
   options: {
     format: 'csv' | 'xlsx'
     previewLimit: number
@@ -116,7 +114,10 @@ function buildPreviewFromRows(
 ): MemberImportPreviewResult {
   const { format, previewLimit, delimiter, sheetName } = options
 
-  if (!headers.some((h) => CPM_ALIASES.has(h)) || !headers.some((h) => MC_ALIASES.has(h))) {
+  const cpmIndex = findColumnIndex(headers, CPM_ALIASES)
+  const mcIndex = findColumnIndex(headers, MC_ALIASES)
+
+  if (cpmIndex === -1 || mcIndex === -1) {
     return {
       total_rows: 0,
       valid_rows: 0,
@@ -135,9 +136,9 @@ function buildPreviewFromRows(
   let totalRows = 0
 
   for (let index = 0; index < rows.length; index += 1) {
-    const cells = rows[index]
-    const cpm = resolveColumn(headers, CPM_ALIASES, cells).toUpperCase()
-    const mc = resolveColumn(headers, MC_ALIASES, cells)
+    const cells = rows[index] ?? []
+    const cpm = cellValue(cells[cpmIndex]).toUpperCase()
+    const mc = cellValue(cells[mcIndex])
 
     if (!cpm && !mc) continue
 
@@ -218,7 +219,15 @@ export async function parseMemberXlsxPreview(
   previewLimit = 8,
 ): Promise<MemberImportPreviewResult> {
   const XLSX = await import('xlsx')
-  const workbook = XLSX.read(buffer, { type: 'array', cellDates: false })
+  // raw values + no formatted-text generation makes parsing large workbooks much faster.
+  const workbook = XLSX.read(buffer, {
+    type: 'array',
+    cellDates: false,
+    cellText: false,
+    cellHTML: false,
+    cellNF: false,
+    cellStyles: false,
+  })
   const sheetName = workbook.SheetNames[0]
 
   if (!sheetName) {
@@ -229,7 +238,7 @@ export async function parseMemberXlsxPreview(
   const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
     header: 1,
     defval: '',
-    raw: false,
+    raw: true,
   })
 
   if (!matrix.length) {
@@ -243,19 +252,11 @@ export async function parseMemberXlsxPreview(
     return emptyPreviewError('xlsx', 'File is empty or missing a header row.')
   }
 
-  const dataRows: string[][] = []
-  for (let i = 1; i < matrix.length; i += 1) {
-    const row = matrix[i] ?? []
-    const cells = headerRow.map((_, colIndex) => cellValue(row[colIndex]))
-    if (cells.every((cell) => !cell)) continue
-    dataRows.push(cells)
-  }
-
-  if (!dataRows.length) {
+  if (matrix.length < 2) {
     return emptyPreviewError('xlsx', 'Spreadsheet must include at least one data row.')
   }
 
-  return buildPreviewFromRows(headers, dataRows, {
+  return buildPreviewFromRows(headers, matrix.slice(1), {
     format: 'xlsx',
     previewLimit,
     sheetName,
