@@ -60,8 +60,8 @@ class ElectionDetailView(generics.RetrieveDestroyAPIView):
         election_id = election.id
 
         with transaction.atomic():
-            Vote.objects.filter(election=election).delete()
-            election.delete()
+            Vote.objects.filter(election_id=election_id).delete()
+            Election.objects.filter(pk=election_id).delete()
 
         invalidate_dashboard_cache(election_id)
         return Response(

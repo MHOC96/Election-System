@@ -101,6 +101,8 @@ class MemberClearAllView(APIView):
         except MemberDeletionNotAllowedError as exc:
             raise ValidationError(str(exc)) from exc
 
+        invalidate_dashboard_cache()
+
         return Response(
             {
                 "success": True,
@@ -177,6 +179,7 @@ class MemberDetailView(generics.RetrieveUpdateDestroyAPIView):
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         member = serializer.save()
+        invalidate_dashboard_cache()
         return Response(
             {"success": True, "data": MemberSerializer(member).data},
             status=status.HTTP_200_OK,
@@ -189,6 +192,8 @@ class MemberDetailView(generics.RetrieveUpdateDestroyAPIView):
             delete_member(instance)
         except MemberDeletionNotAllowedError as exc:
             raise ValidationError(str(exc)) from exc
+
+        invalidate_dashboard_cache()
 
         return Response(
             {"success": True, "message": "Member deleted successfully."},

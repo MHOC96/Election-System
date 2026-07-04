@@ -102,11 +102,17 @@ class ClearAllMembersResult:
 def clear_all_members() -> ClearAllMembersResult:
     assert_member_deletion_allowed()
 
-    member_ids = list(User.objects.filter(role=UserRole.MEMBER).values_list("pk", flat=True))
-    if not member_ids:
+    if not User.objects.filter(role=UserRole.MEMBER).exists():
         return ClearAllMembersResult(deleted=0)
 
-    deleted = _delete_members(member_ids)
+    with transaction.atomic():
+        Vote.objects.filter(member__role=UserRole.MEMBER).delete()
+        member_ids = list(
+            User.objects.filter(role=UserRole.MEMBER).values_list("pk", flat=True)
+        )
+        _clear_legacy_audit_logs_for_users(member_ids)
+        deleted, _ = User.objects.filter(role=UserRole.MEMBER).delete()
+
     return ClearAllMembersResult(deleted=deleted)
 
 

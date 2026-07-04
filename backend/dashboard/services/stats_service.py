@@ -65,9 +65,10 @@ def get_dashboard_overview(
         if cached is not None:
             return cached
 
+    election = _resolve_election(election_id)
     result = {
-        "summary": get_dashboard_summary(election_id, use_cache=use_cache),
-        "live": get_live_stats(election_id, use_cache=use_cache),
+        "summary": get_dashboard_summary(election_id, use_cache=use_cache, election=election),
+        "live": get_live_stats(election_id, use_cache=use_cache, election=election),
     }
     if use_cache:
         cache.set(cache_key, result, OVERVIEW_CACHE_SECONDS)
@@ -75,7 +76,7 @@ def get_dashboard_overview(
 
 
 def get_dashboard_summary(
-    election_id: int | None = None, *, use_cache: bool = True
+    election_id: int | None = None, *, use_cache: bool = True, election: Election | None = None
 ) -> dict:
     cache_key = _summary_cache_key(election_id)
     if use_cache:
@@ -83,7 +84,7 @@ def get_dashboard_summary(
         if cached is not None:
             return cached
 
-    election = _resolve_election(election_id)
+    election = election if election is not None else _resolve_election(election_id)
     total_members = User.objects.filter(role=UserRole.MEMBER, is_active=True).count()
     total_candidates = Candidate.objects.count()
     total_positions = Position.objects.count()
@@ -119,18 +120,18 @@ def get_dashboard_summary(
                 }
             )
 
-        member_vote_counts = (
+        voter_counts = (
             Vote.objects.filter(election=election)
             .values("member_id")
             .annotate(positions_voted=Count("position_id", distinct=True))
         )
-        for row in member_vote_counts:
-            count = row["positions_voted"]
-            if count >= votable_positions_count:
-                members_completed_ballot += 1
-            elif count > 0:
-                members_partial_ballot += 1
-
+        members_completed_ballot = voter_counts.filter(
+            positions_voted__gte=votable_positions_count
+        ).count()
+        members_partial_ballot = voter_counts.filter(
+            positions_voted__gt=0,
+            positions_voted__lt=votable_positions_count,
+        ).count()
         members_no_votes = (
             total_members - members_completed_ballot - members_partial_ballot
         )
@@ -169,8 +170,10 @@ def get_dashboard_summary(
     return payload
 
 
-def get_live_stats(election_id: int | None = None, *, use_cache: bool = True) -> dict:
-    election = _resolve_election(election_id)
+def get_live_stats(
+    election_id: int | None = None, *, use_cache: bool = True, election: Election | None = None
+) -> dict:
+    election = election if election is not None else _resolve_election(election_id)
     if election is None:
         return {
             "election": None,
