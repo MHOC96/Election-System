@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/
 import { Input } from '@/components/ui/input'
 import { FormField } from '@/components/design-system/FormField'
 import { SkipToContent } from '@/components/shared/SkipToContent'
+import { CreatorFooter } from '@/components/layout/CreatorFooter'
 import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import { useAuth } from '@/context/AuthContext'
 import { getApiErrorMessage } from '@/api/client'
@@ -147,6 +148,8 @@ export function LoginPage() {
           </CardContent>
         </Card>
       </main>
+
+      <CreatorFooter variant="minimal" className="pb-[max(1rem,env(safe-area-inset-bottom))]" />
     </div>
   )
 }

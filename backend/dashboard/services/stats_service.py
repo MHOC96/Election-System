@@ -9,8 +9,8 @@ from positions.models import Position
 from voting.models import Election, ElectionStatus, Vote
 from voting.services.vote_service import count_votable_positions
 
-LIVE_STATS_CACHE_SECONDS = 8
-SUMMARY_CACHE_SECONDS = 15
+LIVE_STATS_CACHE_SECONDS = 10
+SUMMARY_CACHE_SECONDS = 10
 OVERVIEW_CACHE_SECONDS = 10
 
 
@@ -67,8 +67,10 @@ def get_dashboard_overview(
 
     election = _resolve_election(election_id)
     result = {
-        "summary": get_dashboard_summary(election_id, use_cache=use_cache, election=election),
-        "live": get_live_stats(election_id, use_cache=use_cache, election=election),
+        "summary": get_dashboard_summary(
+            election_id, use_cache=False, election=election
+        ),
+        "live": get_live_stats(election_id, use_cache=False, election=election),
     }
     if use_cache:
         cache.set(cache_key, result, OVERVIEW_CACHE_SECONDS)

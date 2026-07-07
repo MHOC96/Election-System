@@ -34,14 +34,19 @@ import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { StatCard } from '@/components/shared/StatCard'
 
 import { pageLayoutClass } from '@/lib/design-tokens'
-import { DASHBOARD_QUERY_KEY, DASHBOARD_STALE_MS } from '@/lib/query-sync'
+import {
+  DASHBOARD_POLL_MS,
+  DASHBOARD_QUERY_KEY,
+  DASHBOARD_STALE_MS,
+  DASHBOARD_SUMMARY_POLL_MS,
+} from '@/lib/query-sync'
 
 import { cn, formatPercent } from '@/lib/utils'
 
 
 
-const LIVE_POLL_INTERVAL_MS = 10_000
-const SUMMARY_POLL_INTERVAL_MS = 15_000
+const LIVE_POLL_INTERVAL_MS = DASHBOARD_POLL_MS
+const SUMMARY_POLL_INTERVAL_MS = DASHBOARD_SUMMARY_POLL_MS
 
 /** Faster section delays — dashboard data is prefetched; avoid stacking animation wait. */
 const dashboardDelays = {
@@ -74,23 +79,14 @@ export function AdminDashboardPage() {
     queryFn: () => fetchDashboardOverview(),
 
     staleTime: DASHBOARD_STALE_MS,
-
     placeholderData: (previous) => previous,
-
     refetchOnWindowFocus: true,
-
     refetchInterval: (query) => {
-
       if (!documentVisible) return false
-
       const status = query.state.data?.summary.election?.status
-
       return status === 'ACTIVE' ? LIVE_POLL_INTERVAL_MS : SUMMARY_POLL_INTERVAL_MS
-
     },
-
     refetchIntervalInBackground: false,
-
   })
 
 
@@ -274,13 +270,11 @@ export function AdminDashboardPage() {
             <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
 
               <LiveUpdateIndicator
-
                 isActive={isLive}
-
                 updatedAt={dataUpdatedAt}
-
-                pollIntervalSeconds={LIVE_POLL_INTERVAL_MS / 1000}
-
+                pollIntervalSeconds={
+                  (isLive ? LIVE_POLL_INTERVAL_MS : SUMMARY_POLL_INTERVAL_MS) / 1000
+                }
               />
 
               <Badge variant={isLive ? 'success' : 'secondary'}>
