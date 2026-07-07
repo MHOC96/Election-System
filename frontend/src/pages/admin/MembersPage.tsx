@@ -39,7 +39,7 @@ import {
   refreshDashboard,
 } from '@/lib/query-sync'
 import type { Member, MemberImportResult, Paginated } from '@/types/api'
-import { notifyError, notifyInfo, notifySuccess, notifyWarning } from '@/lib/notify'
+import { notifyError, notifyInfo, notifyWarning } from '@/lib/notify'
 
 function emptyMembersPage(): Paginated<Member> {
   return { count: 0, results: [], next: null, previous: null }
@@ -108,9 +108,7 @@ export function MembersPage() {
       refreshDashboard(queryClient)
       setImportResult(result)
 
-      if (result.failed_rows.length === 0 && result.duplicates.length === 0) {
-        notifySuccess(`Imported ${result.successful} member${result.successful === 1 ? '' : 's'}`)
-      } else {
+      if (result.failed_rows.length > 0 || result.duplicates.length > 0) {
         notifyWarning('Import completed with some rows skipped — review the summary below.')
       }
     },
@@ -128,8 +126,6 @@ export function MembersPage() {
     onSuccess: (result) => {
       if (result.deleted === 0) {
         notifyInfo('No members to remove')
-      } else {
-        notifySuccess(`Removed all ${result.deleted} member${result.deleted === 1 ? '' : 's'}`)
       }
 
       markQueriesStale(queryClient, ['members'])
@@ -150,7 +146,6 @@ export function MembersPage() {
         is_active: values.is_active,
       }),
     onSuccess: () => {
-      notifySuccess('Member updated')
       closeEditDialog()
       void refreshMembersPage(queryClient, page)
     },

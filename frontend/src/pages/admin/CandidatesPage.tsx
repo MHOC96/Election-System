@@ -40,10 +40,10 @@ import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import { optimizeCloudinaryUrl } from '@/lib/cloudinary'
 import { candidateSchema, type CandidateForm } from '@/lib/form-schemas'
-import { refreshDashboard } from '@/lib/query-sync'
+import { markQueriesStale, refreshDashboard } from '@/lib/query-sync'
 import { readFileAsObjectUrl } from '@/lib/image-crop'
 import type { AcademicYear, Candidate } from '@/types/api'
-import { notifyError, notifyInfo, notifySuccess, notifyWarning } from '@/lib/notify'
+import { notifyError, notifyInfo, notifyWarning } from '@/lib/notify'
 
 export function CandidatesPage() {
   const queryClient = useQueryClient()
@@ -72,9 +72,9 @@ export function CandidatesPage() {
     staleTime: 0,
   })
 
-  const canClearCandidates = deletionStatus?.allowed === true
-  const showDeletionBlockedNotice =
-    !deletionStatusLoading && deletionStatus !== undefined && !deletionStatus.allowed
+  const canModifyCandidates = deletionStatus?.allowed !== false
+  const showElectionLockedNotice =
+    !deletionStatusLoading && deletionStatus !== undefined && !canModifyCandidates
   const totalCandidates = candidates?.length ?? 0
 
   const groupedCandidates = useMemo(() => {
@@ -118,8 +118,8 @@ export function CandidatesPage() {
     },
     onSuccess: (saved) => {
       syncCandidateInCache(saved)
+      markQueriesStale(queryClient, ['candidates'])
       refreshDashboard(queryClient)
-      notifySuccess(editing ? 'Candidate updated' : 'Candidate created')
       closeDialog()
     },
     onError: (error) => notifyError(getApiErrorMessage(error)),
@@ -137,8 +137,8 @@ export function CandidatesPage() {
       return { previous }
     },
     onSuccess: () => {
+      markQueriesStale(queryClient, ['candidates'])
       refreshDashboard(queryClient)
-      notifySuccess('Candidate deleted')
     },
     onError: (error, _id, context) => {
       if (context?.previous) {
@@ -158,16 +158,13 @@ export function CandidatesPage() {
       return { previous }
     },
     onSuccess: (result) => {
+      markQueriesStale(queryClient, ['candidates'])
       refreshDashboard(queryClient)
       if (result.deleted === 0 && result.skipped.length === 0) {
         notifyInfo('No candidates to remove')
       } else if (result.skipped.length > 0) {
         notifyWarning(
           `Removed ${result.deleted} candidate${result.deleted === 1 ? '' : 's'}. ${result.skipped.length} skipped because they have votes.`,
-        )
-      } else {
-        notifySuccess(
-          `Removed all ${result.deleted} candidate${result.deleted === 1 ? '' : 's'}`,
         )
       }
     },
@@ -180,6 +177,10 @@ export function CandidatesPage() {
   })
 
   const openCreate = (preferredPositionId?: number) => {
+    if (!canModifyCandidates) {
+      notifyError('Candidates cannot be changed while an election is active or paused.')
+      return
+    }
     if (!positions?.length) {
       notifyError('Create a position first')
       return
@@ -195,6 +196,10 @@ export function CandidatesPage() {
   }
 
   const openEdit = (candidate: Candidate) => {
+    if (!canModifyCandidates) {
+      notifyError('Candidates cannot be changed while an election is active or paused.')
+      return
+    }
     setEditing(candidate)
     reset({
       full_name: candidate.full_name,
@@ -232,7 +237,6 @@ export function CandidatesPage() {
     try {
       const result = await uploadCandidatePhoto(file)
       setValue('photo_url', result.photo_url, { shouldValidate: true })
-      notifySuccess('Photo uploaded')
     } catch (error) {
       notifyError(getApiErrorMessage(error))
       throw error
@@ -262,7 +266,7 @@ export function CandidatesPage() {
           description="Candidates grouped by executive position"
           action={
             <>
-              {canClearCandidates && totalCandidates > 0 ? (
+              {canModifyCandidates && totalCandidates > 0 ? (
                 <Button
                   variant="outline"
                   className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
@@ -273,7 +277,7 @@ export function CandidatesPage() {
                   Clear all candidates
                 </Button>
               ) : null}
-              <Button onClick={() => openCreate()} disabled={!hasPositions}>
+              <Button onClick={() => openCreate()} disabled={!hasPositions || !canModifyCandidates}>
                 <Plus className="h-4 w-4" />
                 Add candidate
               </Button>
@@ -282,21 +286,21 @@ export function CandidatesPage() {
         />
       </Stagger>
 
-      {showDeletionBlockedNotice ? (
+      {showElectionLockedNotice ? (
         <Stagger delayMs={sectionDelays.primary}>
           <Card className="border-warning/40 bg-warning/5">
             <CardContent className="flex items-start gap-3 py-4">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden />
               <p className="text-sm text-muted-foreground">
-                Clearing candidates is disabled while an election is active or paused. Close the
-                current election to remove all candidates.
+                Candidate changes are locked while an election is active or paused. Close the
+                current election to add, edit, or remove candidates.
               </p>
             </CardContent>
           </Card>
         </Stagger>
       ) : null}
 
-      <Stagger delayMs={showDeletionBlockedNotice ? sectionDelays.secondary : sectionDelays.primary}>
+      <Stagger delayMs={showElectionLockedNotice ? sectionDelays.secondary : sectionDelays.primary}>
         <Card className={isRefreshing ? 'opacity-80 transition-opacity' : undefined}>
           <CardContent className="p-4 sm:p-6">
             {isLoading ? (
@@ -321,6 +325,7 @@ export function CandidatesPage() {
                 groups={groupedCandidates}
                 onEdit={openEdit}
                 onDelete={setDeleteTarget}
+                readOnly={!canModifyCandidates}
               />
             )}
           </CardContent>

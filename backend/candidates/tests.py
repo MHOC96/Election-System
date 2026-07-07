@@ -226,6 +226,59 @@ class CandidateAPITestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Candidate.objects.count(), 1)
 
+    def test_cannot_create_candidate_during_active_election(self):
+        from voting.models import Election, ElectionStatus
+
+        Election.objects.create(name="Active", status=ElectionStatus.ACTIVE)
+        self._login("ADM200", "admin-pass")
+        response = self.client.post(
+            reverse("candidates-list-create"),
+            {
+                "full_name": "Jane Doe",
+                "academic_year": AcademicYear.SECOND_YEAR,
+                "photo_url": self.photo_url,
+                "position": self.position.pk,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Candidate.objects.count(), 0)
+
+    def test_cannot_update_candidate_during_stopped_election(self):
+        from voting.models import Election, ElectionStatus
+
+        candidate = Candidate.objects.create(
+            full_name="Alice",
+            academic_year=AcademicYear.SECOND_YEAR,
+            photo_url=self.photo_url,
+            position=self.position,
+        )
+        Election.objects.create(name="Stopped", status=ElectionStatus.STOPPED)
+        self._login("ADM200", "admin-pass")
+        response = self.client.patch(
+            reverse("candidates-detail", kwargs={"pk": candidate.pk}),
+            {"full_name": "Alice Updated"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        candidate.refresh_from_db()
+        self.assertEqual(candidate.full_name, "Alice")
+
+    def test_cannot_delete_candidate_during_active_election(self):
+        from voting.models import Election, ElectionStatus
+
+        candidate = Candidate.objects.create(
+            full_name="Alice",
+            academic_year=AcademicYear.SECOND_YEAR,
+            photo_url=self.photo_url,
+            position=self.position,
+        )
+        Election.objects.create(name="Active", status=ElectionStatus.ACTIVE)
+        self._login("ADM200", "admin-pass")
+        response = self.client.delete(reverse("candidates-detail", kwargs={"pk": candidate.pk}))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue(Candidate.objects.filter(pk=candidate.pk).exists())
+
 
 class CandidateModelTestCase(TestCase):
     def test_full_name_stripped(self):

@@ -11,6 +11,8 @@ import {
   startElection,
   stopElection,
 } from '@/api/elections'
+import { fetchCandidates } from '@/api/candidates'
+import { fetchPositions } from '@/api/positions'
 import { getApiErrorMessage } from '@/api/client'
 import { ElectionResultsSheet } from '@/components/elections/ElectionResultsSheet'
 import { Button } from '@/components/ui/button'
@@ -32,11 +34,12 @@ import { sectionDelays, Stagger, StaggerChildren } from '@/components/motion/Sta
 import { FormField } from '@/components/design-system/FormField'
 import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass } from '@/lib/design-tokens'
-import { refreshDashboard } from '@/lib/query-sync'
+import { canCreateElection, canStartElection, getCreateElectionBlockReason, getElectionStartBlockReason } from '@/lib/election-readiness'
+import { refreshDashboard, markQueriesStale } from '@/lib/query-sync'
 import { electionSchema, type ElectionForm } from '@/lib/form-schemas'
 import type { Election } from '@/types/api'
 import { cn, formatDate } from '@/lib/utils'
-import { notifyError, notifySuccess } from '@/lib/notify'
+import { notifyError } from '@/lib/notify'
 
 export function ElectionsPage() {
   const queryClient = useQueryClient()
@@ -61,12 +64,29 @@ export function ElectionsPage() {
     queryFn: fetchElections,
   })
 
+  const { data: candidates, isLoading: candidatesLoading } = useQuery({
+    queryKey: ['candidates'],
+    queryFn: () => fetchCandidates(),
+    refetchOnMount: 'always',
+  })
+
+  const { data: positions, isLoading: positionsLoading } = useQuery({
+    queryKey: ['positions'],
+    queryFn: fetchPositions,
+    refetchOnMount: 'always',
+  })
+
+  const readinessLoading = candidatesLoading || positionsLoading
+  const canCreate = canCreateElection(candidates)
+  const createElectionHint = getCreateElectionBlockReason(candidates)
+  const electionStartReady = !readinessLoading && canStartElection(positions, candidates)
+  const electionStartBlockReason = getElectionStartBlockReason(positions, candidates)
+
   const createMutation = useMutation({
     mutationFn: (values: ElectionForm) => createElection(values.name),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['elections'] })
       refreshDashboard(queryClient)
-      notifySuccess('Election created')
       closeCreateDialog()
     },
     onError: (error) => notifyError(getApiErrorMessage(error)),
@@ -81,24 +101,16 @@ export function ElectionsPage() {
     onMutate: ({ action }) => {
       if (action === 'close') {
         setCloseTarget(null)
-        notifySuccess('Election closed')
       }
     },
-    onSuccess: (updated, variables) => {
+    onSuccess: (updated) => {
       queryClient.setQueryData<Election[]>(['elections'], (old) =>
         (old ?? []).map((election) =>
           election.id === updated.id ? updated : election,
         ),
       )
       refreshDashboard(queryClient)
-      void queryClient.invalidateQueries({ queryKey: ['members-deletion-status'] })
-      void queryClient.invalidateQueries({ queryKey: ['elections'] })
-
-      if (variables.action === 'start') {
-        notifySuccess('Election started')
-      } else if (variables.action === 'stop') {
-        notifySuccess('Election stopped')
-      }
+      markQueriesStale(queryClient, ['members-deletion-status'])
     },
     onError: (error, variables) => {
       if (variables.action === 'close') {
@@ -117,13 +129,11 @@ export function ElectionsPage() {
         (old ?? []).filter((election) => election.id !== id),
       )
       setDeleteTarget(null)
-      notifySuccess('Election deleted')
       return { previous }
     },
     onSuccess: () => {
       refreshDashboard(queryClient)
-      void queryClient.invalidateQueries({ queryKey: ['members-deletion-status'] })
-      void queryClient.invalidateQueries({ queryKey: ['elections'] })
+      markQueriesStale(queryClient, ['members-deletion-status'])
     },
     onError: (error, _id, context) => {
       if (context?.previous) {
@@ -134,6 +144,10 @@ export function ElectionsPage() {
   })
 
   const openCreateDialog = () => {
+    if (!canCreate) {
+      notifyError(createElectionHint ?? 'Add candidates first.')
+      return
+    }
     reset({ name: '' })
     setDialogOpen(true)
   }
@@ -156,11 +170,19 @@ export function ElectionsPage() {
   const renderActions = (election: Election) => {
     const actions = []
     if (election.status === 'DRAFT' || election.status === 'STOPPED') {
+      const canStart = electionStartReady
       actions.push(
         <Button
           key="start"
           size="sm"
-          disabled={actionMutation.isPending}
+          disabled={actionMutation.isPending || readinessLoading || !canStart}
+          title={
+            readinessLoading
+              ? 'Checking candidate readiness…'
+              : !canStart
+                ? (electionStartBlockReason ?? undefined)
+                : undefined
+          }
           onClick={(event) => {
             event.stopPropagation()
             actionMutation.mutate({ id: election.id, action: 'start' })
@@ -168,6 +190,22 @@ export function ElectionsPage() {
         >
           <Play className="h-4 w-4" />
           Start
+        </Button>,
+      )
+      actions.push(
+        <Button
+          key="delete"
+          size="sm"
+          variant="outline"
+          className="text-destructive hover:text-destructive"
+          disabled={deleteMutation.isPending}
+          onClick={(event) => {
+            event.stopPropagation()
+            setDeleteTarget(election)
+          }}
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete
         </Button>,
       )
     }
@@ -233,10 +271,19 @@ export function ElectionsPage() {
           title="Elections"
           description="Create and manage election lifecycle"
           action={
-            <Button onClick={openCreateDialog}>
-              <Plus className="h-4 w-4" />
-              New Election
-            </Button>
+            <div className="flex flex-col items-end gap-1">
+              <Button
+                onClick={openCreateDialog}
+                disabled={readinessLoading || !canCreate}
+                title={createElectionHint ?? undefined}
+              >
+                <Plus className="h-4 w-4" />
+                New Election
+              </Button>
+              {!readinessLoading && createElectionHint ? (
+                <p className="text-xs text-muted-foreground">{createElectionHint}</p>
+              ) : null}
+            </div>
           }
         />
       </Stagger>
@@ -251,12 +298,21 @@ export function ElectionsPage() {
         <EmptyState
           icon={Vote}
           title="No elections"
-          description="Create an election, then start it when ready for voting."
+          description={
+            canCreate
+              ? 'Create an election, then start it when every position has at least one candidate.'
+              : 'Add candidates first, then create an election.'
+          }
         />
       ) : (
         <StaggerChildren className="grid gap-4" staggerMs={70}>
           {elections.map((election) => {
             const isClosed = election.status === 'CLOSED'
+            const showStartHint =
+              (election.status === 'DRAFT' || election.status === 'STOPPED') &&
+              !readinessLoading &&
+              !electionStartReady &&
+              electionStartBlockReason
 
             return (
               <Card
@@ -291,6 +347,9 @@ export function ElectionsPage() {
                         View full results
                         <ChevronRight className="h-4 w-4" aria-hidden />
                       </p>
+                    ) : null}
+                    {showStartHint ? (
+                      <p className="mt-2 text-sm text-muted-foreground">{electionStartBlockReason}</p>
                     ) : null}
                   </div>
                   <div onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
@@ -349,8 +408,18 @@ export function ElectionsPage() {
 
       <ConfirmDialog
         open={!!deleteTarget}
-        title="Delete closed election?"
-        description={`Delete "${deleteTarget?.name}" and all associated vote records? Export reports first if you need a permanent archive.`}
+        title={
+          deleteTarget?.status === 'CLOSED'
+            ? 'Delete closed election?'
+            : 'Delete election?'
+        }
+        description={
+          deleteTarget?.status === 'CLOSED'
+            ? `Delete "${deleteTarget?.name}" and all associated vote records? Export reports first if you need a permanent archive.`
+            : deleteTarget?.status === 'STOPPED'
+              ? `Delete "${deleteTarget?.name}"? Any votes cast during this election will also be removed.`
+              : `Remove draft election "${deleteTarget?.name}"? This cannot be undone.`
+        }
         confirmLabel="Delete election"
         destructive
         loading={deleteMutation.isPending}

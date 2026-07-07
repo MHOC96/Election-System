@@ -20,6 +20,7 @@ from voting.services.vote_service import (
     get_member_vote_status,
     submit_vote,
 )
+from voting.services.election_guard import ElectionGuardError, assert_election_can_be_created
 from voting.throttling import VoteRateThrottle
 
 
@@ -29,6 +30,11 @@ class ElectionListCreateView(generics.ListCreateAPIView):
     queryset = Election.objects.all()
 
     def create(self, request, *args, **kwargs):
+        try:
+            assert_election_can_be_created()
+        except ElectionGuardError as exc:
+            raise ValidationError(str(exc)) from exc
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -54,8 +60,8 @@ class ElectionDetailView(generics.RetrieveDestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         election = self.get_object()
-        if election.status != ElectionStatus.CLOSED:
-            raise ValidationError("Only closed elections can be deleted.")
+        if election.status == ElectionStatus.ACTIVE:
+            raise ValidationError("Active elections cannot be deleted.")
 
         election_id = election.id
 

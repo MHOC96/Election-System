@@ -82,6 +82,16 @@ class Election(models.Model):
         return self.status in (ElectionStatus.ACTIVE, ElectionStatus.STOPPED)
 
     def start(self):
+        from voting.services.election_guard import (
+            ElectionGuardError,
+            validate_election_start_readiness,
+        )
+
+        try:
+            validate_election_start_readiness()
+        except ElectionGuardError as exc:
+            raise ValueError(exc.message) from exc
+
         with transaction.atomic():
             election = Election.objects.select_for_update().get(pk=self.pk)
             if not election.can_start():

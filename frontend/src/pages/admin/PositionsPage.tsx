@@ -26,7 +26,7 @@ import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import { positionSchema, type PositionForm } from '@/lib/form-schemas'
 import type { Position } from '@/types/api'
-import { notifyError, notifySuccess } from '@/lib/notify'
+import { notifyError } from '@/lib/notify'
 
 export function PositionsPage() {
   const queryClient = useQueryClient()
@@ -56,7 +56,6 @@ export function PositionsPage() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['positions'] })
-      notifySuccess(editing ? 'Position updated' : 'Position created')
       closeDialog()
     },
     onError: (error) => notifyError(getApiErrorMessage(error)),
@@ -66,7 +65,6 @@ export function PositionsPage() {
     mutationFn: (id: number) => deletePosition(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['positions'] })
-      notifySuccess('Position deleted')
       setDeleteTarget(null)
     },
     onError: (error) => notifyError(getApiErrorMessage(error)),
