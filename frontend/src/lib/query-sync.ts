@@ -3,8 +3,14 @@ import type { QueryClient, QueryKey } from '@tanstack/react-query'
 export const DASHBOARD_QUERY_KEY = ['dashboard-overview'] as const
 export const BALLOT_QUERY_KEY = ['ballot'] as const
 
-/** Dashboard cache TTL — aligned with backend overview cache (~10s). */
-export const DASHBOARD_STALE_MS = 15_000
+/** Poll active dashboard every 10s (matches backend overview cache). */
+export const DASHBOARD_POLL_MS = 10_000
+
+/** Poll dashboard summary when election is not live. */
+export const DASHBOARD_SUMMARY_POLL_MS = 15_000
+
+/** Must stay below poll interval so interval refetches are not skipped. */
+export const DASHBOARD_STALE_MS = 0
 
 /** Ballot cache TTL — stable while the member reviews candidates. */
 export const BALLOT_STALE_MS = 30_000

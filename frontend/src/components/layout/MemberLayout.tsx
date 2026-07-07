@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext'
 import { shellContentClass } from '@/lib/design-tokens'
 import { warmMemberConsole } from '@/lib/prefetch'
 import { ShellActions } from '@/components/layout/ShellActions'
+import { CreatorFooter } from '@/components/layout/CreatorFooter'
 import { SkipToContent } from '@/components/shared/SkipToContent'
 import { MAIN_CONTENT_ID } from '@/lib/a11y'
 import { notifyError } from '@/lib/notify'
@@ -66,6 +67,8 @@ export function MemberLayout() {
           <Outlet />
         </div>
       </main>
+
+      <CreatorFooter />
     </div>
   )
 }

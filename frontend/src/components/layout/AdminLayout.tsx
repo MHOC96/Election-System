@@ -8,6 +8,7 @@ import { adminNavItems } from '@/lib/navigation'
 import { shellContentClass } from '@/lib/design-tokens'
 import { warmAdminConsole } from '@/lib/prefetch'
 import { MobileNavSheet } from '@/components/layout/MobileNavSheet'
+import { AdminSidebarFooter } from '@/components/layout/AdminSidebarFooter'
 import { ShellActions } from '@/components/layout/ShellActions'
 import { SidebarNav } from '@/components/layout/SidebarNav'
 import { SkipToContent } from '@/components/shared/SkipToContent'
@@ -61,9 +62,8 @@ export function AdminLayout() {
         <div className="flex-1 overflow-y-auto p-4">
           <SidebarNav items={adminNavItems} prefetchScope="admin" />
         </div>
-        <div className="border-t p-4 text-xs text-muted-foreground">
-          Signed in as{' '}
-          <span className="font-medium text-foreground">{user?.cpm_number}</span>
+        <div className="border-t p-4">
+          <AdminSidebarFooter />
         </div>
       </aside>
 
@@ -115,11 +115,7 @@ export function AdminLayout() {
         description="Election management"
         items={adminNavItems}
         prefetchScope="admin"
-        footer={
-          <>
-            Signed in as <span className="font-medium text-foreground">{user?.cpm_number}</span>
-          </>
-        }
+        footer={<AdminSidebarFooter />}
       />
     </div>
   )
