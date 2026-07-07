@@ -12,7 +12,7 @@ import { ShellActions } from '@/components/layout/ShellActions'
 import { SidebarNav } from '@/components/layout/SidebarNav'
 import { SkipToContent } from '@/components/shared/SkipToContent'
 import { MAIN_CONTENT_ID } from '@/lib/a11y'
-import { toast } from 'sonner'
+import { notifyError, notifySuccess } from '@/lib/notify'
 
 export function AdminLayout() {
   const { user, logout } = useAuth()
@@ -32,11 +32,11 @@ export function AdminLayout() {
     queryClient.clear()
     try {
       await logout()
+      notifySuccess('Logged out successfully')
       navigate('/login', { replace: true })
-      toast.success('Logged out successfully')
     } catch {
+      notifyError('Failed to log out')
       navigate('/login', { replace: true })
-      toast.error('Failed to log out')
     } finally {
       setIsLoggingOut(false)
     }

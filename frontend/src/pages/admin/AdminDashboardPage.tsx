@@ -15,7 +15,7 @@ import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton'
 
 import { PositionLiveResultCard } from '@/components/dashboard/PositionLiveResultCard'
 
-import { sectionDelays, Stagger, StaggerChildren } from '@/components/motion/Stagger'
+import { Stagger, StaggerChildren } from '@/components/motion/Stagger'
 
 import { Badge } from '@/components/ui/badge'
 
@@ -41,8 +41,15 @@ import { cn, formatPercent } from '@/lib/utils'
 
 
 const LIVE_POLL_INTERVAL_MS = 10_000
-
 const SUMMARY_POLL_INTERVAL_MS = 15_000
+
+/** Faster section delays — dashboard data is prefetched; avoid stacking animation wait. */
+const dashboardDelays = {
+  header: 0,
+  primary: 0,
+  secondary: 40,
+  tertiary: 80,
+} as const
 
 
 
@@ -102,13 +109,13 @@ export function AdminDashboardPage() {
 
       <div className={pageLayoutClass}>
 
-        <Stagger delayMs={sectionDelays.header}>
+        <Stagger delayMs={dashboardDelays.header}>
 
           <PageHeader title="Dashboard" description="Election overview and live results" />
 
         </Stagger>
 
-        <Stagger delayMs={sectionDelays.primary}>
+        <Stagger delayMs={dashboardDelays.primary}>
 
           <QueryErrorState onRetry={() => void refetch()} isRetrying={isFetching} />
 
@@ -134,13 +141,13 @@ export function AdminDashboardPage() {
 
       <div className={pageLayoutClass}>
 
-        <Stagger delayMs={sectionDelays.header}>
+        <Stagger delayMs={dashboardDelays.header}>
 
           <PageHeader title="Dashboard" description="Election overview and live results" />
 
         </Stagger>
 
-        <Stagger delayMs={sectionDelays.primary}>
+        <Stagger delayMs={dashboardDelays.primary}>
 
           <EmptyState
 
@@ -254,7 +261,7 @@ export function AdminDashboardPage() {
 
     <div className={pageLayoutClass}>
 
-      <Stagger delayMs={sectionDelays.header}>
+      <Stagger delayMs={dashboardDelays.header}>
 
         <PageHeader
 
@@ -292,9 +299,9 @@ export function AdminDashboardPage() {
 
 
 
-      <Stagger delayMs={sectionDelays.primary}>
+      <Stagger delayMs={dashboardDelays.primary}>
 
-        <StaggerChildren className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" staggerMs={60}>
+        <StaggerChildren className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" staggerMs={30}>
 
           {stats.map((stat) => (
 
@@ -308,7 +315,7 @@ export function AdminDashboardPage() {
 
 
 
-      <Stagger delayMs={sectionDelays.secondary}>
+      <Stagger delayMs={dashboardDelays.secondary}>
 
         <div>
 
@@ -346,7 +353,7 @@ export function AdminDashboardPage() {
 
           ) : (
 
-            <StaggerChildren className="grid gap-5 lg:grid-cols-2" staggerMs={80} initialDelayMs={40}>
+            <StaggerChildren className="grid gap-5 lg:grid-cols-2" staggerMs={40} initialDelayMs={0}>
 
               {positions.map((position) => {
 
@@ -392,7 +399,7 @@ export function AdminDashboardPage() {
 
 
 
-      <Stagger delayMs={sectionDelays.tertiary}>
+      <Stagger delayMs={dashboardDelays.tertiary}>
 
         <ChartCard
 
@@ -461,7 +468,7 @@ export function AdminDashboardPage() {
 
               ) : (
 
-                <StaggerChildren className="space-y-3" staggerMs={50} initialDelayMs={20}>
+                <StaggerChildren className="space-y-3" staggerMs={30} initialDelayMs={0}>
 
                   {positionTurnout.map((item) => (
 

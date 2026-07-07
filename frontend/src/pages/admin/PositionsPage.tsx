@@ -26,7 +26,7 @@ import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import { positionSchema, type PositionForm } from '@/lib/form-schemas'
 import type { Position } from '@/types/api'
-import { toast } from 'sonner'
+import { notifyError, notifySuccess } from '@/lib/notify'
 
 export function PositionsPage() {
   const queryClient = useQueryClient()
@@ -56,20 +56,20 @@ export function PositionsPage() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['positions'] })
-      toast.success(editing ? 'Position updated' : 'Position created')
+      notifySuccess(editing ? 'Position updated' : 'Position created')
       closeDialog()
     },
-    onError: (error) => toast.error(getApiErrorMessage(error)),
+    onError: (error) => notifyError(getApiErrorMessage(error)),
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deletePosition(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['positions'] })
-      toast.success('Position deleted')
+      notifySuccess('Position deleted')
       setDeleteTarget(null)
     },
-    onError: (error) => toast.error(getApiErrorMessage(error)),
+    onError: (error) => notifyError(getApiErrorMessage(error)),
   })
 
   const openCreate = () => {

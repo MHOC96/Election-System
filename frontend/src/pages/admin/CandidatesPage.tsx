@@ -43,7 +43,7 @@ import { candidateSchema, type CandidateForm } from '@/lib/form-schemas'
 import { refreshDashboard } from '@/lib/query-sync'
 import { readFileAsObjectUrl } from '@/lib/image-crop'
 import type { AcademicYear, Candidate } from '@/types/api'
-import { toast } from 'sonner'
+import { notifyError, notifyInfo, notifySuccess, notifyWarning } from '@/lib/notify'
 
 export function CandidatesPage() {
   const queryClient = useQueryClient()
@@ -119,10 +119,10 @@ export function CandidatesPage() {
     onSuccess: (saved) => {
       syncCandidateInCache(saved)
       refreshDashboard(queryClient)
-      toast.success(editing ? 'Candidate updated' : 'Candidate created')
+      notifySuccess(editing ? 'Candidate updated' : 'Candidate created')
       closeDialog()
     },
-    onError: (error) => toast.error(getApiErrorMessage(error)),
+    onError: (error) => notifyError(getApiErrorMessage(error)),
   })
 
   const deleteMutation = useMutation({
@@ -138,13 +138,13 @@ export function CandidatesPage() {
     },
     onSuccess: () => {
       refreshDashboard(queryClient)
-      toast.success('Candidate deleted')
+      notifySuccess('Candidate deleted')
     },
     onError: (error, _id, context) => {
       if (context?.previous) {
         queryClient.setQueryData(['candidates'], context.previous)
       }
-      toast.error(getApiErrorMessage(error))
+      notifyError(getApiErrorMessage(error))
     },
   })
 
@@ -160,13 +160,13 @@ export function CandidatesPage() {
     onSuccess: (result) => {
       refreshDashboard(queryClient)
       if (result.deleted === 0 && result.skipped.length === 0) {
-        toast.info('No candidates to remove')
+        notifyInfo('No candidates to remove')
       } else if (result.skipped.length > 0) {
-        toast.warning(
+        notifyWarning(
           `Removed ${result.deleted} candidate${result.deleted === 1 ? '' : 's'}. ${result.skipped.length} skipped because they have votes.`,
         )
       } else {
-        toast.success(
+        notifySuccess(
           `Removed all ${result.deleted} candidate${result.deleted === 1 ? '' : 's'}`,
         )
       }
@@ -175,13 +175,13 @@ export function CandidatesPage() {
       if (context?.previous) {
         queryClient.setQueryData(['candidates'], context.previous)
       }
-      toast.error(getApiErrorMessage(error))
+      notifyError(getApiErrorMessage(error))
     },
   })
 
   const openCreate = (preferredPositionId?: number) => {
     if (!positions?.length) {
-      toast.error('Create a position first')
+      notifyError('Create a position first')
       return
     }
     setEditing(null)
@@ -216,14 +216,14 @@ export function CandidatesPage() {
     e.target.value = ''
     if (!file) return
     if (!file.type.startsWith('image/')) {
-      toast.error('Please choose an image file')
+      notifyError('Please choose an image file')
       return
     }
     try {
       const objectUrl = await readFileAsObjectUrl(file)
       setCropImageSrc(objectUrl)
     } catch {
-      toast.error('Could not read the selected image')
+      notifyError('Could not read the selected image')
     }
   }
 
@@ -232,9 +232,9 @@ export function CandidatesPage() {
     try {
       const result = await uploadCandidatePhoto(file)
       setValue('photo_url', result.photo_url, { shouldValidate: true })
-      toast.success('Photo uploaded')
+      notifySuccess('Photo uploaded')
     } catch (error) {
-      toast.error(getApiErrorMessage(error))
+      notifyError(getApiErrorMessage(error))
       throw error
     } finally {
       setUploading(false)

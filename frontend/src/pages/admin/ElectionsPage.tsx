@@ -36,7 +36,7 @@ import { refreshDashboard } from '@/lib/query-sync'
 import { electionSchema, type ElectionForm } from '@/lib/form-schemas'
 import type { Election } from '@/types/api'
 import { cn, formatDate } from '@/lib/utils'
-import { toast } from 'sonner'
+import { notifyError, notifySuccess } from '@/lib/notify'
 
 export function ElectionsPage() {
   const queryClient = useQueryClient()
@@ -66,10 +66,10 @@ export function ElectionsPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['elections'] })
       refreshDashboard(queryClient)
-      toast.success('Election created')
+      notifySuccess('Election created')
       closeCreateDialog()
     },
-    onError: (error) => toast.error(getApiErrorMessage(error)),
+    onError: (error) => notifyError(getApiErrorMessage(error)),
   })
 
   const actionMutation = useMutation({
@@ -78,32 +78,59 @@ export function ElectionsPage() {
       if (action === 'stop') return stopElection(id)
       return closeElection(id)
     },
-    onSuccess: (_, variables) => {
-      void queryClient.invalidateQueries({ queryKey: ['elections'] })
-      refreshDashboard(queryClient)
-      void queryClient.invalidateQueries({ queryKey: ['members-deletion-status'] })
-      if (variables.action === 'close') {
+    onMutate: ({ action }) => {
+      if (action === 'close') {
         setCloseTarget(null)
-        toast.success('Election closed')
-      } else if (variables.action === 'start') {
-        toast.success('Election started')
-      } else {
-        toast.success('Election stopped')
+        notifySuccess('Election closed')
       }
     },
-    onError: (error) => toast.error(getApiErrorMessage(error)),
+    onSuccess: (updated, variables) => {
+      queryClient.setQueryData<Election[]>(['elections'], (old) =>
+        (old ?? []).map((election) =>
+          election.id === updated.id ? updated : election,
+        ),
+      )
+      refreshDashboard(queryClient)
+      void queryClient.invalidateQueries({ queryKey: ['members-deletion-status'] })
+      void queryClient.invalidateQueries({ queryKey: ['elections'] })
+
+      if (variables.action === 'start') {
+        notifySuccess('Election started')
+      } else if (variables.action === 'stop') {
+        notifySuccess('Election stopped')
+      }
+    },
+    onError: (error, variables) => {
+      if (variables.action === 'close') {
+        void queryClient.invalidateQueries({ queryKey: ['elections'] })
+      }
+      notifyError(getApiErrorMessage(error))
+    },
   })
 
   const deleteMutation = useMutation({
     mutationFn: deleteElection,
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['elections'] })
+      const previous = queryClient.getQueryData<Election[]>(['elections'])
+      queryClient.setQueryData<Election[]>(['elections'], (old) =>
+        (old ?? []).filter((election) => election.id !== id),
+      )
+      setDeleteTarget(null)
+      notifySuccess('Election deleted')
+      return { previous }
+    },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['elections'] })
       refreshDashboard(queryClient)
       void queryClient.invalidateQueries({ queryKey: ['members-deletion-status'] })
-      toast.success('Election deleted')
-      setDeleteTarget(null)
+      void queryClient.invalidateQueries({ queryKey: ['elections'] })
     },
-    onError: (error) => toast.error(getApiErrorMessage(error)),
+    onError: (error, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['elections'], context.previous)
+      }
+      notifyError(getApiErrorMessage(error))
+    },
   })
 
   const openCreateDialog = () => {

@@ -18,7 +18,7 @@ import { BALLOT_QUERY_KEY, BALLOT_STALE_MS } from '@/lib/query-sync'
 import { handleRadioGroupKeyDown } from '@/lib/a11y'
 import { cn } from '@/lib/utils'
 import type { BallotItem, Candidate } from '@/types/api'
-import { toast } from 'sonner'
+import { notifyError, notifySuccess } from '@/lib/notify'
 
 interface PendingVote {
   positionId: number
@@ -45,11 +45,11 @@ export function BallotPage() {
       submitVote(positionId, candidateId),
     onSuccess: (result) => {
       void queryClient.invalidateQueries({ queryKey: BALLOT_QUERY_KEY })
-      toast.success(`Your vote for ${result.candidate_name} was recorded`)
+      notifySuccess(`Your vote for ${result.candidate_name} was recorded`)
       setPendingVote(null)
     },
     onError: (err) => {
-      toast.error(getApiErrorMessage(err))
+      notifyError(getApiErrorMessage(err))
       setPendingVote(null)
     },
   })

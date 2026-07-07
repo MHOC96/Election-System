@@ -39,7 +39,7 @@ import {
   refreshDashboard,
 } from '@/lib/query-sync'
 import type { Member, MemberImportResult, Paginated } from '@/types/api'
-import { toast } from 'sonner'
+import { notifyError, notifyInfo, notifySuccess, notifyWarning } from '@/lib/notify'
 
 function emptyMembersPage(): Paginated<Member> {
   return { count: 0, results: [], next: null, previous: null }
@@ -109,12 +109,12 @@ export function MembersPage() {
       setImportResult(result)
 
       if (result.failed_rows.length === 0 && result.duplicates.length === 0) {
-        toast.success(`Imported ${result.successful} member${result.successful === 1 ? '' : 's'}`)
+        notifySuccess(`Imported ${result.successful} member${result.successful === 1 ? '' : 's'}`)
       } else {
-        toast.warning('Import completed with some rows skipped — review the summary below.')
+        notifyWarning('Import completed with some rows skipped — review the summary below.')
       }
     },
-    onError: (error) => toast.error(getApiErrorMessage(error)),
+    onError: (error) => notifyError(getApiErrorMessage(error)),
   })
 
   const clearAllMutation = useMutation({
@@ -125,19 +125,20 @@ export function MembersPage() {
       setClearAllOpen(false)
       setPage(1)
     },
-    onSuccess: async (result) => {
-      markQueriesStale(queryClient, ['members'])
-      await refreshMembersPage(queryClient, 1)
-      refreshDashboard(queryClient)
+    onSuccess: (result) => {
       if (result.deleted === 0) {
-        toast.info('No members to remove')
+        notifyInfo('No members to remove')
       } else {
-        toast.success(`Removed all ${result.deleted} member${result.deleted === 1 ? '' : 's'}`)
+        notifySuccess(`Removed all ${result.deleted} member${result.deleted === 1 ? '' : 's'}`)
       }
+
+      markQueriesStale(queryClient, ['members'])
+      void refreshMembersPage(queryClient, 1)
+      refreshDashboard(queryClient)
     },
     onError: (error) => {
       void queryClient.invalidateQueries({ queryKey: ['members'] })
-      toast.error(getApiErrorMessage(error))
+      notifyError(getApiErrorMessage(error))
     },
   })
 
@@ -148,12 +149,12 @@ export function MembersPage() {
         mc_number: values.mc_number,
         is_active: values.is_active,
       }),
-    onSuccess: async () => {
-      await refreshMembersPage(queryClient, page)
-      toast.success('Member updated')
+    onSuccess: () => {
+      notifySuccess('Member updated')
       closeEditDialog()
+      void refreshMembersPage(queryClient, page)
     },
-    onError: (error) => toast.error(getApiErrorMessage(error)),
+    onError: (error) => notifyError(getApiErrorMessage(error)),
   })
 
   const tableLoading = isPending && !data

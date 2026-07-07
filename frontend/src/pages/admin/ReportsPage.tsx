@@ -15,7 +15,7 @@ import type { ExportFormat, ReportType } from '@/types/api'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { sectionDelays, Stagger, StaggerChildren } from '@/components/motion/Stagger'
 import { pageLayoutClass } from '@/lib/design-tokens'
-import { toast } from 'sonner'
+import { notifyError, notifySuccess } from '@/lib/notify'
 
 const reports: { type: ReportType; title: string; description: string }[] = [
   { type: 'results', title: 'Election Results', description: 'Vote counts and winners per position' },
@@ -32,9 +32,9 @@ export function ReportsPage() {
     setLoading(type)
     try {
       await exportReport(type, format)
-      toast.success('Report downloaded')
+      notifySuccess('Report downloaded')
     } catch (error) {
-      toast.error(getApiErrorMessage(error))
+      notifyError(getApiErrorMessage(error))
     } finally {
       setLoading(null)
     }

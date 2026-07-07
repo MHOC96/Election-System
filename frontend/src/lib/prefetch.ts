@@ -1,4 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query'
+import { fetchDashboardOverview } from '@/api/dashboard'
 import {
   BALLOT_QUERY_KEY,
   BALLOT_STALE_MS,
@@ -31,7 +32,6 @@ function markPrefetched(routeKey: string) {
 
 /** Load admin shell, page chunk, and dashboard API before first paint. */
 export async function prepareAdminEntry(queryClient: QueryClient) {
-  const { fetchDashboardOverview } = await import('@/api/dashboard')
   await Promise.all([
     preloadAdminShell(),
     queryClient.ensureQueryData({
@@ -56,12 +56,10 @@ export async function prepareMemberEntry(queryClient: QueryClient) {
 }
 
 export function prefetchAdminLanding(queryClient: QueryClient) {
-  void import('@/api/dashboard').then(({ fetchDashboardOverview }) => {
-    void queryClient.prefetchQuery({
-      queryKey: DASHBOARD_QUERY_KEY,
-      queryFn: () => fetchDashboardOverview(),
-      staleTime: DASHBOARD_STALE_MS,
-    })
+  void queryClient.prefetchQuery({
+    queryKey: DASHBOARD_QUERY_KEY,
+    queryFn: () => fetchDashboardOverview(),
+    staleTime: DASHBOARD_STALE_MS,
   })
 }
 
