@@ -18,7 +18,7 @@ import { BALLOT_QUERY_KEY, BALLOT_STALE_MS } from '@/lib/query-sync'
 import { handleRadioGroupKeyDown } from '@/lib/a11y'
 import { cn } from '@/lib/utils'
 import type { BallotItem, Candidate } from '@/types/api'
-import { notifyError, notifySuccess } from '@/lib/notify'
+import { notifyError } from '@/lib/notify'
 
 interface PendingVote {
   positionId: number
@@ -43,9 +43,8 @@ export function BallotPage() {
   const voteMutation = useMutation({
     mutationFn: ({ positionId, candidateId }: { positionId: number; candidateId: number }) =>
       submitVote(positionId, candidateId),
-    onSuccess: (result) => {
+    onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: BALLOT_QUERY_KEY })
-      notifySuccess(`Your vote for ${result.candidate_name} was recorded`)
       setPendingVote(null)
     },
     onError: (err) => {

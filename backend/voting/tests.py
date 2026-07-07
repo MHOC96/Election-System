@@ -31,7 +31,17 @@ class ElectionLifecycleTestCase(TestCase):
             HTTP_AUTHORIZATION=f"Bearer {response.data['data']['access']}"
         )
 
+    def _seed_election_ready(self):
+        position = Position.objects.create(name="President")
+        Candidate.objects.create(
+            full_name="Alice",
+            academic_year=AcademicYear.SECOND_YEAR,
+            photo_url="https://res.cloudinary.com/demo/image/upload/v1/a.jpg",
+            position=position,
+        )
+
     def test_create_and_start_election(self):
+        self._seed_election_ready()
         create_response = self.client.post(
             reverse("elections-list-create"),
             {"name": "2026 EC Election"},
@@ -47,6 +57,7 @@ class ElectionLifecycleTestCase(TestCase):
         self.assertEqual(start_response.data["data"]["status"], ElectionStatus.ACTIVE)
 
     def test_only_one_active_election(self):
+        self._seed_election_ready()
         e1 = Election.objects.create(name="Election 1", status=ElectionStatus.ACTIVE)
         e2 = Election.objects.create(name="Election 2", status=ElectionStatus.DRAFT)
         response = self.client.post(reverse("elections-start", kwargs={"pk": e2.pk}))
@@ -55,6 +66,7 @@ class ElectionLifecycleTestCase(TestCase):
         self.assertEqual(e1.status, ElectionStatus.ACTIVE)
 
     def test_stop_and_resume_election(self):
+        self._seed_election_ready()
         election = Election.objects.create(name="Election", status=ElectionStatus.DRAFT)
         election.start()
         stop_response = self.client.post(
@@ -105,6 +117,43 @@ class ElectionLifecycleTestCase(TestCase):
         election = Election.objects.create(name="Active Election", status=ElectionStatus.ACTIVE)
         response = self.client.delete(reverse("elections-detail", kwargs={"pk": election.pk}))
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_can_delete_draft_election(self):
+        election = Election.objects.create(name="Draft Election", status=ElectionStatus.DRAFT)
+        response = self.client.delete(reverse("elections-detail", kwargs={"pk": election.pk}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(Election.objects.filter(pk=election.pk).exists())
+
+    def test_cannot_create_without_candidates(self):
+        create_response = self.client.post(
+            reverse("elections-list-create"),
+            {"name": "Empty Election"},
+            format="json",
+        )
+        self.assertEqual(create_response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_cannot_start_when_position_missing_candidate(self):
+        Position.objects.create(name="President")
+        Position.objects.create(name="Secretary")
+        position = Position.objects.first()
+        Candidate.objects.create(
+            full_name="Alice",
+            academic_year=AcademicYear.SECOND_YEAR,
+            photo_url="https://res.cloudinary.com/demo/image/upload/v1/a.jpg",
+            position=position,
+        )
+        create_response = self.client.post(
+            reverse("elections-list-create"),
+            {"name": "Partial Election"},
+            format="json",
+        )
+        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+        election_id = create_response.data["data"]["id"]
+        start_response = self.client.post(
+            reverse("elections-start", kwargs={"pk": election_id})
+        )
+        self.assertEqual(start_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Secretary", start_response.data["error"]["message"])
 
 
 class VotingTestCase(TestCase):

@@ -13,7 +13,7 @@ import { useAuth } from '@/context/AuthContext'
 import { getApiErrorMessage } from '@/api/client'
 import { MAIN_CONTENT_ID } from '@/lib/a11y'
 import { loginSchema, type LoginForm } from '@/lib/login-schema'
-import { notifyError, notifySuccess } from '@/lib/notify'
+import { notifyError } from '@/lib/notify'
 
 export function LoginPage() {
   const { login, isAuthenticated, user } = useAuth()
@@ -54,8 +54,6 @@ export function LoginPage() {
         await prepareMemberEntry(queryClient)
         navigate('/vote')
       }
-
-      notifySuccess('Signed in successfully')
     } catch (error) {
       notifyError(getApiErrorMessage(error, 'Invalid credentials'))
     }

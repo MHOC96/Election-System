@@ -12,6 +12,7 @@ from candidates.services.cloudinary_service import upload_candidate_photo
 from candidates.services.deletion_service import clear_all_candidates
 from members.services.deletion_service import MemberDeletionNotAllowedError
 from positions.models import Position
+from voting.services.election_guard import ElectionGuardError, assert_candidate_changes_allowed
 
 
 class CandidateListCreateView(generics.ListCreateAPIView):
@@ -26,6 +27,11 @@ class CandidateListCreateView(generics.ListCreateAPIView):
         return queryset
 
     def create(self, request, *args, **kwargs):
+        try:
+            assert_candidate_changes_allowed()
+        except ElectionGuardError as exc:
+            raise ValidationError(str(exc)) from exc
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -52,6 +58,11 @@ class PositionCandidateListCreateView(generics.ListCreateAPIView):
         )
 
     def create(self, request, *args, **kwargs):
+        try:
+            assert_candidate_changes_allowed()
+        except ElectionGuardError as exc:
+            raise ValidationError(str(exc)) from exc
+
         position = self.get_position()
         data = request.data.copy()
         data["position"] = position.pk
@@ -78,6 +89,11 @@ class CandidateDetailView(generics.RetrieveUpdateDestroyAPIView):
         return Response({"success": True, "data": serializer.data})
 
     def update(self, request, *args, **kwargs):
+        try:
+            assert_candidate_changes_allowed()
+        except ElectionGuardError as exc:
+            raise ValidationError(str(exc)) from exc
+
         partial = kwargs.pop("partial", False)
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
@@ -86,6 +102,11 @@ class CandidateDetailView(generics.RetrieveUpdateDestroyAPIView):
         return Response({"success": True, "data": serializer.data})
 
     def destroy(self, request, *args, **kwargs):
+        try:
+            assert_candidate_changes_allowed()
+        except ElectionGuardError as exc:
+            raise ValidationError(str(exc)) from exc
+
         instance = self.get_object()
         if instance.has_votes():
             raise ValidationError("Cannot delete a candidate who has received votes.")

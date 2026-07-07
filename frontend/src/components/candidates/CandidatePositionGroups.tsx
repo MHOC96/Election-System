@@ -16,6 +16,7 @@ interface CandidatePositionGroupsProps {
   groups: PositionCandidateGroup[]
   onEdit: (candidate: Candidate) => void
   onDelete: (candidate: Candidate) => void
+  readOnly?: boolean
   className?: string
 }
 
@@ -23,6 +24,7 @@ export function CandidatePositionGroups({
   groups,
   onEdit,
   onDelete,
+  readOnly = false,
   className,
 }: CandidatePositionGroupsProps) {
   return (
@@ -67,26 +69,28 @@ export function CandidatePositionGroups({
                         <p className="truncate font-semibold">{candidate.full_name}</p>
                         <p className="text-xs text-muted-foreground">{candidate.academic_year}</p>
                       </div>
-                      <div className="flex shrink-0 items-center gap-0.5">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => onEdit(candidate)}
-                          aria-label={`Edit ${candidate.full_name}`}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => onDelete(candidate)}
-                          aria-label={`Delete ${candidate.full_name}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      {readOnly ? null : (
+                        <div className="flex shrink-0 items-center gap-0.5">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => onEdit(candidate)}
+                            aria-label={`Edit ${candidate.full_name}`}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            onClick={() => onDelete(candidate)}
+                            aria-label={`Delete ${candidate.full_name}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
                     </article>
                   </li>
                 ))}

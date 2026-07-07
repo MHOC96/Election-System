@@ -109,6 +109,8 @@ function prefetchCandidatesData(queryClient: QueryClient) {
 }
 
 function prefetchElectionsData(queryClient: QueryClient) {
+  prefetchPositions(queryClient)
+  prefetchCandidatesData(queryClient)
   void import('@/api/elections').then(({ fetchElections }) => {
     void queryClient.prefetchQuery({
       queryKey: ['elections'],

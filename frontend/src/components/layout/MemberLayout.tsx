@@ -8,7 +8,7 @@ import { warmMemberConsole } from '@/lib/prefetch'
 import { ShellActions } from '@/components/layout/ShellActions'
 import { SkipToContent } from '@/components/shared/SkipToContent'
 import { MAIN_CONTENT_ID } from '@/lib/a11y'
-import { notifyError, notifySuccess } from '@/lib/notify'
+import { notifyError } from '@/lib/notify'
 
 export function MemberLayout() {
   const { user, logout } = useAuth()
@@ -27,7 +27,6 @@ export function MemberLayout() {
     queryClient.clear()
     try {
       await logout()
-      notifySuccess('Logged out successfully')
       navigate('/login', { replace: true })
     } catch {
       notifyError('Failed to log out')
