@@ -6,14 +6,14 @@ from accounts.models import User
 class MemberSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("id", "cpm_number", "mc_number", "is_active", "created_at")
+        fields = ("id", "cpm_number", "mc_number", "academic_year", "is_active", "created_at")
         read_only_fields = fields
 
 
 class MemberUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("cpm_number", "mc_number", "is_active")
+        fields = ("cpm_number", "mc_number", "academic_year", "is_active")
 
     def validate_cpm_number(self, value):
         normalized = value.strip().upper()
@@ -28,15 +28,17 @@ class MemberUpdateSerializer(serializers.ModelSerializer):
         mc_number = validated_data.pop("mc_number", None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-        if mc_number is not None:
+        if mc_number is not None and instance.mc_number != mc_number:
             instance.set_password(mc_number)
             instance.mc_number = mc_number
+            instance.has_changed_password = False
         instance.save()
         return instance
 
 
 class MemberImportSerializer(serializers.Serializer):
     file = serializers.FileField()
+    academic_year = serializers.ChoiceField(choices=["2nd Year", "3rd Year"])
 
 
 class MemberBulkDeleteSerializer(serializers.Serializer):
@@ -45,3 +47,7 @@ class MemberBulkDeleteSerializer(serializers.Serializer):
         allow_empty=False,
         max_length=500,
     )
+
+
+class MemberClearAllSerializer(serializers.Serializer):
+    academic_year = serializers.ChoiceField(choices=["2nd Year", "3rd Year"])

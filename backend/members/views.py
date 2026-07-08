@@ -10,6 +10,7 @@ from dashboard.services.stats_service import invalidate_dashboard_cache
 from members.pagination import MemberListPagination
 from members.serializers import (
     MemberBulkDeleteSerializer,
+    MemberClearAllSerializer,
     MemberImportSerializer,
     MemberSerializer,
     MemberUpdateSerializer,
@@ -45,9 +46,10 @@ class MemberImportView(APIView):
         serializer = MemberImportSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         uploaded_file = serializer.validated_data["file"]
+        academic_year = serializer.validated_data["academic_year"]
 
         try:
-            result = import_members(uploaded_file)
+            result = import_members(uploaded_file, academic_year)
         except ValueError as exc:
             return Response(
                 {
@@ -96,8 +98,12 @@ class MemberClearAllView(APIView):
     permission_classes = [IsAdmin]
 
     def post(self, request):
+        serializer = MemberClearAllSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        academic_year = serializer.validated_data["academic_year"]
+
         try:
-            result = clear_all_members()
+            result = clear_all_members(academic_year)
         except MemberDeletionNotAllowedError as exc:
             raise ValidationError(str(exc)) from exc
 
@@ -146,9 +152,13 @@ class MemberListView(generics.ListAPIView):
     pagination_class = MemberListPagination
 
     def get_queryset(self):
+        queryset = User.objects.filter(role=UserRole.MEMBER)
+        academic_year = self.request.query_params.get("academic_year")
+        if academic_year:
+            queryset = queryset.filter(academic_year=academic_year)
+        
         return (
-            User.objects.filter(role=UserRole.MEMBER)
-            .only("id", "cpm_number", "mc_number", "is_active", "created_at")
+            queryset.only("id", "cpm_number", "mc_number", "academic_year", "is_active", "created_at")
             .order_by("cpm_number")
         )
 

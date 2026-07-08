@@ -105,3 +105,26 @@ class MemberOnlyProbeView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        from accounts.serializers import ChangePasswordSerializer
+
+        serializer = ChangePasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        user = request.user
+        user.set_password(serializer.validated_data["new_password"])
+        user.has_changed_password = True
+        user.save()
+
+        return Response(
+            {
+                "success": True,
+                "message": "Password updated successfully.",
+            },
+            status=status.HTTP_200_OK,
+        )

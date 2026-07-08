@@ -49,4 +49,8 @@ export async function refreshSession(): Promise<User> {
   return fetchMe()
 }
 
+export async function changePassword(payload: { new_password: string; confirm_password: string }) {
+  return apiPost<{ message: string }>('/auth/change-password/', payload)
+}
+
 export { api } from '@/api/client'

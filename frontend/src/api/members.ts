@@ -1,13 +1,16 @@
 import { apiDelete, apiGet, apiPatch, apiPost, apiUpload } from '@/api/client'
 import type { Member, MemberImportResult, Paginated } from '@/types/api'
 
-export async function fetchMembers(page = 1, pageSize = 50) {
-  return apiGet<Paginated<Member>>('/members/', { page, page_size: pageSize })
+export async function fetchMembers(academicYear?: string, page = 1, pageSize = 50) {
+  const params: Record<string, string | number> = { page, page_size: pageSize }
+  if (academicYear) params.academic_year = academicYear
+  return apiGet<Paginated<Member>>('/members/', params)
 }
 
-export async function importMembers(file: File) {
+export async function importMembers(file: File, academicYear: string) {
   const formData = new FormData()
   formData.append('file', file)
+  formData.append('academic_year', academicYear)
   return apiUpload<MemberImportResult>('/members/import/', formData)
 }
 
@@ -19,8 +22,8 @@ export async function fetchMemberDeletionStatus() {
   return apiGet<{ allowed: boolean }>('/members/deletion-status/')
 }
 
-export async function clearAllMembers() {
-  return apiPost<{ deleted: number }>('/members/clear-all/')
+export async function clearAllMembers(academicYear: string) {
+  return apiPost<{ deleted: number }>('/members/clear-all/', { academic_year: academicYear })
 }
 
 export async function bulkDeleteMembers(ids: number[]) {
