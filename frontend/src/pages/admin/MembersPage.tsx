@@ -39,7 +39,7 @@ import {
   MEMBERS_STALE_MS,
   refreshDashboard,
 } from '@/lib/query-sync'
-import type { AcademicYear, Member, MemberImportResult, Paginated } from '@/types/api'
+import type { AcademicYear, Member, MemberImportResult } from '@/types/api'
 import { notifyError, notifyInfo, notifyWarning } from '@/lib/notify'
 
 
@@ -87,7 +87,6 @@ export function MembersPage() {
     staleTime: 0,
   })
 
-  const canClearMembers = deletionStatus?.allowed === true
   const showDeletionBlockedNotice =
     !deletionStatusLoading && deletionStatus !== undefined && !deletionStatus.allowed
   const totalMembers = data?.count ?? 0

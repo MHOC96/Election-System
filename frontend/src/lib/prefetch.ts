@@ -75,8 +75,8 @@ export function prefetchPositions(queryClient: QueryClient) {
 function prefetchMembersData(queryClient: QueryClient) {
   void import('@/api/members').then(({ fetchMembers, fetchMemberDeletionStatus }) => {
     void queryClient.prefetchQuery({
-      queryKey: ['members', 1],
-      queryFn: () => fetchMembers(1),
+      queryKey: ['members', '2nd Year', 1],
+      queryFn: () => fetchMembers('2nd Year', 1),
       staleTime: MEMBERS_STALE_MS,
     })
     void queryClient.prefetchQuery({
@@ -91,8 +91,8 @@ export async function prepareMembersPage(queryClient: QueryClient, page = 1) {
   await Promise.all([
     MembersPage.preload(),
     queryClient.ensureQueryData({
-      queryKey: ['members', page],
-      queryFn: () => fetchMembers(page),
+      queryKey: ['members', '2nd Year', page],
+      queryFn: () => fetchMembers('2nd Year', page),
       staleTime: MEMBERS_STALE_MS,
     }),
   ])
