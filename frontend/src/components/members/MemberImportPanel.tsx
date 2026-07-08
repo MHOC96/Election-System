@@ -56,6 +56,7 @@ function formatPreviewMeta(preview: MemberImportPreviewResult): string {
 }
 
 interface MemberImportPanelProps {
+  academicYear: '2nd Year' | '3rd Year'
   onImport: (file: File) => void
   isImporting: boolean
   result: MemberImportResult | null
@@ -64,6 +65,7 @@ interface MemberImportPanelProps {
 }
 
 export function MemberImportPanel({
+  academicYear,
   onImport,
   isImporting,
   result,
@@ -203,7 +205,12 @@ export function MemberImportPanel({
         <CardHeader className="border-b bg-muted/20 pb-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-1">
-              <CardTitle className="text-base">Import members</CardTitle>
+              <CardTitle 
+                className="text-xl font-semibold tracking-tight text-foreground"
+                style={{ fontFamily: "'Outfit', sans-serif" }}
+              >
+                Import {academicYear} Members
+              </CardTitle>
               <CardDescription>
                 Drag and drop a CSV or XLSX file, or browse to upload. Required columns: CPM
                 Number and MC Number.
@@ -308,10 +315,16 @@ export function MemberImportPanel({
       </Card>
 
       {fileError ? (
-        <p className="flex items-center gap-2 text-sm text-destructive" role="alert">
-          <XCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
-          {fileError}
-        </p>
+        <div 
+          className="flex animate-in fade-in slide-in-from-top-2 items-start gap-3 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3.5 text-destructive shadow-sm" 
+          role="alert"
+        >
+          <XCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+          <div className="space-y-1">
+            <h4 className="text-sm font-semibold tracking-tight">Import Failed</h4>
+            <p className="text-sm leading-relaxed opacity-90">{fileError}</p>
+          </div>
+        </div>
       ) : null}
 
       {awaitingConfirm && filePreview ? (

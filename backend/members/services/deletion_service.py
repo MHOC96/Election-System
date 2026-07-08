@@ -66,24 +66,32 @@ def _clear_legacy_audit_logs_for_users(user_ids: list[int]) -> None:
     if not user_ids or not _legacy_audit_log_table_exists():
         return
 
-    placeholders = ", ".join(["%s"] * len(user_ids))
+    batch_size = 1000
     with connection.cursor() as cursor:
-        cursor.execute(
-            f"DELETE FROM audit_auditlog WHERE actor_id IN ({placeholders})",
-            user_ids,
-        )
+        for i in range(0, len(user_ids), batch_size):
+            batch = user_ids[i:i + batch_size]
+            placeholders = ", ".join(["%s"] * len(batch))
+            cursor.execute(
+                f"DELETE FROM audit_auditlog WHERE actor_id IN ({placeholders})",
+                batch,
+            )
 
 
 def _delete_members(user_ids: list[int]) -> int:
     if not user_ids:
         return 0
 
+    total_deleted = 0
     with transaction.atomic():
-        Vote.objects.filter(member_id__in=user_ids).delete()
-        _clear_legacy_audit_logs_for_users(user_ids)
-        deleted, _ = User.objects.filter(pk__in=user_ids, role=UserRole.MEMBER).delete()
+        batch_size = 1000
+        for i in range(0, len(user_ids), batch_size):
+            batch = user_ids[i:i + batch_size]
+            Vote.objects.filter(member_id__in=batch).delete()
+            _clear_legacy_audit_logs_for_users(batch)
+            deleted, _ = User.objects.filter(pk__in=batch, role=UserRole.MEMBER).delete()
+            total_deleted += deleted
 
-    return deleted
+    return total_deleted
 
 
 def delete_member(member: User) -> None:
@@ -99,19 +107,16 @@ class ClearAllMembersResult:
     deleted: int
 
 
-def clear_all_members() -> ClearAllMembersResult:
+def clear_all_members(academic_year: str) -> ClearAllMembersResult:
     assert_member_deletion_allowed()
 
-    if not User.objects.filter(role=UserRole.MEMBER).exists():
+    queryset = User.objects.filter(role=UserRole.MEMBER, academic_year=academic_year)
+
+    if not queryset.exists():
         return ClearAllMembersResult(deleted=0)
 
-    with transaction.atomic():
-        Vote.objects.filter(member__role=UserRole.MEMBER).delete()
-        member_ids = list(
-            User.objects.filter(role=UserRole.MEMBER).values_list("pk", flat=True)
-        )
-        _clear_legacy_audit_logs_for_users(member_ids)
-        deleted, _ = User.objects.filter(role=UserRole.MEMBER).delete()
+    member_ids = list(queryset.values_list("pk", flat=True))
+    deleted = _delete_members(member_ids)
 
     return ClearAllMembersResult(deleted=deleted)
 

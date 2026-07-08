@@ -11,6 +11,7 @@ import { fetchMe, login as apiLogin, logout as apiLogout, type LoginPayload } fr
 import { clearAuth, consumeFreshLogin, getAccessToken, getStoredUser } from '@/lib/auth-storage'
 import { scheduleIdle } from '@/lib/schedule-idle'
 import type { User } from '@/types/api'
+import { ForcePasswordChangeModal } from '@/components/auth/ForcePasswordChangeModal'
 
 interface AuthContextValue {
   user: User | null
@@ -80,7 +81,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [user, isLoading, login, logout, refreshUser],
   )
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      {user && user.role === 'MEMBER' && !user.has_changed_password && (
+        <ForcePasswordChangeModal 
+          open={true} 
+          onSuccess={async () => {
+            // Re-fetch user so that has_changed_password updates
+            await refreshUser()
+          }} 
+        />
+      )}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {

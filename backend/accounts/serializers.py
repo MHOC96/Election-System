@@ -27,8 +27,17 @@ class LoginSerializer(TokenObtainPairSerializer):
             password=mc_number,
         )
 
-        if user is None or not user.is_active:
-            raise AuthenticationFailed("Invalid CPM Number or MC Number.")
+        if user is None:
+            try:
+                db_user = User.objects.get(cpm_number=cpm_number)
+                if db_user.has_changed_password and db_user.mc_number == mc_number:
+                    raise AuthenticationFailed("You have changed your password. Please use your updated password.")
+            except User.DoesNotExist:
+                pass
+            raise AuthenticationFailed("Invalid CPM Number or Password.")
+            
+        if not user.is_active:
+            raise AuthenticationFailed("Invalid CPM Number or Password.")
 
         refresh = self.get_token(user)
         return {
@@ -59,5 +68,15 @@ class LogoutSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("id", "cpm_number", "role", "is_active", "created_at")
+        fields = ("id", "cpm_number", "role", "is_active", "created_at", "has_changed_password")
         read_only_fields = fields
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    new_password = serializers.CharField(write_only=True, min_length=6)
+    confirm_password = serializers.CharField(write_only=True, min_length=6)
+
+    def validate(self, attrs):
+        if attrs["new_password"] != attrs["confirm_password"]:
+            raise serializers.ValidationError({"confirm_password": "Passwords do not match."})
+        return attrs

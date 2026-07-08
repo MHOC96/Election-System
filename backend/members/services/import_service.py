@@ -276,7 +276,7 @@ def _bulk_create_members(users: list[User]) -> int:
     return created
 
 
-def import_members(uploaded_file) -> ImportResult:
+def import_members(uploaded_file, academic_year: str) -> ImportResult:
     headers, rows = parse_member_file(uploaded_file)
     _validate_columns(headers)
 
@@ -357,6 +357,7 @@ def import_members(uploaded_file) -> ImportResult:
                 mc_number=mc_number,
                 password=hashed_password,
                 role=UserRole.MEMBER,
+                academic_year=academic_year,
                 is_active=True,
             )
             for (_, cpm_number, mc_number), hashed_password in zip(

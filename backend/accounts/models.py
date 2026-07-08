@@ -42,6 +42,14 @@ class User(AbstractBaseUser, PermissionsMixin):
         default=UserRole.MEMBER,
         db_index=True,
     )
+    academic_year = models.CharField(
+        max_length=10,
+        choices=[("2nd Year", "2nd Year"), ("3rd Year", "3rd Year")],
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+    has_changed_password = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

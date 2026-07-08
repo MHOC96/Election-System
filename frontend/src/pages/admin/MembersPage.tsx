@@ -24,6 +24,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { NativeSelect } from '@/components/ui/native-select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { DataTable } from '@/components/shared/DataTable'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -38,25 +39,17 @@ import {
   MEMBERS_STALE_MS,
   refreshDashboard,
 } from '@/lib/query-sync'
-import type { Member, MemberImportResult, Paginated } from '@/types/api'
+import type { AcademicYear, Member, MemberImportResult, Paginated } from '@/types/api'
 import { notifyError, notifyInfo, notifyWarning } from '@/lib/notify'
 
-function emptyMembersPage(): Paginated<Member> {
-  return { count: 0, results: [], next: null, previous: null }
-}
 
-function applyMembersClear(queryClient: QueryClient) {
-  queryClient.setQueriesData<Paginated<Member>>({ queryKey: ['members'] }, (old) =>
-    old ? { ...old, count: 0, results: [], next: null, previous: null } : emptyMembersPage(),
-  )
-}
-
-async function refreshMembersPage(queryClient: QueryClient, page = 1) {
-  return fetchAndSetQueryData(queryClient, ['members', page], () => fetchMembers(page))
+async function refreshMembersPage(queryClient: QueryClient, academicYear: AcademicYear, page = 1) {
+  return fetchAndSetQueryData(queryClient, ['members', academicYear, page], () => fetchMembers(academicYear, page))
 }
 
 export function MembersPage() {
   const queryClient = useQueryClient()
+  const [activeTab, setActiveTab] = useState<AcademicYear>('2nd Year')
   const [page, setPage] = useState(1)
   const [clearAllOpen, setClearAllOpen] = useState(false)
   const [editing, setEditing] = useState<Member | null>(null)
@@ -80,8 +73,8 @@ export function MembersPage() {
   const isActive = watch('is_active')
 
   const { data, isPending, isFetching } = useQuery({
-    queryKey: ['members', page],
-    queryFn: () => fetchMembers(page),
+    queryKey: ['members', activeTab, page],
+    queryFn: () => fetchMembers(activeTab, page),
     staleTime: MEMBERS_STALE_MS,
     placeholderData: (previous) => previous,
   })
@@ -100,10 +93,10 @@ export function MembersPage() {
   const totalMembers = data?.count ?? 0
 
   const importMutation = useMutation({
-    mutationFn: (file: File) => importMembers(file),
+    mutationFn: (file: File) => importMembers(file, activeTab),
     onSuccess: (result) => {
       setPage(1)
-      void refreshMembersPage(queryClient, 1)
+      void refreshMembersPage(queryClient, activeTab, 1)
       markQueriesStale(queryClient, ['members'])
       refreshDashboard(queryClient)
       setImportResult(result)
@@ -116,10 +109,9 @@ export function MembersPage() {
   })
 
   const clearAllMutation = useMutation({
-    mutationFn: clearAllMembers,
+    mutationFn: () => clearAllMembers(activeTab),
     onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: ['members'] })
-      applyMembersClear(queryClient)
+      await queryClient.cancelQueries({ queryKey: ['members', activeTab] })
       setClearAllOpen(false)
       setPage(1)
     },
@@ -128,12 +120,12 @@ export function MembersPage() {
         notifyInfo('No members to remove')
       }
 
-      markQueriesStale(queryClient, ['members'])
-      void refreshMembersPage(queryClient, 1)
+      markQueriesStale(queryClient, ['members', activeTab])
+      void refreshMembersPage(queryClient, activeTab, 1)
       refreshDashboard(queryClient)
     },
     onError: (error) => {
-      void queryClient.invalidateQueries({ queryKey: ['members'] })
+      void queryClient.invalidateQueries({ queryKey: ['members', activeTab] })
       notifyError(getApiErrorMessage(error))
     },
   })
@@ -147,7 +139,7 @@ export function MembersPage() {
       }),
     onSuccess: () => {
       closeEditDialog()
-      void refreshMembersPage(queryClient, page)
+      void refreshMembersPage(queryClient, activeTab, page)
     },
     onError: (error) => notifyError(getApiErrorMessage(error)),
   })
@@ -183,17 +175,22 @@ export function MembersPage() {
           title="Members"
           description="Import and manage voting members"
           action={
-            canClearMembers && totalMembers > 0 ? (
+            showDeletionBlockedNotice ? null : (
               <Button
                 variant="outline"
                 className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
                 onClick={() => setClearAllOpen(true)}
-                disabled={clearAllMutation.isPending}
+                disabled={
+                  clearAllMutation.isPending || 
+                  deletionStatusLoading || 
+                  isPending || 
+                  totalMembers === 0
+                }
               >
                 <Trash2 className="h-4 w-4" />
-                Clear all members
+                Clear all {activeTab} members
               </Button>
-            ) : null
+            )
           }
         />
       </Stagger>
@@ -213,11 +210,28 @@ export function MembersPage() {
       ) : null}
 
       <Stagger delayMs={showDeletionBlockedNotice ? sectionDelays.secondary : sectionDelays.primary}>
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => {
+            setActiveTab(v as AcademicYear)
+            setPage(1)
+            setImportResult(null)
+          }}
+          className="mb-6 w-full"
+        >
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="2nd Year">2nd Year</TabsTrigger>
+            <TabsTrigger value="3rd Year">3rd Year</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         <MemberImportPanel
+          academicYear={activeTab}
           onImport={(file) => importMutation.mutate(file)}
           isImporting={importMutation.isPending}
           result={importResult}
           onDismiss={() => setImportResult(null)}
+          className="mb-6"
         />
       </Stagger>
 
@@ -227,7 +241,7 @@ export function MembersPage() {
         isRefreshing={tableRefreshing}
         isEmpty={!tableLoading && !data?.results.length}
         emptyIcon={Users}
-        emptyTitle="No members yet"
+        emptyTitle={`No ${activeTab} members yet`}
         emptyDescription="Import a CSV or XLSX file with CPM and MC numbers to get started."
         pagination={
           data
@@ -255,7 +269,7 @@ export function MembersPage() {
             {data?.results.map((member) => (
               <TableRow key={member.id}>
                 <TableCell className="font-medium">{member.cpm_number}</TableCell>
-                <TableCell>{member.mc_number || '—'}</TableCell>
+                <TableCell>{member.mc_number ? '*'.repeat(member.mc_number.length) : '—'}</TableCell>
                 <TableCell className="text-right">
                   <Button
                     variant="ghost"
@@ -339,9 +353,9 @@ export function MembersPage() {
 
       <ConfirmDialog
         open={clearAllOpen}
-        title="Clear all members?"
-        description={`This permanently removes all ${totalMembers.toLocaleString()} member(s) and their vote records. This cannot be undone.`}
-        confirmLabel="Clear all members"
+        title={`Clear all ${activeTab} members?`}
+        description={`This permanently removes all ${activeTab} members and their vote records. This cannot be undone.`}
+        confirmLabel={`Clear ${activeTab} members`}
         destructive
         loading={clearAllMutation.isPending}
         onCancel={() => setClearAllOpen(false)}

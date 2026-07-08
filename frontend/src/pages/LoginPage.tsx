@@ -88,7 +88,7 @@ export function LoginPage() {
             <CardDescription>
               {isSubmitting
                 ? 'Verifying your credentials…'
-                : 'Use your CPM Number and MC Number to access the election portal'}
+                : 'Use your CPM Number and your MC Number (or Password) to access the election portal'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -114,7 +114,7 @@ export function LoginPage() {
                 />
               </FormField>
               <FormField
-                label="MC Number"
+                label="MC Number / Password"
                 htmlFor="mc_number"
                 error={errors.mc_number?.message}
                 valid={Boolean(touchedFields.mc_number && mcNumber && !errors.mc_number)}
@@ -123,7 +123,7 @@ export function LoginPage() {
                 <Input
                   id="mc_number"
                   type="password"
-                  placeholder="Enter MC Number"
+                  placeholder="Enter MC Number or Password"
                   autoComplete="current-password"
                   autoCapitalize="off"
                   autoCorrect="off"
