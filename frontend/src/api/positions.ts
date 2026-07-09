@@ -10,12 +10,12 @@ export async function fetchPositions() {
   return unwrapList(data)
 }
 
-export async function createPosition(name: string, academic_year?: AcademicYear | null) {
-  return apiPost<Position>('/positions/', { name, academic_year })
+export async function createPosition(name: string, academic_year?: AcademicYear | null, importance?: number) {
+  return apiPost<Position>('/positions/', { name, academic_year, importance })
 }
 
-export async function updatePosition(id: number, name: string, academic_year?: AcademicYear | null) {
-  return apiPatch<Position>(`/positions/${id}/`, { name, academic_year })
+export async function updatePosition(id: number, name: string, academic_year?: AcademicYear | null, importance?: number) {
+  return apiPatch<Position>(`/positions/${id}/`, { name, academic_year, importance })
 }
 
 export async function deletePosition(id: number) {

@@ -5,9 +5,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Clock, CheckCircle2, XCircle } from 'lucide-react'
 import { getApiErrorMessage } from '@/api/client'
-import { fetchDraftElection } from '@/api/elections'
+import { fetchActiveElection } from '@/api/elections'
 import { fetchPositions } from '@/api/positions'
-import { fetchMyApplications, submitApplication, uploadDeclarationForm, type CandidateApplication } from '@/api/applications'
+import { fetchMyApplications, submitApplication, uploadDeclarationForm, uploadApplicationPhoto, type CandidateApplication } from '@/api/applications'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
@@ -21,12 +21,14 @@ import { sectionDelays, Stagger } from '@/components/motion/Stagger'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import { notifyError, notifySuccess } from '@/lib/notify'
 import { Badge } from '@/components/ui/badge'
+import { PhotoCropDialog } from '@/components/shared/PhotoCropDialog'
 
 const applicationSchema = z.object({
   full_name: z.string().trim().min(1, 'Full Name is required'),
   mc_number: z.string().trim().min(1, 'MC Number is required'),
   cpm_number: z.string().trim().min(1, 'CPM Number is required'),
   contact_number: z.string().trim().min(1, 'Contact Number is required'),
+  photo_file: z.any().refine((val) => val instanceof File, 'Photo (Image) is required'),
   declaration_file: z.any().refine((val) => val instanceof File, 'Declaration form (PDF) is required'),
   declaration_agreed: z.boolean().refine((val) => val === true, 'You must agree to the declaration'),
 })
@@ -36,10 +38,12 @@ type ApplicationForm = z.infer<typeof applicationSchema>
 export function CandidateApplicationPage() {
   const queryClient = useQueryClient()
   const [selectedPosition, setSelectedPosition] = useState<number | null>(null)
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
+  const [croppedPreview, setCroppedPreview] = useState<string | null>(null)
   
-  const { data: draftElection, isLoading: loadingElection } = useQuery({
-    queryKey: ['elections', 'draft'],
-    queryFn: fetchDraftElection,
+  const { data: activeElection, isLoading: loadingElection } = useQuery({
+    queryKey: ['elections', 'active'],
+    queryFn: fetchActiveElection,
   })
 
   const { data: positions, isLoading: loadingPositions } = useQuery({
@@ -68,6 +72,11 @@ export function CandidateApplicationPage() {
     onError: (error) => notifyError(getApiErrorMessage(error)),
   })
 
+  const uploadPhotoMutation = useMutation({
+    mutationFn: uploadApplicationPhoto,
+    onError: (error) => notifyError(getApiErrorMessage(error)),
+  })
+
   const submitMutation = useMutation({
     mutationFn: submitApplication,
     onSuccess: () => {
@@ -91,16 +100,21 @@ export function CandidateApplicationPage() {
 
   const closeDialog = () => {
     setSelectedPosition(null)
+    setCroppedPreview(null)
     reset()
   }
 
   const onSubmit = async (values: ApplicationForm) => {
     if (!selectedPosition) return
     
-    // First upload the document
-    const uploadRes = await uploadMutation.mutateAsync(values.declaration_file)
-    if (!uploadRes.document_url) {
-      notifyError('Failed to upload document')
+    // First upload the document and photo
+    const [uploadDocRes, uploadPhotoRes] = await Promise.all([
+      uploadMutation.mutateAsync(values.declaration_file),
+      uploadPhotoMutation.mutateAsync(values.photo_file)
+    ])
+    
+    if (!uploadDocRes.document_url || !uploadPhotoRes.photo_url) {
+      notifyError('Failed to upload files')
       return
     }
 
@@ -111,7 +125,8 @@ export function CandidateApplicationPage() {
       mc_number: values.mc_number,
       cpm_number: values.cpm_number,
       contact_number: values.contact_number,
-      declaration_file: uploadRes.document_url,
+      photo_url: uploadPhotoRes.photo_url,
+      declaration_file: uploadDocRes.document_url,
     })
   }
 
@@ -132,14 +147,35 @@ export function CandidateApplicationPage() {
     )
   }
 
-  if (!draftElection) {
+  const now = new Date()
+  const appStart = activeElection?.application_start_at ? new Date(activeElection.application_start_at) : null
+  const appEnd = activeElection?.application_end_at ? new Date(activeElection.application_end_at) : null
+
+  const applicationsNotStarted = appStart && now < appStart
+  const applicationsClosed = appEnd && now > appEnd
+  const isApplicationsOpen = activeElection?.current_phase === 'APPLICATIONS_OPEN'
+
+  if (!activeElection || (applicationsClosed && activeElection.current_phase !== 'SCHEDULED')) {
     return (
       <div className={pageLayoutClass}>
         <PageHeader title="Candidate Application" description="Apply for executive committee positions" />
         <EmptyState
           icon={Clock}
           title="No open applications"
-          description="There are currently no elections open for candidate applications."
+          description={applicationsClosed ? "The application window has closed." : "There are currently no elections open for candidate applications."}
+        />
+      </div>
+    )
+  }
+
+  if (applicationsNotStarted) {
+    return (
+      <div className={pageLayoutClass}>
+        <PageHeader title="Candidate Application" description={`Upcoming: ${activeElection.name}`} />
+        <EmptyState
+          icon={Clock}
+          title="Applications Not Yet Open"
+          description={`Applications will open on ${appStart.toLocaleString()}. Please check back later.`}
         />
       </div>
     )
@@ -168,8 +204,17 @@ export function CandidateApplicationPage() {
       <Stagger delayMs={sectionDelays.header}>
         <PageHeader
           title="Candidate Application"
-          description={`Apply for positions in: ${draftElection.name}`}
+          description={`Apply for positions in: ${activeElection.name}`}
         />
+        {isApplicationsOpen && appEnd && (
+          <div className="mb-6 p-4 rounded-lg bg-primary/10 border border-primary/20 flex items-center gap-3 text-primary">
+            <Clock className="w-5 h-5" />
+            <div>
+              <p className="font-medium text-sm">Applications are open</p>
+              <p className="text-xs opacity-90">Closing on {appEnd.toLocaleString()}</p>
+            </div>
+          </div>
+        )}
       </Stagger>
 
       <Stagger delayMs={sectionDelays.primary}>
@@ -199,8 +244,8 @@ export function CandidateApplicationPage() {
                 </CardContent>
                 <CardFooter>
                   {!application || application.status === 'REJECTED' ? (
-                    <Button onClick={() => openApply(position.id)} className="w-full">
-                      Apply Now
+                    <Button onClick={() => openApply(position.id)} className="w-full" disabled={!isApplicationsOpen}>
+                      {!isApplicationsOpen ? 'Applications Not Open' : 'Apply Now'}
                     </Button>
                   ) : (
                     <Button disabled variant="secondary" className="w-full">
@@ -241,6 +286,35 @@ export function CandidateApplicationPage() {
               <Input id="contact_number" {...register('contact_number')} />
             </FormField>
             
+            <FormField label="Candidate Photo" htmlFor="photo_file" error={errors.photo_file?.message as string} required>
+              <div className="space-y-3">
+                <Input 
+                  id="photo_file" 
+                  type="file" 
+                  accept="image/*"
+                  className={croppedPreview ? "text-transparent" : ""}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) {
+                      const reader = new FileReader()
+                      reader.onload = () => setCropImageSrc(reader.result as string)
+                      reader.readAsDataURL(file)
+                      e.target.value = ''
+                    }
+                  }}
+                />
+                {croppedPreview && (
+                  <div className="flex items-center gap-3 rounded-md border p-2 bg-muted/20">
+                    <img src={croppedPreview} alt="Cropped preview" className="w-12 h-12 rounded-full object-cover border" />
+                    <span className="text-sm font-medium">Photo cropped and ready</span>
+                    <Button type="button" variant="ghost" size="sm" className="ml-auto text-xs" onClick={() => document.getElementById('photo_file')?.click()}>
+                      Change
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </FormField>
+
             <FormField label="Declaration Form (PDF)" htmlFor="declaration_file" error={errors.declaration_file?.message as string} required>
               <Input 
                 id="declaration_file" 
@@ -281,13 +355,23 @@ export function CandidateApplicationPage() {
               <Button type="button" variant="outline" onClick={closeDialog}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting || uploadMutation.isPending || submitMutation.isPending}>
-                {(isSubmitting || uploadMutation.isPending || submitMutation.isPending) ? 'Submitting...' : 'Submit Application'}
+              <Button type="submit" disabled={isSubmitting || uploadMutation.isPending || uploadPhotoMutation.isPending || submitMutation.isPending}>
+                {(isSubmitting || uploadMutation.isPending || uploadPhotoMutation.isPending || submitMutation.isPending) ? 'Submitting...' : 'Submit Application'}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+      <PhotoCropDialog
+        open={!!cropImageSrc}
+        imageSrc={cropImageSrc}
+        onCancel={() => setCropImageSrc(null)}
+        onConfirm={async (file) => {
+          setValue('photo_file', file, { shouldValidate: true })
+          if (croppedPreview) URL.revokeObjectURL(croppedPreview)
+          setCroppedPreview(URL.createObjectURL(file))
+        }}
+      />
     </div>
   )
 }

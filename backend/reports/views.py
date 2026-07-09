@@ -22,7 +22,7 @@ from reports.services.report_data import (
 class BaseReportView(APIView):
     permission_classes = [IsAdmin]
 
-    def fetch_report_data(self, election_id: int | None) -> dict:
+    def fetch_report_data(self, election_id: int | None, academic_year: str | None = None) -> dict:
         raise NotImplementedError
 
     def build_export(self, fmt: str, data: dict):
@@ -45,9 +45,10 @@ class BaseReportView(APIView):
 
         election_id = request.query_params.get("election_id")
         parsed_election_id = int(election_id) if election_id else None
+        academic_year = request.query_params.get("academic_year")
 
         try:
-            data = self.fetch_report_data(parsed_election_id)
+            data = self.fetch_report_data(parsed_election_id, academic_year)
         except ReportDataError as exc:
             return Response(
                 {
@@ -65,32 +66,32 @@ class BaseReportView(APIView):
 
 
 class ResultsReportView(BaseReportView):
-    def fetch_report_data(self, election_id):
-        return get_results_report_data(election_id)
+    def fetch_report_data(self, election_id, academic_year=None):
+        return get_results_report_data(election_id, academic_year)
 
     def build_export(self, fmt, data):
         return export_results(fmt, data)
 
 
 class CandidatesReportView(BaseReportView):
-    def fetch_report_data(self, election_id):
-        return get_candidates_report_data(election_id)
+    def fetch_report_data(self, election_id, academic_year=None):
+        return get_candidates_report_data(election_id, academic_year)
 
     def build_export(self, fmt, data):
         return export_candidates(fmt, data)
 
 
 class TurnoutReportView(BaseReportView):
-    def fetch_report_data(self, election_id):
-        return get_turnout_report_data(election_id)
+    def fetch_report_data(self, election_id, academic_year=None):
+        return get_turnout_report_data(election_id, academic_year)
 
     def build_export(self, fmt, data):
         return export_turnout(fmt, data)
 
 
 class ParticipationReportView(BaseReportView):
-    def fetch_report_data(self, election_id):
-        return get_participation_report_data(election_id)
+    def fetch_report_data(self, election_id, academic_year=None):
+        return get_participation_report_data(election_id, academic_year)
 
     def build_export(self, fmt, data):
         return export_participation(fmt, data)

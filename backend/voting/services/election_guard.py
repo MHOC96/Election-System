@@ -12,26 +12,9 @@ class ElectionGuardError(Exception):
 
 
 def election_in_progress() -> bool:
-    return Election.objects.filter(
-        status__in=(ElectionStatus.ACTIVE, ElectionStatus.STOPPED)
-    ).exists()
+    return Election.objects.filter(status=ElectionStatus.SCHEDULED).exists()
 
-
-def assert_candidate_changes_allowed() -> None:
-    if election_in_progress():
-        raise ElectionGuardError(
-            "Candidates cannot be modified while an election is active or paused."
-        )
-
-
-def assert_election_can_be_created() -> None:
-    # Elections are created in DRAFT state first, so candidates are no longer
-    # required before creating an election.
-    pass
-
-
-def validate_election_start_readiness() -> None:
-    if not Candidate.objects.exists():
-        raise ElectionGuardError(
-            "At least one candidate is required before starting an election."
-        )
+def assert_candidate_changes_allowed(election) -> None:
+    from voting.models import ElectionPhase
+    if election.get_current_phase() in [ElectionPhase.VOTING_OPEN, ElectionPhase.VOTING_CLOSED, ElectionPhase.RESULTS_PUBLISHED]:
+        raise ElectionGuardError("Candidates cannot be modified during or after voting.")

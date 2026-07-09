@@ -154,9 +154,14 @@ export async function downloadReport(
   type: 'results' | 'candidates' | 'turnout' | 'participation',
   format: 'csv' | 'xlsx' | 'pdf',
   electionId?: number,
+  academicYear?: string,
 ) {
+  const params: Record<string, string | number> = { export_format: format }
+  if (electionId) params.election_id = electionId
+  if (academicYear) params.academic_year = academicYear
+
   const response = await api.get(`/reports/${type}/`, {
-    params: { export_format: format, ...(electionId ? { election_id: electionId } : {}) },
+    params,
     responseType: 'blob',
   })
 

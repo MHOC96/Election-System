@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 
@@ -22,6 +23,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
 import { Progress } from '@/components/ui/progress'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import { EmptyState } from '@/components/shared/EmptyState'
 
@@ -70,21 +72,21 @@ export function AdminDashboardPage() {
 
   const documentVisible = useDocumentVisible()
 
-
+  const [activeTab, setActiveTab] = useState('3rd Year')
 
   const { data, isPending, isError, isFetching, dataUpdatedAt, refetch } = useQuery({
 
-    queryKey: DASHBOARD_QUERY_KEY,
+    queryKey: [...DASHBOARD_QUERY_KEY, activeTab],
 
-    queryFn: () => fetchDashboardOverview(),
+    queryFn: () => fetchDashboardOverview(undefined, activeTab),
 
     staleTime: DASHBOARD_STALE_MS,
     placeholderData: (previous) => previous,
     refetchOnWindowFocus: true,
     refetchInterval: (query) => {
       if (!documentVisible) return false
-      const status = query.state.data?.summary.election?.status
-      return status === 'ACTIVE' ? LIVE_POLL_INTERVAL_MS : SUMMARY_POLL_INTERVAL_MS
+      const phase = query.state.data?.summary.election?.current_phase
+      return phase === 'VOTING_OPEN' ? LIVE_POLL_INTERVAL_MS : SUMMARY_POLL_INTERVAL_MS
     },
     refetchIntervalInBackground: false,
   })
@@ -239,7 +241,7 @@ export function AdminDashboardPage() {
 
 
 
-  const isLive = summary.election.status === 'ACTIVE'
+  const isLive = summary.election.current_phase === 'VOTING_OPEN'
 
   const positions = (live?.positions ?? []).filter((position) => position.rankings.length > 0)
 
@@ -259,35 +261,32 @@ export function AdminDashboardPage() {
 
       <Stagger delayMs={dashboardDelays.header}>
 
-        <PageHeader
-
-          title="Dashboard"
-
-          description="Election overview and live results"
-
-          action={
-
-            <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
-
-              <LiveUpdateIndicator
-                isActive={isLive}
-                updatedAt={dataUpdatedAt}
-                pollIntervalSeconds={
-                  (isLive ? LIVE_POLL_INTERVAL_MS : SUMMARY_POLL_INTERVAL_MS) / 1000
-                }
-              />
-
-              <Badge variant={isLive ? 'success' : 'secondary'}>
-
-                {summary.election.name} — {summary.election.status}
-
-              </Badge>
-
-            </div>
-
-          }
-
-        />
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <PageHeader
+            title="Dashboard"
+            description="Election overview and live results"
+            action={
+              <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
+                <LiveUpdateIndicator
+                  isActive={isLive}
+                  updatedAt={dataUpdatedAt}
+                  pollIntervalSeconds={
+                    (isLive ? LIVE_POLL_INTERVAL_MS : SUMMARY_POLL_INTERVAL_MS) / 1000
+                  }
+                />
+                <Badge variant={isLive ? 'success' : 'secondary'}>
+                  {summary.election.name} — {summary.election.current_phase.replace(/_/g, ' ')}
+                </Badge>
+              </div>
+            }
+          />
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="3rd Year">3rd Year</TabsTrigger>
+              <TabsTrigger value="2nd Year">2nd Year</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
 
       </Stagger>
 
@@ -350,37 +349,17 @@ export function AdminDashboardPage() {
             <StaggerChildren className="grid gap-5 lg:grid-cols-2" staggerMs={40} initialDelayMs={0}>
 
               {positions.map((position) => {
-
-                const leader = position.rankings.find((r) => r.rank === 1) ?? null
-
-                const runnerUp = position.rankings.find((r) => r.rank === 2) ?? null
-
                 const turnout = turnoutByPosition.get(position.position_id)
-
-
-
                 return (
-
                   <PositionLiveResultCard
-
                     key={position.position_id}
-
                     positionName={position.position_name}
-
                     totalVotes={position.total_votes}
-
                     totalMembers={summary.total_members}
-
                     turnoutPercentage={turnout?.turnout_percentage ?? 0}
-
-                    leader={leader}
-
-                    runnerUp={runnerUp}
-
+                    topCandidates={position.rankings}
                   />
-
                 )
-
               })}
 
             </StaggerChildren>

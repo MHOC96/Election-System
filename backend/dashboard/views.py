@@ -17,7 +17,8 @@ class DashboardSummaryView(APIView):
     def get(self, request):
         election_id = request.query_params.get("election_id")
         election_id = int(election_id) if election_id else None
-        data = get_dashboard_summary(election_id)
+        academic_year = request.query_params.get("academic_year")
+        data = get_dashboard_summary(election_id, academic_year=academic_year)
         return Response({"success": True, "data": data}, status=status.HTTP_200_OK)
 
 
@@ -27,7 +28,8 @@ class DashboardOverviewView(APIView):
     def get(self, request):
         election_id = request.query_params.get("election_id")
         election_id = int(election_id) if election_id else None
-        data = get_dashboard_overview(election_id)
+        academic_year = request.query_params.get("academic_year")
+        data = get_dashboard_overview(election_id, academic_year=academic_year)
         return Response({"success": True, "data": data}, status=status.HTTP_200_OK)
 
 
@@ -37,7 +39,8 @@ class LiveStatsView(APIView):
     def get(self, request):
         election_id = request.query_params.get("election_id")
         election_id = int(election_id) if election_id else None
-        data = get_live_stats(election_id)
+        academic_year = request.query_params.get("academic_year")
+        data = get_live_stats(election_id, academic_year=academic_year)
         return Response({"success": True, "data": data}, status=status.HTTP_200_OK)
 
 

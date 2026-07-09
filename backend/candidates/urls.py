@@ -12,12 +12,14 @@ from candidates.application_views import (
     AdminApplicationListView,
     AdminApplicationReviewView,
     CandidateApplicationDocumentUploadView,
+    CandidateApplicationPhotoUploadView,
 )
 
 urlpatterns = [
     # Applications
     path("applications/me/", MemberApplicationListCreateView.as_view(), name="applications-me"),
     path("applications/upload-document/", CandidateApplicationDocumentUploadView.as_view(), name="applications-upload-document"),
+    path("applications/upload-photo/", CandidateApplicationPhotoUploadView.as_view(), name="applications-upload-photo"),
     path("applications/all/", AdminApplicationListView.as_view(), name="applications-all"),
     path("applications/<int:pk>/review/", AdminApplicationReviewView.as_view(), name="applications-review"),
     

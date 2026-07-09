@@ -22,6 +22,7 @@ import { sectionDelays, Stagger } from '@/components/motion/Stagger'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import { notifyError, notifySuccess } from '@/lib/notify'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 const rejectSchema = z.object({
   rejection_reason: z.string().trim().min(1, 'Rejection reason is required'),
@@ -34,6 +35,7 @@ export function ApplicationReviewPage() {
   const [rejectingApp, setRejectingApp] = useState<CandidateApplication | null>(null)
   const [selectedPosition, setSelectedPosition] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [activeTab, setActiveTab] = useState<string>('3rd Year')
   
   const { data: draftElection, isLoading: loadingElection } = useQuery({
     queryKey: ['elections', 'draft'],
@@ -58,7 +60,8 @@ export function ApplicationReviewPage() {
       app.full_name.toLowerCase().includes(searchLower) ||
       app.cpm_number.toLowerCase().includes(searchLower) ||
       app.mc_number.toLowerCase().includes(searchLower)
-    return matchesPosition && matchesSearch
+    const matchesYear = app.member_academic_year === activeTab
+    return matchesPosition && matchesSearch && matchesYear
   })
 
   const groupedApplications = filteredApplications?.reduce((acc, app) => {
@@ -177,7 +180,16 @@ export function ApplicationReviewPage() {
         </div>
       </Stagger>
 
-      <Stagger delayMs={sectionDelays.primary}>
+      <Stagger delayMs={sectionDelays.secondary}>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6 w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="3rd Year">3rd Year</TabsTrigger>
+            <TabsTrigger value="2nd Year">2nd Year</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </Stagger>
+
+      <Stagger delayMs={sectionDelays.tertiary}>
         <Card>
           <CardContent className="p-4 sm:p-6">
             {!applications?.length ? (
@@ -194,64 +206,81 @@ export function ApplicationReviewPage() {
               />
             ) : (
               <div className="space-y-8">
-                {Object.entries(groupedApplications).map(([positionName, apps]) => (
-                  <div key={positionName} className="rounded-md border overflow-hidden">
-                    <div className="bg-muted/50 px-4 py-3 border-b">
-                      <h3 className="font-semibold text-lg">{positionName}</h3>
-                    </div>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Candidate Name</TableHead>
-                          <TableHead>MC / CPM Number</TableHead>
-                          <TableHead>Declaration</TableHead>
-                          <TableHead className="w-32 text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {apps.map((app) => (
-                          <TableRow key={app.id}>
-                            <TableCell className="font-medium">{app.full_name}</TableCell>
-                            <TableCell>
-                              <div className="text-sm">
-                                <div>MC: {app.mc_number}</div>
-                                <div className="text-muted-foreground">CPM: {app.cpm_number}</div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Button variant="link" size="sm" asChild className="px-0">
-                                <a href={app.declaration_file} target="_blank" rel="noopener noreferrer">
-                                  <FileText className="w-4 h-4 mr-2" />
-                                  View Document <ExternalLink className="w-3 h-3 ml-1" />
-                                </a>
-                              </Button>
-                            </TableCell>
-                            <TableCell className="text-right whitespace-nowrap">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                onClick={() => handleApprove(app.id)}
-                                disabled={reviewMutation.isPending}
-                              >
-                                <CheckCircle2 className="h-4 w-4 mr-1" /> Approve
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-destructive hover:bg-destructive/10"
-                                onClick={() => openReject(app)}
-                                disabled={reviewMutation.isPending}
-                              >
-                                <XCircle className="h-4 w-4 mr-1" /> Reject
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                ))}
+                {Array.from(new Set((positions || []).map(p => p.name)))
+                  .filter(name => groupedApplications[name] && groupedApplications[name].length > 0)
+                  .map(positionName => {
+                    const apps = groupedApplications[positionName];
+
+                    return (
+                      <div key={positionName} className="rounded-md border overflow-hidden">
+                        <div className="bg-muted/50 px-4 py-3 border-b flex justify-between items-center">
+                          <h3 className="font-semibold text-lg">{positionName}</h3>
+                          <Badge variant="outline">{apps.length}</Badge>
+                        </div>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Candidate Name</TableHead>
+                              <TableHead>MC / CPM Number</TableHead>
+                              <TableHead>Declaration</TableHead>
+                              <TableHead className="w-32 text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {apps.map((app) => (
+                              <TableRow key={app.id}>
+                                <TableCell className="font-medium">
+                                  <div className="flex items-center gap-3">
+                                    {app.photo_url && (
+                                      <img 
+                                        src={app.photo_url} 
+                                        alt={app.full_name} 
+                                        className="h-10 w-10 rounded-full object-cover border"
+                                      />
+                                    )}
+                                    <span>{app.full_name}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="text-sm">
+                                    <div>MC: {app.mc_number}</div>
+                                    <div className="text-muted-foreground">CPM: {app.cpm_number}</div>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Button variant="link" size="sm" asChild className="px-0">
+                                    <a href={app.declaration_file} target="_blank" rel="noopener noreferrer">
+                                      <FileText className="w-4 h-4 mr-2" />
+                                      View Document <ExternalLink className="w-3 h-3 ml-1" />
+                                    </a>
+                                  </Button>
+                                </TableCell>
+                                <TableCell className="text-right whitespace-nowrap">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                    onClick={() => handleApprove(app.id)}
+                                    disabled={reviewMutation.isPending}
+                                  >
+                                    <CheckCircle2 className="h-4 w-4 mr-1" /> Approve
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-destructive hover:bg-destructive/10"
+                                    onClick={() => openReject(app)}
+                                    disabled={reviewMutation.isPending}
+                                  >
+                                    <XCircle className="h-4 w-4 mr-1" /> Reject
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                )})}
               </div>
             )}
           </CardContent>

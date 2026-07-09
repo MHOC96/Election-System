@@ -54,7 +54,8 @@ export interface MemberImportResult {
 export interface Position {
   id: number
   name: string
-  academic_year: AcademicYear | null
+  academic_year: AcademicYear
+  importance: number
   created_at: string
   updated_at: string
 }
@@ -72,15 +73,29 @@ export interface Candidate {
   updated_at: string
 }
 
-export type ElectionStatus = 'DRAFT' | 'ACTIVE' | 'STOPPED' | 'CLOSED'
+export type ElectionStatus = 'DRAFT' | 'SCHEDULED' | 'ARCHIVED'
+
+export type ElectionPhase = 
+  | 'DRAFT' 
+  | 'SCHEDULED' 
+  | 'APPLICATIONS_OPEN' 
+  | 'REVIEWING' 
+  | 'READY_FOR_VOTING' 
+  | 'VOTING_OPEN' 
+  | 'VOTING_CLOSED' 
+  | 'RESULTS_PUBLISHED' 
+  | 'ARCHIVED'
 
 export interface Election {
   id: number
   name: string
   status: ElectionStatus
-  started_at: string | null
-  stopped_at: string | null
-  closed_at: string | null
+  current_phase: ElectionPhase
+  application_start_at: string | null
+  application_end_at: string | null
+  voting_start_at: string | null
+  voting_end_at: string | null
+  results_published: boolean
   created_at: string
   updated_at: string
 }
@@ -106,7 +121,7 @@ export interface DashboardOverview {
 }
 
 export interface VoteStatus {
-  election: Pick<Election, 'id' | 'name' | 'status' | 'started_at' | 'stopped_at' | 'closed_at'> | null
+  election: Pick<Election, 'id' | 'name' | 'status' | 'current_phase' | 'voting_start_at' | 'voting_end_at'> | null
   votes: {
     position_id: number
     position_name: string
@@ -123,7 +138,7 @@ export interface VoteStatus {
 }
 
 export interface DashboardSummary {
-  election: Pick<Election, 'id' | 'name' | 'status' | 'started_at' | 'stopped_at' | 'closed_at'> | null
+  election: Pick<Election, 'id' | 'name' | 'status' | 'current_phase' | 'voting_start_at' | 'voting_end_at'> | null
   total_members: number
   total_candidates: number
   total_positions: number
@@ -155,7 +170,7 @@ export interface CandidateRanking {
 }
 
 export interface LiveStats {
-  election: Pick<Election, 'id' | 'name' | 'status' | 'started_at' | 'stopped_at' | 'closed_at'> | null
+  election: Pick<Election, 'id' | 'name' | 'status' | 'current_phase' | 'voting_start_at' | 'voting_end_at'> | null
   total_votes: number
   candidates: Omit<CandidateRanking, 'rank'>[]
   positions: {

@@ -5,7 +5,14 @@ from voting.models import Election, Vote
 
 @admin.register(Election)
 class ElectionAdmin(admin.ModelAdmin):
-    list_display = ("name", "status", "started_at", "stopped_at", "closed_at", "created_at")
+    list_display = (
+        "name",
+        "status",
+        "application_start_at",
+        "application_end_at",
+        "voting_start_at",
+        "voting_end_at",
+    )
     list_filter = ("status",)
     search_fields = ("name",)
     ordering = ("-created_at",)

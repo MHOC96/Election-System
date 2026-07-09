@@ -15,7 +15,7 @@ from positions.models import Position
 from voting.services.election_guard import ElectionGuardError, assert_candidate_changes_allowed
 
 
-class CandidateListCreateView(generics.ListCreateAPIView):
+class CandidateListCreateView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
     serializer_class = CandidateSerializer
 
@@ -24,28 +24,17 @@ class CandidateListCreateView(generics.ListCreateAPIView):
         position_id = self.request.query_params.get("position")
         if position_id:
             queryset = queryset.filter(position_id=position_id)
+        election_id = self.request.query_params.get("election")
+        if election_id:
+            queryset = queryset.filter(election_id=election_id)
         return queryset
-
-    def create(self, request, *args, **kwargs):
-        try:
-            assert_candidate_changes_allowed()
-        except ElectionGuardError as exc:
-            raise ValidationError(str(exc)) from exc
-
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(
-            {"success": True, "data": serializer.data},
-            status=status.HTTP_201_CREATED,
-        )
 
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
         return Response({"success": True, "data": response.data})
 
 
-class PositionCandidateListCreateView(generics.ListCreateAPIView):
+class PositionCandidateListCreateView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
     serializer_class = CandidateSerializer
 
@@ -55,23 +44,6 @@ class PositionCandidateListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         return Candidate.objects.select_related("position").filter(
             position_id=self.kwargs["position_id"]
-        )
-
-    def create(self, request, *args, **kwargs):
-        try:
-            assert_candidate_changes_allowed()
-        except ElectionGuardError as exc:
-            raise ValidationError(str(exc)) from exc
-
-        position = self.get_position()
-        data = request.data.copy()
-        data["position"] = position.pk
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(
-            {"success": True, "data": serializer.data},
-            status=status.HTTP_201_CREATED,
         )
 
     def list(self, request, *args, **kwargs):
@@ -89,25 +61,25 @@ class CandidateDetailView(generics.RetrieveUpdateDestroyAPIView):
         return Response({"success": True, "data": serializer.data})
 
     def update(self, request, *args, **kwargs):
+        instance = self.get_object()
         try:
-            assert_candidate_changes_allowed()
+            assert_candidate_changes_allowed(instance.election)
         except ElectionGuardError as exc:
             raise ValidationError(str(exc)) from exc
 
         partial = kwargs.pop("partial", False)
-        instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"success": True, "data": serializer.data})
 
     def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
         try:
-            assert_candidate_changes_allowed()
+            assert_candidate_changes_allowed(instance.election)
         except ElectionGuardError as exc:
             raise ValidationError(str(exc)) from exc
 
-        instance = self.get_object()
         if instance.has_votes():
             raise ValidationError("Cannot delete a candidate who has received votes.")
         instance.delete()
@@ -121,10 +93,7 @@ class CandidateClearAllView(APIView):
     permission_classes = [IsAdmin]
 
     def post(self, request):
-        try:
-            result = clear_all_candidates()
-        except MemberDeletionNotAllowedError as exc:
-            raise ValidationError(str(exc)) from exc
+        raise ValidationError("Clearing candidates manually is no longer supported.")
 
         return Response(
             {

@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Trophy } from 'lucide-react'
 import { fetchDashboardSummary, fetchLiveStats } from '@/api/dashboard'
 import { ElectionStatusBadge } from '@/components/shared/StatusBadge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Sheet,
   SheetContent,
@@ -23,16 +25,17 @@ interface ElectionResultsSheetProps {
 
 export function ElectionResultsSheet({ election, open, onOpenChange }: ElectionResultsSheetProps) {
   const electionId = election?.id
+  const [activeTab, setActiveTab] = useState('3rd Year')
 
   const { data: summary, isLoading: summaryLoading } = useQuery({
-    queryKey: ['election-summary', electionId],
-    queryFn: () => fetchDashboardSummary(electionId!),
+    queryKey: ['election-summary', electionId, activeTab],
+    queryFn: () => fetchDashboardSummary(electionId!, activeTab),
     enabled: open && electionId != null,
   })
 
   const { data: liveStats, isLoading: liveLoading } = useQuery({
-    queryKey: ['election-live-stats', electionId],
-    queryFn: () => fetchLiveStats(electionId!),
+    queryKey: ['election-live-stats', electionId, activeTab],
+    queryFn: () => fetchLiveStats(electionId!, activeTab),
     enabled: open && electionId != null,
   })
 
@@ -56,6 +59,15 @@ export function ElectionResultsSheet({ election, open, onOpenChange }: ElectionR
             )}
           </SheetDescription>
         </SheetHeader>
+
+        <div className="mt-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="3rd Year">3rd Year</TabsTrigger>
+              <TabsTrigger value="2nd Year">2nd Year</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
 
         <div className="mt-6 space-y-6">
           {isLoading ? (
@@ -129,7 +141,7 @@ export function ElectionResultsSheet({ election, open, onOpenChange }: ElectionR
                   <CardHeader className="pb-2">
                     <CardTitle className="flex items-center gap-2 text-base">
                       <Trophy className="h-4 w-4 text-primary" aria-hidden />
-                      Overall leading candidate
+                      Leading candidate ({activeTab})
                     </CardTitle>
                   </CardHeader>
                   <CardContent>

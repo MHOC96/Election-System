@@ -66,6 +66,7 @@ from candidates.models import CandidateApplication, ApplicationStatus
 class CandidateApplicationSerializer(serializers.ModelSerializer):
     position_name = serializers.CharField(source="position.name", read_only=True)
     member_cpm = serializers.CharField(source="member.cpm_number", read_only=True)
+    member_academic_year = serializers.CharField(source="member.academic_year", read_only=True)
     election_name = serializers.CharField(source="election.name", read_only=True)
 
     class Meta:
@@ -76,12 +77,14 @@ class CandidateApplicationSerializer(serializers.ModelSerializer):
             "election_name",
             "member",
             "member_cpm",
+            "member_academic_year",
             "position",
             "position_name",
             "full_name",
             "mc_number",
             "cpm_number",
             "contact_number",
+            "photo_url",
             "declaration_file",
             "status",
             "rejection_reason",
@@ -89,13 +92,20 @@ class CandidateApplicationSerializer(serializers.ModelSerializer):
             "approved_at",
             "approved_by",
         )
-        read_only_fields = ("id", "election", "member", "status", "rejection_reason", "submitted_at", "approved_at", "approved_by", "position_name", "member_cpm", "election_name")
+        read_only_fields = ("id", "election", "member", "status", "rejection_reason", "submitted_at", "approved_at", "approved_by", "position_name", "member_cpm", "member_academic_year", "election_name")
 
     def validate_full_name(self, value):
         name = value.strip()
         if not name:
             raise serializers.ValidationError("Full name cannot be empty.")
         return name
+        
+    def validate_photo_url(self, value):
+        if not value.startswith("https://"):
+            raise serializers.ValidationError("Photo URL must use HTTPS.")
+        if "res.cloudinary.com" not in value:
+            raise serializers.ValidationError("Photo URL must be a Cloudinary URL.")
+        return value
         
     def validate_declaration_file(self, value):
         if not value.startswith("https://"):

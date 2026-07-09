@@ -30,7 +30,7 @@ export function CandidatePositionGroups({
   return (
     <div className={cn('space-y-5', className)}>
       {groups.map(({ position, candidates }) => (
-        <Card key={position.id} className="overflow-hidden shadow-sm">
+        <Card key={position.name} className="overflow-hidden shadow-sm">
           <CardHeader className="border-b bg-muted/20 pb-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="space-y-1">
@@ -109,16 +109,23 @@ export function buildPositionCandidateGroups(
 ): PositionCandidateGroup[] {
   if (!positions?.length) return []
 
-  const byPosition = new Map<number, Candidate[]>()
-  for (const candidate of candidates ?? []) {
-    const list = byPosition.get(candidate.position) ?? []
-    list.push(candidate)
-    byPosition.set(candidate.position, list)
+  const uniquePositions = new Map<string, Position>()
+  for (const p of positions) {
+    if (!uniquePositions.has(p.name)) {
+      uniquePositions.set(p.name, p)
+    }
   }
 
-  return positions.map((position) => ({
+  const byPositionName = new Map<string, Candidate[]>()
+  for (const candidate of candidates ?? []) {
+    const list = byPositionName.get(candidate.position_name) ?? []
+    list.push(candidate)
+    byPositionName.set(candidate.position_name, list)
+  }
+
+  return Array.from(uniquePositions.values()).map((position) => ({
     position,
-    candidates: (byPosition.get(position.id) ?? []).sort((a, b) =>
+    candidates: (byPositionName.get(position.name) ?? []).sort((a, b) =>
       a.full_name.localeCompare(b.full_name),
     ),
   }))

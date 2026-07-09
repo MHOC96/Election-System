@@ -5,6 +5,8 @@ import { Vote } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { shellContentClass } from '@/lib/design-tokens'
 import { warmMemberConsole } from '@/lib/prefetch'
+import { fetchActiveElection } from '@/api/elections'
+import { useQuery } from '@tanstack/react-query'
 import { ShellActions } from '@/components/layout/ShellActions'
 import { CreatorFooter } from '@/components/layout/CreatorFooter'
 import { SkipToContent } from '@/components/shared/SkipToContent'
@@ -16,6 +18,11 @@ export function MemberLayout() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  
+  const { data: activeElection } = useQuery({
+    queryKey: ['elections', 'active'],
+    queryFn: fetchActiveElection,
+  })
 
   useEffect(() => {
     warmMemberConsole(queryClient)
@@ -55,7 +62,9 @@ export function MemberLayout() {
           </Link>
           
           <div className="flex-1 flex gap-4 overflow-x-auto items-center">
-            <Link to="/vote" className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap">Vote</Link>
+            {activeElection?.status !== 'DRAFT' && (
+              <Link to="/vote" className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap">Vote</Link>
+            )}
             <Link to="/apply" className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap">Apply for Position</Link>
           </div>
 

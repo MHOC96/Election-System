@@ -8,8 +8,8 @@ from django.utils import timezone
 
 from accounts.permissions import IsAdmin, IsAdminOrReadOnly
 from candidates.models import CandidateApplication, ApplicationStatus, Candidate
-from candidates.serializers import CandidateApplicationSerializer, ApplicationReviewSerializer, CandidateApplicationDocumentUploadSerializer
-from candidates.services.cloudinary_service import upload_candidate_document
+from candidates.serializers import CandidateApplicationSerializer, ApplicationReviewSerializer, CandidateApplicationDocumentUploadSerializer, CandidatePhotoUploadSerializer
+from candidates.services.cloudinary_service import upload_candidate_document, upload_candidate_photo
 from voting.models import Election, ElectionStatus
 
 
@@ -25,18 +25,18 @@ class MemberApplicationListCreateView(generics.ListCreateAPIView):
         return Response({"success": True, "data": response.data})
 
     def create(self, request, *args, **kwargs):
-        election = Election.get_active()
-        if election:
-            raise ValidationError("Cannot apply while an election is active.")
+        from voting.models import ElectionPhase
+        election = Election.get_ongoing()
+        if not election:
+            raise ValidationError("There is no scheduled election.")
             
-        draft_election = Election.objects.filter(status=ElectionStatus.DRAFT).first()
-        if not draft_election:
-            raise ValidationError("There is no draft election currently open for applications.")
+        if election.get_current_phase() != ElectionPhase.APPLICATIONS_OPEN:
+            raise ValidationError("Applications are not currently open.")
 
         # Ensure the member has not already applied for this position in this election
         position_id = request.data.get("position")
         if CandidateApplication.objects.filter(
-            election=draft_election,
+            election=election,
             member=request.user,
             position_id=position_id,
         ).exclude(status__in=[ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN]).exists():
@@ -53,13 +53,13 @@ class MemberApplicationListCreateView(generics.ListCreateAPIView):
             raise ValidationError(f"You are not eligible for this position. It requires {position.academic_year}.")
 
         data = request.data.copy()
-        data["election"] = draft_election.pk
+        data["election"] = election.pk
         data["member"] = request.user.pk
         
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         serializer.save(
-            election=draft_election,
+            election=election,
             member=request.user,
             status=ApplicationStatus.PENDING_REVIEW
         )
@@ -119,9 +119,10 @@ class AdminApplicationReviewView(APIView):
             
             # Automatically create Candidate record
             Candidate.objects.create(
+                election=application.election,
                 full_name=application.full_name,
                 academic_year=application.member.academic_year,
-                photo_url="", # Need to decide how to handle photos. For now, empty or a placeholder
+                photo_url=application.photo_url,
                 position=application.position,
             )
             
@@ -161,6 +162,46 @@ class CandidateApplicationDocumentUploadView(APIView):
                     "error": {
                         "code": "upload_failed",
                         "message": "Failed to upload document to Cloudinary.",
+                        "details": str(exc),
+                    },
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response(
+            {"success": True, "data": result},
+            status=status.HTTP_201_CREATED,
+        )
+
+class CandidateApplicationPhotoUploadView(APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        serializer = CandidatePhotoUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            result = upload_candidate_photo(serializer.validated_data["photo"])
+        except ValueError as exc:
+            return Response(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "upload_failed",
+                        "message": str(exc),
+                        "details": None,
+                    },
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as exc:
+            return Response(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "upload_failed",
+                        "message": "Failed to upload photo to Cloudinary.",
                         "details": str(exc),
                     },
                 },

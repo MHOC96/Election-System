@@ -20,26 +20,8 @@ class BulkMemberDeleteResult:
 
 
 def member_deletion_allowed() -> bool:
-    """Members may be removed when no election is active or currently paused."""
-    if Election.objects.filter(status=ElectionStatus.ACTIVE).exists():
-        return False
-
-    stopped_elections = Election.objects.filter(status=ElectionStatus.STOPPED)
-    if not stopped_elections.exists():
-        return True
-
-    latest_closed = (
-        Election.objects.filter(status=ElectionStatus.CLOSED)
-        .order_by("-closed_at", "-updated_at")
-        .first()
-    )
-    if latest_closed is None:
-        return False
-
-    latest_stopped = stopped_elections.order_by("-stopped_at", "-updated_at").first()
-    stopped_at = latest_stopped.stopped_at or latest_stopped.updated_at
-    closed_at = latest_closed.closed_at or latest_closed.updated_at
-    return closed_at >= stopped_at
+    """Members may be removed when no election is active or ongoing."""
+    return not Election.objects.filter(status=ElectionStatus.SCHEDULED).exists()
 
 
 def assert_member_deletion_allowed() -> None:

@@ -38,6 +38,12 @@ def submit_vote(*, member: User, position_id: int, candidate_id: int) -> Vote:
                 "Candidate does not belong to the selected position.",
                 code="candidate_position_mismatch",
             )
+            
+        if position.academic_year and position.academic_year != member.academic_year:
+            raise VoteError(
+                "You are not eligible to vote for this position.",
+                code="ineligible_position",
+            )
 
         try:
             vote = Vote.objects.create(
@@ -59,12 +65,26 @@ def submit_vote(*, member: User, position_id: int, candidate_id: int) -> Vote:
     return Vote.objects.select_related("position", "candidate").get(pk=vote.pk)
 
 
-def count_votable_positions() -> int:
-    return (
-        Position.objects.annotate(candidate_count=Count("candidates"))
-        .filter(candidate_count__gt=0)
-        .count()
-    )
+def count_votable_positions(member: User | None = None, academic_year: str | None = None, election_id: int | None = None) -> int:
+    from django.db.models import Q, Count
+    candidate_filter = Q()
+    if election_id:
+        candidate_filter &= Q(candidates__election_id=election_id)
+        
+    qs = Position.objects.annotate(
+        candidate_count=Count("candidates", filter=candidate_filter)
+    ).filter(candidate_count__gt=0)
+    
+    target_year = academic_year
+    if not target_year and member:
+        target_year = member.academic_year
+        
+    if target_year:
+        qs = qs.filter(Q(academic_year__isnull=True) | Q(academic_year=target_year))
+    elif member:
+        qs = qs.filter(academic_year__isnull=True)
+        
+    return qs.count()
 
 
 def build_member_vote_status(
@@ -75,7 +95,7 @@ def build_member_vote_status(
     positions_total: int | None = None,
 ) -> dict:
     if positions_total is None:
-        positions_total = count_votable_positions()
+        positions_total = count_votable_positions(member, election_id=election.id if election else None)
     recently_closed = Election.get_recently_closed()
 
     if election is None:
@@ -115,9 +135,9 @@ def build_member_vote_status(
             "id": election.id,
             "name": election.name,
             "status": election.status,
-            "started_at": election.started_at,
-            "stopped_at": election.stopped_at,
-            "closed_at": election.closed_at,
+            "current_phase": election.get_current_phase(),
+            "voting_start_at": election.voting_start_at,
+            "voting_end_at": election.voting_end_at,
         },
         "votes": vote_items,
         "positions_voted": positions_voted,

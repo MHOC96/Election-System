@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPost } from '@/api/client'
+import { apiDelete, apiGet, apiPost, apiPatch } from '@/api/client'
 import type { Election, Paginated } from '@/types/api'
 
 function unwrapList<T>(data: Paginated<T> | T[]): T[] {
@@ -18,20 +18,28 @@ export async function fetchDraftElection() {
   return apiGet<Election | null>('/elections/draft/')
 }
 
-export async function createElection(name: string) {
-  return apiPost<Election>('/elections/', { name })
+export async function createElection(data: {
+  name: string;
+  application_start_at?: string;
+  application_end_at?: string;
+}) {
+  return apiPost<Election>('/elections/', data)
 }
 
-export async function startElection(id: number) {
-  return apiPost<Election>(`/elections/${id}/start/`)
+export async function updateElection(id: number, data: Partial<Election>) {
+  return apiPatch<Election>(`/elections/${id}/`, data)
 }
 
-export async function stopElection(id: number) {
-  return apiPost<Election>(`/elections/${id}/stop/`)
+export async function scheduleElection(id: number) {
+  return apiPost<Election>(`/elections/${id}/schedule/`)
 }
 
-export async function closeElection(id: number) {
-  return apiPost<Election>(`/elections/${id}/close/`)
+export async function publishElectionResults(id: number) {
+  return apiPost<Election>(`/elections/${id}/publish-results/`)
+}
+
+export async function archiveElection(id: number) {
+  return apiPost<Election>(`/elections/${id}/archive/`)
 }
 
 export async function deleteElection(id: number) {

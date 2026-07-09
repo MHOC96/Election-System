@@ -1,5 +1,5 @@
 import { Badge } from '@/components/ui/badge'
-import type { ElectionStatus } from '@/types/api'
+import type { ElectionPhase } from '@/types/api'
 
 interface MemberStatusBadgeProps {
   isActive: boolean
@@ -14,18 +14,19 @@ export function MemberStatusBadge({ isActive }: MemberStatusBadgeProps) {
 }
 
 interface ElectionStatusBadgeProps {
-  status: ElectionStatus
+  status: ElectionPhase
 }
 
 export function ElectionStatusBadge({ status }: ElectionStatusBadgeProps) {
   const variant =
-    status === 'ACTIVE'
+    status === 'VOTING_OPEN'
       ? 'success'
-      : status === 'STOPPED'
+      : status === 'APPLICATIONS_OPEN' || status === 'REVIEWING'
         ? 'warning'
-        : status === 'CLOSED'
+        : status === 'ARCHIVED'
           ? 'secondary'
           : 'outline'
 
-  return <Badge variant={variant}>{status}</Badge>
+  const label = status.replace(/_/g, ' ')
+  return <Badge variant={variant}>{label}</Badge>
 }

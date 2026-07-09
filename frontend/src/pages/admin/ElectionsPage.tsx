@@ -4,12 +4,13 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronRight, Lock, Play, Plus, Square, Trash2, Vote } from 'lucide-react'
 import {
-  closeElection,
+  archiveElection,
   createElection,
   deleteElection,
   fetchElections,
-  startElection,
-  stopElection,
+  scheduleElection,
+  publishElectionResults,
+  updateElection,
 } from '@/api/elections'
 import { fetchCandidates } from '@/api/candidates'
 import { fetchPositions } from '@/api/positions'
@@ -34,7 +35,7 @@ import { sectionDelays, Stagger, StaggerChildren } from '@/components/motion/Sta
 import { FormField } from '@/components/design-system/FormField'
 import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass } from '@/lib/design-tokens'
-import { canCreateElection, canStartElection, getCreateElectionBlockReason, getElectionStartBlockReason } from '@/lib/election-readiness'
+import { canScheduleElection, getElectionScheduleBlockReason } from '@/lib/election-readiness'
 import { refreshDashboard, markQueriesStale } from '@/lib/query-sync'
 import { electionSchema, type ElectionForm } from '@/lib/form-schemas'
 import type { Election } from '@/types/api'
@@ -49,6 +50,9 @@ export function ElectionsPage() {
   const [resultsElection, setResultsElection] = useState<Election | null>(null)
   const [resultsOpen, setResultsOpen] = useState(false)
 
+  const [scheduleTarget, setScheduleTarget] = useState<Election | null>(null)
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
+
   const {
     register,
     handleSubmit,
@@ -56,8 +60,23 @@ export function ElectionsPage() {
     formState: { errors, isSubmitting },
   } = useForm<ElectionForm>({
     resolver: zodResolver(electionSchema),
-    defaultValues: { name: '' },
+    defaultValues: { name: '', application_start_at: '', application_end_at: '' },
   })
+
+  const {
+    register: registerSchedule,
+    handleSubmit: handleScheduleSubmit,
+    reset: resetSchedule,
+    formState: { errors: scheduleErrors, isSubmitting: isScheduleSubmitting },
+  } = useForm<{
+    voting_start_at: string
+    voting_end_at: string
+  }>({
+    defaultValues: { voting_start_at: '', voting_end_at: '' },
+  })
+
+  // State to hold editing election
+  const [editingElection, setEditingElection] = useState<Election | null>(null)
 
   const { data: elections, isLoading } = useQuery({
     queryKey: ['elections'],
@@ -76,11 +95,11 @@ export function ElectionsPage() {
     refetchOnMount: 'always',
   })
 
-  const readinessLoading = candidatesLoading || positionsLoading
-  const canCreate = canCreateElection(candidates)
-  const createElectionHint = getCreateElectionBlockReason(candidates)
-  const electionStartReady = !readinessLoading && canStartElection(positions, candidates)
-  const electionStartBlockReason = getElectionStartBlockReason(positions, candidates)
+  const readinessLoading = false
+  const canCreate = true
+  const createElectionHint = null
+  const electionScheduleReady = canScheduleElection()
+  const electionScheduleBlockReason = getElectionScheduleBlockReason()
 
   const createMutation = useMutation({
     mutationFn: (values: ElectionForm) => createElection(values.name),
@@ -92,14 +111,24 @@ export function ElectionsPage() {
     onError: (error) => notifyError(getApiErrorMessage(error)),
   })
 
+  const updateMutation = useMutation({
+    mutationFn: (data: { id: number; values: Partial<ElectionForm> }) => updateElection(data.id, data.values),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['elections'] })
+      refreshDashboard(queryClient)
+      closeCreateDialog()
+    },
+    onError: (error) => notifyError(getApiErrorMessage(error)),
+  })
+
   const actionMutation = useMutation({
-    mutationFn: async ({ id, action }: { id: number; action: 'start' | 'stop' | 'close' }) => {
-      if (action === 'start') return startElection(id)
-      if (action === 'stop') return stopElection(id)
-      return closeElection(id)
+    mutationFn: async ({ id, action }: { id: number; action: 'schedule' | 'publish' | 'archive' }) => {
+      if (action === 'schedule') return scheduleElection(id)
+      if (action === 'publish') return publishElectionResults(id)
+      return archiveElection(id)
     },
     onMutate: ({ action }) => {
-      if (action === 'close') {
+      if (action === 'archive') {
         setCloseTarget(null)
       }
     },
@@ -113,9 +142,31 @@ export function ElectionsPage() {
       markQueriesStale(queryClient, ['members-deletion-status'])
     },
     onError: (error, variables) => {
-      if (variables.action === 'close') {
+      if (variables.action === 'archive') {
         void queryClient.invalidateQueries({ queryKey: ['elections'] })
       }
+      notifyError(getApiErrorMessage(error))
+    },
+  })
+
+  const scheduleFlowMutation = useMutation({
+    mutationFn: async ({ id, values }: { id: number; values: any }) => {
+      // First update the dates
+      await updateElection(id, values)
+      // Then schedule it
+      return scheduleElection(id)
+    },
+    onSuccess: (updated) => {
+      queryClient.setQueryData<Election[]>(['elections'], (old) =>
+        (old ?? []).map((election) =>
+          election.id === updated.id ? updated : election,
+        ),
+      )
+      refreshDashboard(queryClient)
+      markQueriesStale(queryClient, ['members-deletion-status'])
+      closeScheduleDialog()
+    },
+    onError: (error) => {
       notifyError(getApiErrorMessage(error))
     },
   })
@@ -154,12 +205,66 @@ export function ElectionsPage() {
 
   const closeCreateDialog = () => {
     setDialogOpen(false)
-    reset({ name: '' })
+    setEditingElection(null)
+    reset({ name: '', application_start_at: '', application_end_at: '' })
+    requestAnimationFrame(() => restoreBodyPointerEvents())
+  }
+
+  const openEditDialog = (election: Election) => {
+    setEditingElection(election)
+    reset({
+      name: election.name,
+      application_start_at: election.application_start_at ? new Date(election.application_start_at).toISOString().slice(0, 16) : '',
+      application_end_at: election.application_end_at ? new Date(election.application_end_at).toISOString().slice(0, 16) : '',
+      voting_start_at: election.voting_start_at ? new Date(election.voting_start_at).toISOString().slice(0, 16) : '',
+      voting_end_at: election.voting_end_at ? new Date(election.voting_end_at).toISOString().slice(0, 16) : '',
+    })
+    setDialogOpen(true)
+  }
+
+  const openScheduleDialog = (election: Election) => {
+    setScheduleTarget(election)
+    resetSchedule({
+      voting_start_at: election.voting_start_at ? new Date(election.voting_start_at).toISOString().slice(0, 16) : '',
+      voting_end_at: election.voting_end_at ? new Date(election.voting_end_at).toISOString().slice(0, 16) : '',
+    })
+    setScheduleDialogOpen(true)
+  }
+
+  const closeScheduleDialog = () => {
+    setScheduleDialogOpen(false)
+    setScheduleTarget(null)
     requestAnimationFrame(() => restoreBodyPointerEvents())
   }
 
   const onCreateSubmit = (values: ElectionForm) => {
-    createMutation.mutate(values)
+    const payload: Partial<ElectionForm> & { name: string } = {
+      ...values,
+      application_start_at: values.application_start_at || undefined,
+      application_end_at: values.application_end_at || undefined,
+    }
+    if (editingElection?.status === 'SCHEDULED') {
+      payload.voting_start_at = values.voting_start_at || undefined
+      payload.voting_end_at = values.voting_end_at || undefined
+    } else {
+      delete payload.voting_start_at
+      delete payload.voting_end_at
+    }
+
+    if (editingElection) {
+      updateMutation.mutate({ id: editingElection.id, values: payload })
+    } else {
+      createMutation.mutate(payload)
+    }
+  }
+
+  const onScheduleSubmit = (values: any) => {
+    if (!scheduleTarget) return
+    const payload = {
+      voting_start_at: values.voting_start_at || undefined,
+      voting_end_at: values.voting_end_at || undefined,
+    }
+    scheduleFlowMutation.mutate({ id: scheduleTarget.id, values: payload })
   }
 
   const openResults = (election: Election) => {
@@ -169,67 +274,73 @@ export function ElectionsPage() {
 
   const renderActions = (election: Election) => {
     const actions = []
-    if (election.status === 'DRAFT' || election.status === 'STOPPED') {
-      const canStart = electionStartReady
+    
+    const now = new Date()
+    const appEnd = election.application_end_at ? new Date(election.application_end_at) : null
+    const votingEnd = election.voting_end_at ? new Date(election.voting_end_at) : null
+    
+    let canEdit = false;
+    if (election.status === 'DRAFT') {
+      canEdit = !appEnd || now < appEnd;
+    } else if (election.status === 'SCHEDULED') {
+      canEdit = !votingEnd || now < votingEnd;
+    }
+
+    if (canEdit) {
       actions.push(
         <Button
-          key="start"
-          size="sm"
-          disabled={actionMutation.isPending || readinessLoading || !canStart}
-          title={
-            readinessLoading
-              ? 'Checking candidate readiness…'
-              : !canStart
-                ? (electionStartBlockReason ?? undefined)
-                : undefined
-          }
-          onClick={(event) => {
-            event.stopPropagation()
-            actionMutation.mutate({ id: election.id, action: 'start' })
-          }}
-        >
-          <Play className="h-4 w-4" />
-          Start
-        </Button>,
-      )
-      actions.push(
-        <Button
-          key="delete"
+          key="edit"
           size="sm"
           variant="outline"
-          className="text-destructive hover:text-destructive"
-          disabled={deleteMutation.isPending}
           onClick={(event) => {
             event.stopPropagation()
-            setDeleteTarget(election)
+            openEditDialog(election)
           }}
         >
-          <Trash2 className="h-4 w-4" />
-          Delete
+          Edit
+        </Button>
+      )
+    }
+
+    if (election.status === 'DRAFT') {
+      const canSchedule = electionScheduleReady
+      actions.push(
+        <Button
+          key="schedule"
+          size="sm"
+          disabled={actionMutation.isPending || !canSchedule}
+          onClick={(event) => {
+            event.stopPropagation()
+            openScheduleDialog(election)
+          }}
+        >
+          <Play className="h-4 w-4 mr-1" />
+          Schedule
         </Button>,
       )
     }
-    if (election.status === 'ACTIVE') {
+
+    if (election.current_phase === 'VOTING_CLOSED') {
       actions.push(
         <Button
-          key="stop"
+          key="publish"
           size="sm"
           variant="outline"
           disabled={actionMutation.isPending}
           onClick={(event) => {
             event.stopPropagation()
-            actionMutation.mutate({ id: election.id, action: 'stop' })
+            actionMutation.mutate({ id: election.id, action: 'publish' })
           }}
         >
-          <Square className="h-4 w-4" />
-          Stop
+          Publish Results
         </Button>,
       )
     }
-    if (election.status === 'ACTIVE' || election.status === 'STOPPED') {
+
+    if (election.status !== 'ARCHIVED' && election.status !== 'DRAFT') {
       actions.push(
         <Button
-          key="close"
+          key="archive"
           size="sm"
           variant="destructive"
           disabled={actionMutation.isPending}
@@ -238,12 +349,13 @@ export function ElectionsPage() {
             setCloseTarget(election)
           }}
         >
-          <Lock className="h-4 w-4" />
-          Close
+          <Lock className="h-4 w-4 mr-1" />
+          Archive
         </Button>,
       )
     }
-    if (election.status === 'CLOSED') {
+
+    if (election.status === 'DRAFT' || election.status === 'ARCHIVED') {
       actions.push(
         <Button
           key="delete"
@@ -256,11 +368,12 @@ export function ElectionsPage() {
             setDeleteTarget(election)
           }}
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className="h-4 w-4 mr-1" />
           Delete
         </Button>,
       )
     }
+    
     return actions.length ? <div className="flex flex-wrap gap-2">{actions}</div> : null
   }
 
@@ -299,20 +412,19 @@ export function ElectionsPage() {
           icon={Vote}
           title="No elections"
           description={
-            canCreate
-              ? 'Create an election, then start it when every position has at least one candidate.'
-              : 'Add candidates first, then create an election.'
+              canCreate
+                ? 'Create an election to begin the process.'
+                : 'Add candidates first, then create an election.'
           }
         />
       ) : (
         <StaggerChildren className="grid gap-4" staggerMs={70}>
           {elections.map((election) => {
-            const isClosed = election.status === 'CLOSED'
+            const isClosed = election.status === 'ARCHIVED' || election.results_published
             const showStartHint =
-              (election.status === 'DRAFT' || election.status === 'STOPPED') &&
-              !readinessLoading &&
-              !electionStartReady &&
-              electionStartBlockReason
+              election.status === 'DRAFT' &&
+              !electionScheduleReady &&
+              electionScheduleBlockReason
 
             return (
               <Card
@@ -335,12 +447,12 @@ export function ElectionsPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <CardTitle className="text-lg">{election.name}</CardTitle>
-                      <ElectionStatusBadge status={election.status} />
+                      <ElectionStatusBadge status={election.current_phase} />
                     </div>
                     <CardDescription className="mt-1">
                       Created {formatDate(election.created_at)}
-                      {election.started_at && ` · Started ${formatDate(election.started_at)}`}
-                      {election.closed_at && ` · Closed ${formatDate(election.closed_at)}`}
+                      {election.application_start_at && ` · Apps open ${formatDate(election.application_start_at)}`}
+                      {election.voting_start_at && ` · Voting starts ${formatDate(election.voting_start_at)}`}
                     </CardDescription>
                     {isClosed ? (
                       <p className="mt-2 flex items-center gap-1 text-sm text-primary">
@@ -349,7 +461,7 @@ export function ElectionsPage() {
                       </p>
                     ) : null}
                     {showStartHint ? (
-                      <p className="mt-2 text-sm text-muted-foreground">{electionStartBlockReason}</p>
+                      <p className="mt-2 text-sm text-muted-foreground">{electionScheduleBlockReason}</p>
                     ) : null}
                   </div>
                   <div onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
@@ -366,7 +478,7 @@ export function ElectionsPage() {
       <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeCreateDialog()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create Election</DialogTitle>
+            <DialogTitle>{editingElection ? 'Edit Election' : 'Create Election'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={(e) => void handleSubmit(onCreateSubmit)(e)} className="space-y-4">
             <FormField
@@ -381,12 +493,67 @@ export function ElectionsPage() {
                 {...register('name')}
               />
             </FormField>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField label="Applications Start" htmlFor="application_start_at" error={errors.application_start_at?.message}>
+                <Input id="application_start_at" type="datetime-local" {...register('application_start_at')} />
+              </FormField>
+              
+              <FormField label="Applications End" htmlFor="application_end_at" error={errors.application_end_at?.message}>
+                <Input id="application_end_at" type="datetime-local" {...register('application_end_at')} />
+              </FormField>
+            </div>
+            
+            {editingElection?.status === 'SCHEDULED' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
+                <FormField label="Voting Start" htmlFor="edit_voting_start_at" error={errors.voting_start_at?.message}>
+                  <Input id="edit_voting_start_at" type="datetime-local" {...register('voting_start_at')} />
+                </FormField>
+                
+                <FormField label="Voting End" htmlFor="edit_voting_end_at" error={errors.voting_end_at?.message}>
+                  <Input id="edit_voting_end_at" type="datetime-local" {...register('voting_end_at')} />
+                </FormField>
+              </div>
+            )}
+            
             <DialogFooter>
               <Button type="button" variant="outline" onClick={closeCreateDialog}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting || createMutation.isPending}>
-                {createMutation.isPending ? 'Creating...' : 'Create'}
+              <Button type="submit" disabled={isSubmitting || createMutation.isPending || updateMutation.isPending}>
+                {createMutation.isPending || updateMutation.isPending ? 'Saving...' : 'Save'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={scheduleDialogOpen} onOpenChange={(open) => !open && closeScheduleDialog()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Schedule Election</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={(e) => void handleScheduleSubmit(onScheduleSubmit)(e)} className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Set the dates for voting to officially start this election.
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField label="Voting Start" htmlFor="voting_start_at" error={scheduleErrors.voting_start_at?.message as string}>
+                <Input id="voting_start_at" type="datetime-local" required {...registerSchedule('voting_start_at')} />
+              </FormField>
+              
+              <FormField label="Voting End" htmlFor="voting_end_at" error={scheduleErrors.voting_end_at?.message as string}>
+                <Input id="voting_end_at" type="datetime-local" required {...registerSchedule('voting_end_at')} />
+              </FormField>
+            </div>
+            
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={closeScheduleDialog}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isScheduleSubmitting || scheduleFlowMutation.isPending}>
+                {scheduleFlowMutation.isPending ? 'Scheduling...' : 'Schedule Election'}
               </Button>
             </DialogFooter>
           </form>
@@ -395,30 +562,24 @@ export function ElectionsPage() {
 
       <ConfirmDialog
         open={!!closeTarget}
-        title="Close election?"
-        description={`Permanently close "${closeTarget?.name}"? This ends the election and cannot be undone. No further votes will be accepted.`}
-        confirmLabel="Close election"
+        title="Archive election?"
+        description={`Permanently archive "${closeTarget?.name}"? This ends the active status of the election and makes it historical. No further changes can be made.`}
+        confirmLabel="Archive election"
         destructive
         loading={actionMutation.isPending}
         onCancel={() => setCloseTarget(null)}
         onConfirm={() =>
-          closeTarget && actionMutation.mutate({ id: closeTarget.id, action: 'close' })
+          closeTarget && actionMutation.mutate({ id: closeTarget.id, action: 'archive' })
         }
       />
 
       <ConfirmDialog
         open={!!deleteTarget}
-        title={
-          deleteTarget?.status === 'CLOSED'
-            ? 'Delete closed election?'
-            : 'Delete election?'
-        }
+        title="Delete election?"
         description={
-          deleteTarget?.status === 'CLOSED'
+          deleteTarget?.status === 'ARCHIVED'
             ? `Delete "${deleteTarget?.name}" and all associated vote records? Export reports first if you need a permanent archive.`
-            : deleteTarget?.status === 'STOPPED'
-              ? `Delete "${deleteTarget?.name}"? Any votes cast during this election will also be removed.`
-              : `Remove draft election "${deleteTarget?.name}"? This cannot be undone.`
+            : `Remove draft election "${deleteTarget?.name}"? This cannot be undone.`
         }
         confirmLabel="Delete election"
         destructive

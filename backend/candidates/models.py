@@ -12,6 +12,7 @@ class Candidate(models.Model):
     full_name = models.CharField(max_length=200)
     academic_year = models.CharField(max_length=10, choices=AcademicYear.choices)
     photo_url = models.URLField(max_length=500)
+    election = models.ForeignKey("voting.Election", on_delete=models.CASCADE, related_name="candidates", null=True, blank=True)
     position = models.ForeignKey(
         Position,
         on_delete=models.PROTECT,
@@ -46,7 +47,7 @@ class ApplicationStatus(models.TextChoices):
 
 
 class CandidateApplication(models.Model):
-    election = models.ForeignKey("voting.Election", on_delete=models.PROTECT, related_name="applications")
+    election = models.ForeignKey("voting.Election", on_delete=models.CASCADE, related_name="applications")
     member = models.ForeignKey("accounts.User", on_delete=models.PROTECT, related_name="applications")
     position = models.ForeignKey("positions.Position", on_delete=models.PROTECT, related_name="applications")
     
@@ -54,6 +55,7 @@ class CandidateApplication(models.Model):
     mc_number = models.CharField(max_length=100)
     cpm_number = models.CharField(max_length=50)
     contact_number = models.CharField(max_length=20)
+    photo_url = models.URLField(max_length=500)
     declaration_file = models.URLField(max_length=500)
     
     status = models.CharField(max_length=20, choices=ApplicationStatus.choices, default=ApplicationStatus.PENDING_REVIEW)

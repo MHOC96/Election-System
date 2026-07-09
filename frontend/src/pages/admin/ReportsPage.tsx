@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { ExportFormat, ReportType } from '@/types/api'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { sectionDelays, Stagger, StaggerChildren } from '@/components/motion/Stagger'
@@ -26,12 +27,13 @@ const reports: { type: ReportType; title: string; description: string }[] = [
 
 export function ReportsPage() {
   const [format, setFormat] = useState<ExportFormat>('pdf')
+  const [activeTab, setActiveTab] = useState('3rd Year')
   const [loading, setLoading] = useState<ReportType | null>(null)
 
   const handleExport = async (type: ReportType) => {
     setLoading(type)
     try {
-      await exportReport(type, format)
+      await exportReport(type, format, undefined, activeTab)
     } catch (error) {
       notifyError(getApiErrorMessage(error))
     } finally {
@@ -60,6 +62,17 @@ export function ReportsPage() {
             </div>
           }
         />
+      </Stagger>
+
+      <Stagger delayMs={sectionDelays.header + 50}>
+        <div className="mb-6 w-full max-w-xs">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="3rd Year">3rd Year</TabsTrigger>
+              <TabsTrigger value="2nd Year">2nd Year</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
       </Stagger>
 
       <Stagger delayMs={sectionDelays.primary}>

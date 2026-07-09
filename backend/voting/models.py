@@ -8,37 +8,42 @@ from positions.models import Position
 
 class ElectionStatus(models.TextChoices):
     DRAFT = "DRAFT", "Draft"
-    ACTIVE = "ACTIVE", "Active"
-    STOPPED = "STOPPED", "Stopped"
-    CLOSED = "CLOSED", "Closed"
+    SCHEDULED = "SCHEDULED", "Scheduled"
+    ARCHIVED = "ARCHIVED", "Archived"
+
+class ElectionPhase(models.TextChoices):
+    DRAFT = "DRAFT", "Draft"
+    SCHEDULED = "SCHEDULED", "Scheduled"
+    APPLICATIONS_OPEN = "APPLICATIONS_OPEN", "Applications Open"
+    REVIEWING = "REVIEWING", "Reviewing Applications"
+    READY_FOR_VOTING = "READY_FOR_VOTING", "Ready For Voting"
+    VOTING_OPEN = "VOTING_OPEN", "Voting Open"
+    VOTING_CLOSED = "VOTING_CLOSED", "Voting Closed"
+    RESULTS_PUBLISHED = "RESULTS_PUBLISHED", "Results Published"
+    ARCHIVED = "ARCHIVED", "Archived"
 
 
 class Election(models.Model):
     name = models.CharField(max_length=200)
     status = models.CharField(
-        max_length=10,
+        max_length=15,
         choices=ElectionStatus.choices,
         default=ElectionStatus.DRAFT,
         db_index=True,
     )
-    started_at = models.DateTimeField(null=True, blank=True)
-    stopped_at = models.DateTimeField(null=True, blank=True)
-    closed_at = models.DateTimeField(null=True, blank=True)
+    application_start_at = models.DateTimeField(null=True, blank=True)
+    application_end_at = models.DateTimeField(null=True, blank=True)
+    voting_start_at = models.DateTimeField(null=True, blank=True)
+    voting_end_at = models.DateTimeField(null=True, blank=True)
+    results_published = models.BooleanField(default=False)
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=["status", "stopped_at"]),
-            models.Index(fields=["status", "closed_at"]),
-        ]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["status"],
-                condition=models.Q(status=ElectionStatus.ACTIVE),
-                name="unique_active_election",
-            ),
+            models.Index(fields=["status"]),
         ]
 
     def __str__(self):
@@ -46,99 +51,90 @@ class Election(models.Model):
 
     @classmethod
     def get_active(cls):
-        return cls.objects.filter(status=ElectionStatus.ACTIVE).first()
+        return cls.objects.exclude(status=ElectionStatus.ARCHIVED).order_by("-created_at").first()
 
     @classmethod
     def get_ongoing(cls):
-        """Election in progress — members may view details and their votes until closed."""
-        active = cls.objects.filter(status=ElectionStatus.ACTIVE).first()
-        if active:
-            return active
-        return (
-            cls.objects.filter(status=ElectionStatus.STOPPED)
-            .order_by("-stopped_at", "-updated_at")
-            .first()
-        )
+        """Election that is not DRAFT and not ARCHIVED."""
+        return cls.objects.filter(status=ElectionStatus.SCHEDULED).first()
 
     @classmethod
     def get_recently_closed(cls):
+        # We can define recently closed as an election where voting_end_at < now, but still SCHEDULED
+        now = timezone.now()
         return (
-            cls.objects.filter(status=ElectionStatus.CLOSED)
-            .order_by("-closed_at", "-updated_at")
+            cls.objects.filter(status=ElectionStatus.SCHEDULED, voting_end_at__lte=now)
+            .order_by("-voting_end_at")
             .first()
         )
 
+    def get_current_phase(self) -> str:
+        if self.status == ElectionStatus.DRAFT:
+            return ElectionPhase.DRAFT
+        if self.status == ElectionStatus.ARCHIVED:
+            return ElectionPhase.ARCHIVED
+            
+        if self.results_published:
+            return ElectionPhase.RESULTS_PUBLISHED
+            
+        now = timezone.now()
+        
+        if self.voting_end_at and now >= self.voting_end_at:
+            return ElectionPhase.VOTING_CLOSED
+            
+        if self.voting_start_at and now >= self.voting_start_at:
+            return ElectionPhase.VOTING_OPEN
+            
+        if self.application_end_at and now >= self.application_end_at:
+            # We can distinguish between REVIEWING and READY_FOR_VOTING by checking pending applications
+            # For simplicity in model, we can return REVIEWING if not voting yet
+            return ElectionPhase.REVIEWING
+            
+        if self.application_start_at and now >= self.application_start_at:
+            return ElectionPhase.APPLICATIONS_OPEN
+            
+        return ElectionPhase.SCHEDULED
+
     @property
     def is_voting_open(self):
-        return self.status == ElectionStatus.ACTIVE
+        return self.get_current_phase() == ElectionPhase.VOTING_OPEN
+        
+    def can_schedule(self):
+        return self.status == ElectionStatus.DRAFT
 
-    def can_start(self):
-        return self.status in (ElectionStatus.DRAFT, ElectionStatus.STOPPED)
+    def schedule(self):
+        if not self.can_schedule():
+            raise ValueError("Only DRAFT elections can be scheduled.")
+        
+        # Validation checks
+        if not all([self.application_start_at, self.application_end_at, self.voting_start_at, self.voting_end_at]):
+            raise ValueError("All dates must be set before scheduling.")
+            
+        if self.application_start_at >= self.application_end_at:
+            raise ValueError("Application start must be before end.")
+        if self.application_end_at > self.voting_start_at:
+            raise ValueError("Application end must be before voting start.")
+        if self.voting_start_at >= self.voting_end_at:
+            raise ValueError("Voting start must be before end.")
+            
+        # Ensure no other scheduled election
+        if Election.objects.filter(status=ElectionStatus.SCHEDULED).exclude(pk=self.pk).exists():
+            raise ValueError("Another election is already scheduled. Archive it first.")
+            
+        self.status = ElectionStatus.SCHEDULED
+        self.save()
 
-    def can_stop(self):
-        return self.status == ElectionStatus.ACTIVE
-
-    def can_close(self):
-        return self.status in (ElectionStatus.ACTIVE, ElectionStatus.STOPPED)
-
-    def start(self):
-        from voting.services.election_guard import (
-            ElectionGuardError,
-            validate_election_start_readiness,
-        )
-
-        try:
-            validate_election_start_readiness()
-        except ElectionGuardError as exc:
-            raise ValueError(exc.message) from exc
-
-        with transaction.atomic():
-            election = Election.objects.select_for_update().get(pk=self.pk)
-            if not election.can_start():
-                raise ValueError(f"Cannot start an election with status '{election.status}'.")
-            if (
-                Election.objects.filter(status=ElectionStatus.ACTIVE)
-                .exclude(pk=election.pk)
-                .exists()
-            ):
-                raise ValueError("Another election is already active.")
-            now = timezone.now()
-            Election.objects.filter(status=ElectionStatus.STOPPED).exclude(
-                pk=election.pk
-            ).update(
-                status=ElectionStatus.CLOSED,
-                closed_at=now,
-                updated_at=now,
-            )
-            election.status = ElectionStatus.ACTIVE
-            election.stopped_at = None
-            if not election.started_at:
-                election.started_at = now
-            election.save(
-                update_fields=["status", "started_at", "stopped_at", "updated_at"]
-            )
-        self.refresh_from_db()
-
-    def stop(self):
-        if not self.can_stop():
-            raise ValueError(f"Cannot stop an election with status '{self.status}'.")
-        self.status = ElectionStatus.STOPPED
-        self.stopped_at = timezone.now()
-        self.save(update_fields=["status", "stopped_at", "updated_at"])
-
-    def close(self):
-        if not self.can_close():
-            raise ValueError(f"Cannot close an election with status '{self.status}'.")
-        now = timezone.now()
-        with transaction.atomic():
-            Election.objects.filter(status=ElectionStatus.STOPPED).exclude(pk=self.pk).update(
-                status=ElectionStatus.CLOSED,
-                closed_at=now,
-                updated_at=now,
-            )
-            self.status = ElectionStatus.CLOSED
-            self.closed_at = now
-            self.save(update_fields=["status", "closed_at", "updated_at"])
+    def publish_results(self):
+        if self.get_current_phase() != ElectionPhase.VOTING_CLOSED:
+            raise ValueError("Cannot publish results until voting is closed.")
+        self.results_published = True
+        self.save()
+        
+    def archive(self):
+        if self.status == ElectionStatus.ARCHIVED:
+            return
+        self.status = ElectionStatus.ARCHIVED
+        self.save()
 
 
 class Vote(models.Model):
@@ -159,7 +155,7 @@ class Vote(models.Model):
     )
     election = models.ForeignKey(
         Election,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name="votes",
     )
     created_at = models.DateTimeField(auto_now_add=True)

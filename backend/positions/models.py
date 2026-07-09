@@ -9,13 +9,13 @@ class AcademicYear(models.TextChoices):
 
 class Position(models.Model):
     name = models.CharField(max_length=100)
-    academic_year = models.CharField(max_length=10, choices=AcademicYear.choices, null=True, blank=True)
-    order = models.IntegerField(default=0)
+    academic_year = models.CharField(max_length=10, choices=AcademicYear.choices)
+    importance = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["order", "name"]
+        ordering = ["importance", "name"]
         constraints = [
             models.UniqueConstraint(
                 Lower("name"),
@@ -25,7 +25,7 @@ class Position(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.name} ({self.academic_year})" if self.academic_year else self.name
+        return f"{self.name} ({self.academic_year})"
 
     def save(self, *args, **kwargs):
         self.name = self.name.strip()

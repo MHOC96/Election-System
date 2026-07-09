@@ -2,29 +2,39 @@ import { CheckCircle2, PauseCircle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import type { ElectionStatus } from '@/types/api'
+import type { ElectionPhase } from '@/types/api'
 import { formatPercent } from '@/lib/utils'
 
 interface ElectionProgressCardProps {
   electionName: string
-  status: ElectionStatus
+  status: ElectionPhase
   votedCount: number
   total: number
   canVote: boolean
 }
 
-const statusLabels: Record<ElectionStatus, string> = {
+const statusLabels: Record<ElectionPhase, string> = {
   DRAFT: 'Draft',
-  ACTIVE: 'Voting open',
-  STOPPED: 'Voting paused',
-  CLOSED: 'Ended',
+  SCHEDULED: 'Scheduled',
+  APPLICATIONS_OPEN: 'Applications Open',
+  REVIEWING: 'Reviewing',
+  READY_FOR_VOTING: 'Ready for Voting',
+  VOTING_OPEN: 'Voting Open',
+  VOTING_CLOSED: 'Voting Closed',
+  RESULTS_PUBLISHED: 'Results Published',
+  ARCHIVED: 'Archived',
 }
 
-const statusVariants: Record<ElectionStatus, 'success' | 'warning' | 'secondary' | 'outline'> = {
+const statusVariants: Record<ElectionPhase, 'success' | 'warning' | 'secondary' | 'outline'> = {
   DRAFT: 'outline',
-  ACTIVE: 'success',
-  STOPPED: 'warning',
-  CLOSED: 'secondary',
+  SCHEDULED: 'outline',
+  APPLICATIONS_OPEN: 'warning',
+  REVIEWING: 'warning',
+  READY_FOR_VOTING: 'warning',
+  VOTING_OPEN: 'success',
+  VOTING_CLOSED: 'secondary',
+  RESULTS_PUBLISHED: 'secondary',
+  ARCHIVED: 'secondary',
 }
 
 export function ElectionProgressCard({
@@ -45,9 +55,9 @@ export function ElectionProgressCard({
             <CardDescription>
               {canVote
                 ? 'Choose one candidate for each position below.'
-                : status === 'STOPPED'
-                  ? 'Voting is temporarily paused. Your selections are saved below.'
-                  : 'Review your selections for this election.'}
+                : status === 'VOTING_CLOSED' || status === 'RESULTS_PUBLISHED'
+                  ? 'Voting has ended. Your selections are saved below.'
+                  : 'Voting is not open yet.'}
             </CardDescription>
           </div>
           <Badge variant={statusVariants[status]}>{statusLabels[status]}</Badge>
@@ -71,12 +81,7 @@ export function ElectionProgressCard({
             You have voted for all positions
           </p>
         )}
-        {status === 'STOPPED' && (
-          <p className="mt-3 flex items-center gap-1.5 text-sm text-warning">
-            <PauseCircle className="h-4 w-4" aria-hidden="true" />
-            New votes cannot be submitted until voting resumes
-          </p>
-        )}
+
       </CardContent>
     </Card>
   )

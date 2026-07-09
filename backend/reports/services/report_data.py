@@ -25,9 +25,9 @@ def _require_election(election_id: int | None = None):
     return election
 
 
-def get_results_report_data(election_id: int | None = None) -> dict:
+def get_results_report_data(election_id: int | None = None, academic_year: str | None = None) -> dict:
     election = _require_election(election_id)
-    stats = get_live_stats(election.id, use_cache=True)
+    stats = get_live_stats(election.id, use_cache=True, academic_year=academic_year)
     rows = []
     for position in stats["positions"]:
         for ranking in position["rankings"]:
@@ -41,19 +41,24 @@ def get_results_report_data(election_id: int | None = None) -> dict:
                     "is_winner": ranking["rank"] == 1,
                 }
             )
+    title = "Election Results Report"
+    if academic_year:
+        title += f" - {academic_year}"
     return {
-        "title": "Election Results Report",
+        "title": title,
         "election": stats["election"],
         "rows": rows,
         "total_votes": stats["total_votes"],
     }
 
 
-def get_candidates_report_data(election_id: int | None = None) -> dict:
+def get_candidates_report_data(election_id: int | None = None, academic_year: str | None = None) -> dict:
+    from django.db.models import Q
     election = _resolve_election(election_id)
-    candidates = Candidate.objects.select_related("position").order_by(
-        "position__name", "full_name"
-    )
+    candidates_qs = Candidate.objects.select_related("position")
+    if academic_year:
+        candidates_qs = candidates_qs.filter(Q(position__academic_year__isnull=True) | Q(position__academic_year=academic_year))
+    candidates = candidates_qs.order_by("position__name", "full_name")
     rows = [
         {
             "full_name": candidate.full_name,
@@ -63,8 +68,11 @@ def get_candidates_report_data(election_id: int | None = None) -> dict:
         }
         for candidate in candidates
     ]
+    title = "Candidate List Report"
+    if academic_year:
+        title += f" - {academic_year}"
     return {
-        "title": "Candidate List Report",
+        "title": title,
         "election": {
             "id": election.id,
             "name": election.name,
@@ -76,9 +84,9 @@ def get_candidates_report_data(election_id: int | None = None) -> dict:
     }
 
 
-def get_turnout_report_data(election_id: int | None = None) -> dict:
+def get_turnout_report_data(election_id: int | None = None, academic_year: str | None = None) -> dict:
     election = _require_election(election_id)
-    summary = get_dashboard_summary(election.id)
+    summary = get_dashboard_summary(election.id, use_cache=False, academic_year=academic_year)
     rows = [
         {
             "position": item["position_name"],
@@ -88,8 +96,11 @@ def get_turnout_report_data(election_id: int | None = None) -> dict:
         }
         for item in summary["position_turnout"]
     ]
+    title = "Turnout Report"
+    if academic_year:
+        title += f" - {academic_year}"
     return {
-        "title": "Turnout Report",
+        "title": title,
         "election": summary["election"],
         "summary": {
             "total_members": summary["total_members"],
@@ -104,15 +115,22 @@ def get_turnout_report_data(election_id: int | None = None) -> dict:
     }
 
 
-def get_participation_report_data(election_id: int | None = None) -> dict:
+def get_participation_report_data(election_id: int | None = None, academic_year: str | None = None) -> dict:
     election = _require_election(election_id)
-    total_positions = Position.objects.count()
-    members = User.objects.filter(role=UserRole.MEMBER, is_active=True).order_by(
-        "cpm_number"
-    )
+    from voting.services.vote_service import count_votable_positions
+    total_positions = count_votable_positions(academic_year=academic_year)
+    
+    members_qs = User.objects.filter(role=UserRole.MEMBER, is_active=True)
+    if academic_year:
+        members_qs = members_qs.filter(academic_year=academic_year)
+    members = members_qs.order_by("cpm_number")
+
+    votes_qs = Vote.objects.filter(election=election)
+    if academic_year:
+        votes_qs = votes_qs.filter(member__academic_year=academic_year)
 
     vote_map = (
-        Vote.objects.filter(election=election)
+        votes_qs
         .values("member_id")
         .annotate(positions_voted=Count("position_id", distinct=True))
     )
@@ -120,7 +138,7 @@ def get_participation_report_data(election_id: int | None = None) -> dict:
 
     member_positions = {}
     for vote in (
-        Vote.objects.filter(election=election)
+        votes_qs
         .select_related("position", "member")
         .order_by("member__cpm_number", "position__name")
     ):
@@ -146,8 +164,11 @@ def get_participation_report_data(election_id: int | None = None) -> dict:
             }
         )
 
+    title = "Voter Participation Report"
+    if academic_year:
+        title += f" - {academic_year}"
     return {
-        "title": "Voter Participation Report",
+        "title": title,
         "election": {
             "id": election.id,
             "name": election.name,

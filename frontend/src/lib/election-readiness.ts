@@ -1,34 +1,21 @@
-import type { Candidate, Position } from '@/types/api'
+import type { Candidate, Position, ElectionForm } from '@/types/api'
 
-export function hasCandidates(candidates: Candidate[] | undefined): boolean {
-  return (candidates?.length ?? 0) > 0
-}
-
-export function canCreateElection(candidates: Candidate[] | undefined): boolean {
+export function canCreateElection(): boolean {
   return true
 }
 
-export const CREATE_ELECTION_HINT = null
-
-export function getCreateElectionBlockReason(
-  candidates: Candidate[] | undefined,
-): string | null {
+export function getCreateElectionBlockReason(): string | null {
   return null
 }
 
-export function canStartElection(
-  positions: Position[] | undefined,
-  candidates: Candidate[] | undefined,
+export function canScheduleElection(
+  formValues?: Partial<any>
 ): boolean {
-  return hasCandidates(candidates)
+  return true
 }
 
-export function getElectionStartBlockReason(
-  positions: Position[] | undefined,
-  candidates: Candidate[] | undefined,
+export function getElectionScheduleBlockReason(
+  formValues?: Partial<any>
 ): string | null {
-  if (!hasCandidates(candidates)) {
-    return 'Add at least one candidate before starting the election.'
-  }
   return null
 }

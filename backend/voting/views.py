@@ -20,7 +20,7 @@ from voting.services.vote_service import (
     get_member_vote_status,
     submit_vote,
 )
-from voting.services.election_guard import ElectionGuardError, assert_election_can_be_created
+from voting.services.election_guard import ElectionGuardError
 from voting.throttling import VoteRateThrottle
 
 
@@ -30,10 +30,6 @@ class ElectionListCreateView(generics.ListCreateAPIView):
     queryset = Election.objects.all()
 
     def create(self, request, *args, **kwargs):
-        try:
-            assert_election_can_be_created()
-        except ElectionGuardError as exc:
-            raise ValidationError(str(exc)) from exc
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -49,7 +45,7 @@ class ElectionListCreateView(generics.ListCreateAPIView):
         return Response({"success": True, "data": response.data})
 
 
-class ElectionDetailView(generics.RetrieveDestroyAPIView):
+class ElectionDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAdmin]
     serializer_class = ElectionSerializer
     queryset = Election.objects.all()
@@ -60,14 +56,18 @@ class ElectionDetailView(generics.RetrieveDestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         election = self.get_object()
-        if election.status == ElectionStatus.ACTIVE:
-            raise ValidationError("Active elections cannot be deleted.")
+        if election.status != ElectionStatus.DRAFT:
+            raise ValidationError("Only draft elections can be deleted.")
 
         election_id = election.id
 
         with transaction.atomic():
-            Vote.objects.filter(election_id=election_id).delete()
+            # Clear all votes, candidates, and applications when an election is deleted to reset the system.
+            Vote.objects.all().delete()
+            from candidates.models import Candidate, CandidateApplication
+            CandidateApplication.objects.all().delete()
             Election.objects.filter(pk=election_id).delete()
+            Candidate.objects.all().delete()
 
         invalidate_dashboard_cache(election_id)
         return Response(
@@ -76,15 +76,15 @@ class ElectionDetailView(generics.RetrieveDestroyAPIView):
         )
 
 
-class ElectionStartView(APIView):
+class ElectionScheduleView(APIView):
     permission_classes = [IsAdmin]
 
     def post(self, request, pk):
         election = generics.get_object_or_404(Election, pk=pk)
         try:
-            election.start()
+            election.schedule()
         except ValueError as exc:
-            raise ValidationError(str(exc)) from exc
+            raise ValidationError(str(exc))
         invalidate_dashboard_cache(election.id)
         return Response(
             {"success": True, "data": ElectionSerializer(election).data},
@@ -92,15 +92,15 @@ class ElectionStartView(APIView):
         )
 
 
-class ElectionStopView(APIView):
+class ElectionPublishResultsView(APIView):
     permission_classes = [IsAdmin]
 
     def post(self, request, pk):
         election = generics.get_object_or_404(Election, pk=pk)
         try:
-            election.stop()
+            election.publish_results()
         except ValueError as exc:
-            raise ValidationError(str(exc)) from exc
+            raise ValidationError(str(exc))
         invalidate_dashboard_cache(election.id)
         return Response(
             {"success": True, "data": ElectionSerializer(election).data},
@@ -108,15 +108,15 @@ class ElectionStopView(APIView):
         )
 
 
-class ElectionCloseView(APIView):
+class ElectionArchiveView(APIView):
     permission_classes = [IsAdmin]
 
     def post(self, request, pk):
         election = generics.get_object_or_404(Election, pk=pk)
         try:
-            election.close()
+            election.archive()
         except ValueError as exc:
-            raise ValidationError(str(exc)) from exc
+            raise ValidationError(str(exc))
         invalidate_dashboard_cache(election.id)
         return Response(
             {"success": True, "data": ElectionSerializer(election).data},
@@ -246,12 +246,22 @@ class BallotView(APIView):
         )
         member_votes = {vote.position_id: vote.candidate_id for vote in member_votes_qs}
 
-        positions = Position.objects.prefetch_related(
+        from django.db.models import Q
+        
+        base_positions = Position.objects.prefetch_related(
             Prefetch(
                 "candidates",
                 queryset=Candidate.objects.select_related("position"),
             )
         ).order_by("name")
+
+        if request.user.academic_year:
+            positions = base_positions.filter(
+                Q(academic_year__isnull=True) | Q(academic_year=request.user.academic_year)
+            )
+        else:
+            positions = base_positions.filter(academic_year__isnull=True)
+            
         position_items = []
         for position in positions:
             candidates = list(position.candidates.all())

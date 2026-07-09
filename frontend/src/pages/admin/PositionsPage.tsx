@@ -45,7 +45,7 @@ export function PositionsPage() {
     formState: { errors, isSubmitting },
   } = useForm<PositionForm>({
     resolver: zodResolver(positionSchema),
-    defaultValues: { name: '', academic_year: null },
+    defaultValues: { name: '', academic_year: '3rd Year', importance: 0 },
   })
 
   const { data: positions, isLoading } = useQuery({
@@ -60,9 +60,9 @@ export function PositionsPage() {
   const saveMutation = useMutation({
     mutationFn: (values: PositionForm) => {
       // @ts-ignore - Assuming api needs to be updated to accept academic_year
-      if (editing) return updatePosition(editing.id, values.name, values.academic_year)
+      if (editing) return updatePosition(editing.id, values.name, values.academic_year, values.importance)
       // @ts-ignore
-      return createPosition(values.name, values.academic_year)
+      return createPosition(values.name, values.academic_year, values.importance)
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['positions'] })
@@ -82,20 +82,20 @@ export function PositionsPage() {
 
   const openCreate = () => {
     setEditing(null)
-    reset({ name: '', academic_year: null })
+    reset({ name: '', academic_year: '3rd Year', importance: 0 })
     setDialogOpen(true)
   }
 
   const openEdit = (position: Position) => {
     setEditing(position)
-    reset({ name: position.name, academic_year: position.academic_year })
+    reset({ name: position.name, academic_year: position.academic_year, importance: position.importance })
     setDialogOpen(true)
   }
 
   const closeDialog = () => {
     setDialogOpen(false)
     setEditing(null)
-    reset({ name: '', academic_year: null })
+    reset({ name: '', academic_year: '3rd Year', importance: 0 })
     requestAnimationFrame(() => restoreBodyPointerEvents())
   }
 
@@ -160,11 +160,7 @@ export function PositionsPage() {
                   <TableRow key={position.id}>
                     <TableCell className="font-medium">{position.name}</TableCell>
                     <TableCell>
-                      {position.academic_year ? (
-                        <Badge variant="outline">{position.academic_year}</Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">Any</span>
-                      )}
+                      <Badge variant="outline">{position.academic_year}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
@@ -218,19 +214,31 @@ export function PositionsPage() {
                 name="academic_year"
                 render={({ field }) => (
                   <Select
-                    onValueChange={(value) => field.onChange(value === 'Any' ? null : value)}
-                    value={field.value || 'Any'}
+                    onValueChange={field.onChange}
+                    value={field.value}
                   >
                     <SelectTrigger id="position-academic-year">
-                      <SelectValue placeholder="Select eligible year (optional)" />
+                      <SelectValue placeholder="Select eligible year" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Any">Any Year</SelectItem>
                       <SelectItem value="2nd Year">2nd Year</SelectItem>
                       <SelectItem value="3rd Year">3rd Year</SelectItem>
                     </SelectContent>
                   </Select>
                 )}
+              />
+            </FormField>
+
+            <FormField
+              label="Sort Order (Lower = First, e.g. 1)"
+              htmlFor="position-importance"
+              error={errors.importance?.message}
+            >
+              <Input
+                id="position-importance"
+                type="number"
+                min="0"
+                {...register('importance', { valueAsNumber: true })}
               />
             </FormField>
 

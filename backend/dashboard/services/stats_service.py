@@ -26,18 +26,21 @@ def _bump_cache_version(scope: str | int) -> None:
         cache.set(key, 1, timeout=None)
 
 
-def _summary_cache_key(election_id: int | None) -> str:
+def _summary_cache_key(election_id: int | None, academic_year: str | None = None) -> str:
     scope = election_id if election_id is not None else "default"
-    return f"dashboard:summary:{scope}:v{_cache_version(scope)}"
+    year_suffix = f":{academic_year}" if academic_year else ""
+    return f"dashboard:summary:{scope}{year_suffix}:v{_cache_version(scope)}"
 
 
-def _live_stats_cache_key(election_id: int) -> str:
-    return f"dashboard:live_stats:{election_id}:v{_cache_version(election_id)}"
+def _live_stats_cache_key(election_id: int, academic_year: str | None = None) -> str:
+    year_suffix = f":{academic_year}" if academic_year else ""
+    return f"dashboard:live_stats:{election_id}{year_suffix}:v{_cache_version(election_id)}"
 
 
-def _overview_cache_key(election_id: int | None) -> str:
+def _overview_cache_key(election_id: int | None, academic_year: str | None = None) -> str:
     scope = election_id if election_id is not None else "default"
-    return f"dashboard:overview:{scope}:v{_cache_version(scope)}"
+    year_suffix = f":{academic_year}" if academic_year else ""
+    return f"dashboard:overview:{scope}{year_suffix}:v{_cache_version(scope)}"
 
 
 def _resolve_election(election_id: int | None = None) -> Election | None:
@@ -56,10 +59,10 @@ def _pct(part: int, whole: int) -> float:
 
 
 def get_dashboard_overview(
-    election_id: int | None = None, *, use_cache: bool = True
+    election_id: int | None = None, *, use_cache: bool = True, academic_year: str | None = None
 ) -> dict:
     """Return summary and live stats in one response (single round trip)."""
-    cache_key = _overview_cache_key(election_id)
+    cache_key = _overview_cache_key(election_id, academic_year)
     if use_cache:
         cached = cache.get(cache_key)
         if cached is not None:
@@ -68,9 +71,9 @@ def get_dashboard_overview(
     election = _resolve_election(election_id)
     result = {
         "summary": get_dashboard_summary(
-            election_id, use_cache=False, election=election
+            election_id, use_cache=False, election=election, academic_year=academic_year
         ),
-        "live": get_live_stats(election_id, use_cache=False, election=election),
+        "live": get_live_stats(election_id, use_cache=False, election=election, academic_year=academic_year),
     }
     if use_cache:
         cache.set(cache_key, result, OVERVIEW_CACHE_SECONDS)
@@ -78,32 +81,48 @@ def get_dashboard_overview(
 
 
 def get_dashboard_summary(
-    election_id: int | None = None, *, use_cache: bool = True, election: Election | None = None
+    election_id: int | None = None, *, use_cache: bool = True, election: Election | None = None,
+    academic_year: str | None = None
 ) -> dict:
-    cache_key = _summary_cache_key(election_id)
+    cache_key = _summary_cache_key(election_id, academic_year)
     if use_cache:
         cached = cache.get(cache_key)
         if cached is not None:
             return cached
 
     election = election if election is not None else _resolve_election(election_id)
-    total_members = User.objects.filter(role=UserRole.MEMBER, is_active=True).count()
-    total_candidates = Candidate.objects.count()
-    total_positions = Position.objects.count()
+    
+    members_filter = Q(role=UserRole.MEMBER, is_active=True)
+    positions_filter = Q()
+    if academic_year:
+        members_filter &= Q(academic_year=academic_year)
+        positions_filter = Q(academic_year__isnull=True) | Q(academic_year=academic_year)
+
+    total_members = User.objects.filter(members_filter).count()
+    total_positions = Position.objects.filter(positions_filter).count()
+    
+    candidates_filter = Q()
+    if academic_year:
+        candidates_filter = Q(position__academic_year__isnull=True) | Q(position__academic_year=academic_year)
+    total_candidates = Candidate.objects.filter(candidates_filter).count()
 
     position_turnout = []
     members_completed_ballot = 0
     members_partial_ballot = 0
     members_no_votes = total_members
     votes_cast = 0
-    votable_positions_count = count_votable_positions()
+    votable_positions_count = count_votable_positions(academic_year=academic_year)
 
     if election and votable_positions_count > 0 and total_members > 0:
         vote_filter = Q(votes__election_id=election.id)
+        if academic_year:
+            vote_filter &= Q(votes__member__academic_year=academic_year)
+            
         annotated_positions = (
-            Position.objects.annotate(
-                votes_cast=Count("votes", filter=vote_filter),
-                candidate_count=Count("candidates"),
+            Position.objects.filter(positions_filter)
+            .annotate(
+                votes_cast=Count("votes", filter=vote_filter, distinct=True),
+                candidate_count=Count("candidates", filter=Q(candidates__election_id=election.id), distinct=True),
             )
             .filter(candidate_count__gt=0)
             .order_by("name")
@@ -122,9 +141,12 @@ def get_dashboard_summary(
                 }
             )
 
+        voter_counts_qs = Vote.objects.filter(election=election)
+        if academic_year:
+            voter_counts_qs = voter_counts_qs.filter(member__academic_year=academic_year)
+            
         voter_counts = (
-            Vote.objects.filter(election=election)
-            .values("member_id")
+            voter_counts_qs.values("member_id")
             .annotate(positions_voted=Count("position_id", distinct=True))
         )
         members_completed_ballot = voter_counts.filter(
@@ -138,7 +160,10 @@ def get_dashboard_summary(
             total_members - members_completed_ballot - members_partial_ballot
         )
     elif election:
-        votes_cast = Vote.objects.filter(election=election).count()
+        votes_qs = Vote.objects.filter(election=election)
+        if academic_year:
+            votes_qs = votes_qs.filter(member__academic_year=academic_year)
+        votes_cast = votes_qs.count()
 
     avg_position_turnout = (
         round(
@@ -173,7 +198,8 @@ def get_dashboard_summary(
 
 
 def get_live_stats(
-    election_id: int | None = None, *, use_cache: bool = True, election: Election | None = None
+    election_id: int | None = None, *, use_cache: bool = True, election: Election | None = None,
+    academic_year: str | None = None
 ) -> dict:
     election = election if election is not None else _resolve_election(election_id)
     if election is None:
@@ -185,17 +211,22 @@ def get_live_stats(
             "highest_voted_overall": None,
         }
 
-    cache_key = _live_stats_cache_key(election.id)
+    cache_key = _live_stats_cache_key(election.id, academic_year)
     if use_cache:
         cached = cache.get(cache_key)
         if cached is not None:
             return cached
 
     vote_filter = Q(votes__election_id=election.id)
+    if academic_year:
+        vote_filter &= Q(votes__member__academic_year=academic_year)
+        
+    candidates_qs = Candidate.objects.select_related("position")
+    if academic_year:
+        candidates_qs = candidates_qs.filter(Q(position__academic_year__isnull=True) | Q(position__academic_year=academic_year))
 
     candidates = (
-        Candidate.objects.select_related("position")
-        .annotate(vote_count=Count("votes", filter=vote_filter))
+        candidates_qs.annotate(vote_count=Count("votes", filter=vote_filter))
         .order_by("position__name", "-vote_count", "full_name")
     )
 
@@ -222,11 +253,11 @@ def get_live_stats(
     for item in candidate_stats:
         candidates_by_position[item["position_id"]].append(item)
 
-    positions = (
-        Position.objects.annotate(candidate_count=Count("candidates"))
-        .filter(candidate_count__gt=0)
-        .order_by("name")
-    )
+    positions_qs = Position.objects.annotate(candidate_count=Count("candidates", filter=Q(candidates__election_id=election.id))).filter(candidate_count__gt=0)
+    if academic_year:
+        positions_qs = positions_qs.filter(Q(academic_year__isnull=True) | Q(academic_year=academic_year))
+        
+    positions = positions_qs.order_by("name")
     position_stats = []
     highest_overall = None
 
@@ -315,9 +346,11 @@ def _election_payload(election: Election | None) -> dict | None:
         "id": election.id,
         "name": election.name,
         "status": election.status,
-        "started_at": election.started_at,
-        "stopped_at": election.stopped_at,
-        "closed_at": election.closed_at,
+        "current_phase": election.get_current_phase(),
+        "application_start_at": election.application_start_at,
+        "application_end_at": election.application_end_at,
+        "voting_start_at": election.voting_start_at,
+        "voting_end_at": election.voting_end_at,
     }
 
 

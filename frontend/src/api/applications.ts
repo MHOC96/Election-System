@@ -7,12 +7,14 @@ export interface CandidateApplication {
   election_name: string
   member: number
   member_cpm: string
+  member_academic_year: string | null
   position: number
   position_name: string
   full_name: string
   mc_number: string
   cpm_number: string
   contact_number: string
+  photo_url: string
   declaration_file: string
   status: 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'WITHDRAWN'
   rejection_reason: string
@@ -39,6 +41,7 @@ export async function submitApplication(data: {
   mc_number: string
   cpm_number: string
   contact_number: string
+  photo_url: string
   declaration_file: string
 }) {
   return apiPost<CandidateApplication>('/candidates/applications/me/', data)
@@ -48,6 +51,12 @@ export async function uploadDeclarationForm(file: File) {
   const formData = new FormData()
   formData.append('document', file)
   return apiUpload<{ document_url: string }>('/candidates/applications/upload-document/', formData)
+}
+
+export async function uploadApplicationPhoto(file: File) {
+  const formData = new FormData()
+  formData.append('photo', file)
+  return apiUpload<{ photo_url: string }>('/candidates/applications/upload-photo/', formData)
 }
 
 export async function reviewApplication(id: number, data: { action: 'APPROVE' | 'REJECT', rejection_reason?: string }) {

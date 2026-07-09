@@ -124,7 +124,7 @@ export function BallotPage() {
       <Stagger delayMs={sectionDelays.primary}>
         <ElectionProgressCard
           electionName={ballot.election.name}
-          status={ballot.election.status}
+          status={ballot.election.current_phase}
           votedCount={votedCount}
           total={total}
           canVote={canVote}
