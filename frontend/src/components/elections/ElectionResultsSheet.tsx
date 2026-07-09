@@ -50,8 +50,8 @@ export function ElectionResultsSheet({ election, open, onOpenChange }: ElectionR
             {election ? (
               <span className="inline-flex flex-wrap items-center gap-2">
                 <ElectionStatusBadge status={election.status} />
-                {election.closed_at ? (
-                  <span>Closed {formatDate(election.closed_at)}</span>
+                {election.voting_end_at ? (
+                  <span>Closed {formatDate(election.voting_end_at)}</span>
                 ) : null}
               </span>
             ) : (

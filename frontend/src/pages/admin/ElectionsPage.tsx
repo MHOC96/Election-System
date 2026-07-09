@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronRight, Lock, Play, Plus, Square, Trash2, Vote } from 'lucide-react'
+import { ChevronRight, Lock, Play, Plus, Trash2, Vote } from 'lucide-react'
 import {
   archiveElection,
   createElection,
@@ -12,8 +12,6 @@ import {
   publishElectionResults,
   updateElection,
 } from '@/api/elections'
-import { fetchCandidates } from '@/api/candidates'
-import { fetchPositions } from '@/api/positions'
 import { getApiErrorMessage } from '@/api/client'
 import { ElectionResultsSheet } from '@/components/elections/ElectionResultsSheet'
 import { Button } from '@/components/ui/button'
@@ -83,26 +81,14 @@ export function ElectionsPage() {
     queryFn: fetchElections,
   })
 
-  const { data: candidates, isLoading: candidatesLoading } = useQuery({
-    queryKey: ['candidates'],
-    queryFn: () => fetchCandidates(),
-    refetchOnMount: 'always',
-  })
-
-  const { data: positions, isLoading: positionsLoading } = useQuery({
-    queryKey: ['positions'],
-    queryFn: fetchPositions,
-    refetchOnMount: 'always',
-  })
-
-  const readinessLoading = false
+  const readinessLoading = isLoading
   const canCreate = true
   const createElectionHint = null
   const electionScheduleReady = canScheduleElection()
   const electionScheduleBlockReason = getElectionScheduleBlockReason()
 
   const createMutation = useMutation({
-    mutationFn: (values: ElectionForm) => createElection(values.name),
+    mutationFn: (values: ElectionForm) => createElection(values),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['elections'] })
       refreshDashboard(queryClient)
