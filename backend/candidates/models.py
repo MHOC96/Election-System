@@ -35,3 +35,46 @@ class Candidate(models.Model):
 
     def has_votes(self) -> bool:
         return hasattr(self, "votes") and self.votes.exists()
+
+
+class ApplicationStatus(models.TextChoices):
+    DRAFT = "DRAFT", "Draft"
+    PENDING_REVIEW = "PENDING_REVIEW", "Pending Review"
+    APPROVED = "APPROVED", "Approved"
+    REJECTED = "REJECTED", "Rejected"
+    WITHDRAWN = "WITHDRAWN", "Withdrawn"
+
+
+class CandidateApplication(models.Model):
+    election = models.ForeignKey("voting.Election", on_delete=models.PROTECT, related_name="applications")
+    member = models.ForeignKey("accounts.User", on_delete=models.PROTECT, related_name="applications")
+    position = models.ForeignKey("positions.Position", on_delete=models.PROTECT, related_name="applications")
+    
+    full_name = models.CharField(max_length=200)
+    mc_number = models.CharField(max_length=100)
+    cpm_number = models.CharField(max_length=50)
+    contact_number = models.CharField(max_length=20)
+    declaration_file = models.URLField(max_length=500)
+    
+    status = models.CharField(max_length=20, choices=ApplicationStatus.choices, default=ApplicationStatus.PENDING_REVIEW)
+    rejection_reason = models.TextField(blank=True, default="")
+    
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    approved_by = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="approved_applications")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["election", "member", "position"],
+                condition=~models.Q(status="REJECTED") & ~models.Q(status="WITHDRAWN"),
+                name="unique_active_application_per_member",
+            ),
+        ]
+
+    def __str__(self):
+        return f"Application by {self.full_name} for {self.position.name} ({self.status})"

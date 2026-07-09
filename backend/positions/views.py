@@ -11,7 +11,20 @@ from positions.serializers import PositionSerializer
 class PositionListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
     serializer_class = PositionSerializer
-    queryset = Position.objects.all()
+    
+    def get_queryset(self):
+        queryset = Position.objects.all()
+        user = self.request.user
+        # If user is a member and has an academic year, only show matching or 'Any' year positions
+        if getattr(user, 'role', None) == 'MEMBER':
+            from django.db.models import Q
+            if user.academic_year:
+                queryset = queryset.filter(
+                    Q(academic_year__isnull=True) | 
+                    Q(academic_year="") | 
+                    Q(academic_year=user.academic_year)
+                )
+        return queryset
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

@@ -20,6 +20,10 @@ export const ReportsPage = lazyWithPreload(() =>
   import('@/pages/admin/ReportsPage').then((m) => ({ default: m.ReportsPage })),
 )
 
+export const ApplicationReviewPage = lazyWithPreload(() =>
+  import('@/pages/admin/ApplicationReviewPage').then((m) => ({ default: m.ApplicationReviewPage })),
+)
+
 export function preloadAdminPageModules() {
   return Promise.all([
     MembersPage.preload(),
@@ -27,5 +31,6 @@ export function preloadAdminPageModules() {
     CandidatesPage.preload(),
     ElectionsPage.preload(),
     ReportsPage.preload(),
+    ApplicationReviewPage.preload(),
   ])
 }

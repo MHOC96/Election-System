@@ -42,7 +42,7 @@ export function MemberLayout() {
       <SkipToContent />
       <header className="glass sticky top-0 z-40 w-full border-b">
         <div className="flex h-14 w-full items-center justify-between gap-2 px-3 sm:gap-4 sm:px-4">
-          <Link to="/vote" className="flex min-w-0 items-center gap-2.5">
+          <Link to="/vote" className="flex min-w-0 items-center gap-2.5 mr-6">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-brand text-white shadow-sm">
               <Vote className="h-[18px] w-[18px]" aria-hidden="true" />
             </div>
@@ -53,6 +53,11 @@ export function MemberLayout() {
               </p>
             </div>
           </Link>
+          
+          <div className="flex-1 flex gap-4 overflow-x-auto items-center">
+            <Link to="/vote" className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap">Vote</Link>
+            <Link to="/apply" className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap">Apply for Position</Link>
+          </div>
 
           <ShellActions
             cpmNumber={user?.cpm_number}

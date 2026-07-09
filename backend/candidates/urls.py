@@ -7,7 +7,21 @@ from candidates.views import (
     CandidatePhotoUploadView,
 )
 
+from candidates.application_views import (
+    MemberApplicationListCreateView,
+    AdminApplicationListView,
+    AdminApplicationReviewView,
+    CandidateApplicationDocumentUploadView,
+)
+
 urlpatterns = [
+    # Applications
+    path("applications/me/", MemberApplicationListCreateView.as_view(), name="applications-me"),
+    path("applications/upload-document/", CandidateApplicationDocumentUploadView.as_view(), name="applications-upload-document"),
+    path("applications/all/", AdminApplicationListView.as_view(), name="applications-all"),
+    path("applications/<int:pk>/review/", AdminApplicationReviewView.as_view(), name="applications-review"),
+    
+    # Candidates
     path("upload-photo/", CandidatePhotoUploadView.as_view(), name="candidates-upload-photo"),
     path("clear-all/", CandidateClearAllView.as_view(), name="candidates-clear-all"),
     path("", CandidateListCreateView.as_view(), name="candidates-list-create"),

@@ -11,6 +11,7 @@ import {
   AdminDashboardPage,
   AdminLayout,
   BallotPage,
+  CandidateApplicationPage,
   MemberLayout,
 } from '@/routes/corePages'
 import {
@@ -19,6 +20,7 @@ import {
   MembersPage,
   PositionsPage,
   ReportsPage,
+  ApplicationReviewPage,
 } from '@/routes/adminPages'
 import { AppToaster } from '@/components/shared/AppToaster'
 
@@ -69,6 +71,14 @@ export default function App() {
                       </Suspense>
                     }
                   />
+                  <Route
+                    path="/apply"
+                    element={
+                      <Suspense fallback={pageFallback}>
+                        <CandidateApplicationPage />
+                      </Suspense>
+                    }
+                  />
                   <Route path="/my-votes" element={<Navigate to="/vote" replace />} />
                 </Route>
               </Route>
@@ -103,6 +113,14 @@ export default function App() {
                     element={
                       <Suspense fallback={pageFallback}>
                         <PositionsPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="applications"
+                    element={
+                      <Suspense fallback={pageFallback}>
+                        <ApplicationReviewPage />
                       </Suspense>
                     }
                   />

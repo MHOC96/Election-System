@@ -145,12 +145,7 @@ export async function apiDelete(url: string) {
 
 export async function apiUpload<T>(url: string, formData: FormData) {
   const { data } = await api.post<ApiResponse<T>>(url, formData, {
-    transformRequest: [(payload, headers) => {
-      if (headers && typeof headers === 'object') {
-        delete headers['Content-Type']
-      }
-      return payload
-    }],
+    headers: { 'Content-Type': 'multipart/form-data' },
   })
   return unwrapApiResponse(data)
 }

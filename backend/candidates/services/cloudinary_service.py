@@ -82,3 +82,37 @@ def upload_candidate_photo(uploaded_file) -> dict:
         "format": result.get("format"),
         "bytes": result.get("bytes"),
     }
+
+def validate_pdf_file(uploaded_file) -> None:
+    if uploaded_file.size > MAX_IMAGE_SIZE_BYTES:
+        raise ValueError("Document exceeds the 5 MB size limit.")
+
+    name = getattr(uploaded_file, 'name', '') or ''
+    if not name.lower().endswith(".pdf"):
+        raise ValueError("Invalid document file extension. Only PDF is allowed.")
+
+    content_type = (getattr(uploaded_file, "content_type", "") or "").lower()
+    if content_type and content_type != "application/pdf":
+        raise ValueError("Invalid document type. Only PDF is allowed.")
+
+def upload_candidate_document(uploaded_file) -> dict:
+    _validate_cloudinary_config()
+    validate_pdf_file(uploaded_file)
+    configure_cloudinary()
+
+    uploaded_file.seek(0)
+    try:
+        result = cloudinary.uploader.upload(
+            uploaded_file,
+            folder="election/applications",
+            resource_type="raw",
+        )
+    except Exception as exc:
+        detail = str(exc).strip() or "Unknown Cloudinary error."
+        raise ValueError(f"Cloudinary upload failed: {detail}") from exc
+    return {
+        "document_url": result["secure_url"],
+        "public_id": result["public_id"],
+        "format": result.get("format"),
+        "bytes": result.get("bytes"),
+    }

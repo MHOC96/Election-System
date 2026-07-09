@@ -14,6 +14,10 @@ export async function fetchActiveElection() {
   return apiGet<Election | null>('/elections/active/')
 }
 
+export async function fetchDraftElection() {
+  return apiGet<Election | null>('/elections/draft/')
+}
+
 export async function createElection(name: string) {
   return apiPost<Election>('/elections/', { name })
 }

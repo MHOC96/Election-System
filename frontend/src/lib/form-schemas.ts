@@ -6,6 +6,7 @@ export const positionSchema = z.object({
     .trim()
     .min(1, 'Position name is required')
     .max(100, 'Position name must be 100 characters or fewer'),
+  academic_year: z.enum(['2nd Year', '3rd Year']).optional().nullable(),
 })
 
 export type PositionForm = z.infer<typeof positionSchema>

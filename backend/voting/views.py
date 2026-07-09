@@ -143,6 +143,24 @@ class ActiveElectionView(APIView):
             status=status.HTTP_200_OK,
         )
 
+class DraftElectionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        election = Election.objects.filter(status=ElectionStatus.DRAFT).first()
+        if election is None:
+            return Response(
+                {
+                    "success": True,
+                    "data": None,
+                    "message": "No draft election.",
+                },
+                status=status.HTTP_200_OK,
+            )
+        return Response(
+            {"success": True, "data": ElectionSerializer(election).data},
+            status=status.HTTP_200_OK,
+        )
 
 class VoteSubmitView(APIView):
     permission_classes = [IsVoter]

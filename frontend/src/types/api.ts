@@ -54,6 +54,7 @@ export interface MemberImportResult {
 export interface Position {
   id: number
   name: string
+  academic_year: AcademicYear | null
   created_at: string
   updated_at: string
 }

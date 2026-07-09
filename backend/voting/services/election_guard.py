@@ -25,25 +25,13 @@ def assert_candidate_changes_allowed() -> None:
 
 
 def assert_election_can_be_created() -> None:
-    if not Candidate.objects.exists():
-        raise ElectionGuardError(
-            "At least one candidate is required before creating an election."
-        )
+    # Elections are created in DRAFT state first, so candidates are no longer
+    # required before creating an election.
+    pass
 
 
 def validate_election_start_readiness() -> None:
     if not Candidate.objects.exists():
         raise ElectionGuardError(
             "At least one candidate is required before starting an election."
-        )
-
-    positions_without_candidates = Position.objects.annotate(
-        candidate_count=Count("candidates")
-    ).filter(candidate_count=0)
-
-    if positions_without_candidates.exists():
-        names = ", ".join(positions_without_candidates.values_list("name", flat=True))
-        raise ElectionGuardError(
-            "Each position must have at least one candidate before starting. "
-            f"Add candidates for: {names}."
         )

@@ -6,6 +6,7 @@ import {
   UserCheck,
   Users,
   Vote,
+  FileBadge,
 } from 'lucide-react'
 
 export interface NavItem {
@@ -19,6 +20,7 @@ export const adminNavItems: NavItem[] = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/admin/members', label: 'Members', icon: Users },
   { to: '/admin/positions', label: 'Positions', icon: ClipboardList },
+  { to: '/admin/applications', label: 'Applications', icon: FileBadge },
   { to: '/admin/candidates', label: 'Candidates', icon: UserCheck },
   { to: '/admin/elections', label: 'Elections', icon: Vote },
   { to: '/admin/reports', label: 'Reports', icon: FileText },

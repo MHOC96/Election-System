@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ClipboardList, Pencil, Plus, Trash2 } from 'lucide-react'
@@ -22,26 +22,30 @@ import { EmptyState } from '@/components/shared/EmptyState'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { sectionDelays, Stagger } from '@/components/motion/Stagger'
 import { FormField } from '@/components/design-system/FormField'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import { positionSchema, type PositionForm } from '@/lib/form-schemas'
 import type { Position } from '@/types/api'
 import { notifyError } from '@/lib/notify'
+import { Badge } from '@/components/ui/badge'
 
 export function PositionsPage() {
   const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Position | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Position | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<PositionForm>({
     resolver: zodResolver(positionSchema),
-    defaultValues: { name: '' },
+    defaultValues: { name: '', academic_year: null },
   })
 
   const { data: positions, isLoading } = useQuery({
@@ -49,10 +53,16 @@ export function PositionsPage() {
     queryFn: fetchPositions,
   })
 
+  const filteredPositions = positions?.filter((position) =>
+    position.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  )
+
   const saveMutation = useMutation({
     mutationFn: (values: PositionForm) => {
-      if (editing) return updatePosition(editing.id, values.name)
-      return createPosition(values.name)
+      // @ts-ignore - Assuming api needs to be updated to accept academic_year
+      if (editing) return updatePosition(editing.id, values.name, values.academic_year)
+      // @ts-ignore
+      return createPosition(values.name, values.academic_year)
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['positions'] })
@@ -72,20 +82,20 @@ export function PositionsPage() {
 
   const openCreate = () => {
     setEditing(null)
-    reset({ name: '' })
+    reset({ name: '', academic_year: null })
     setDialogOpen(true)
   }
 
   const openEdit = (position: Position) => {
     setEditing(position)
-    reset({ name: position.name })
+    reset({ name: position.name, academic_year: position.academic_year })
     setDialogOpen(true)
   }
 
   const closeDialog = () => {
     setDialogOpen(false)
     setEditing(null)
-    reset({ name: '' })
+    reset({ name: '', academic_year: null })
     requestAnimationFrame(() => restoreBodyPointerEvents())
   }
 
@@ -96,16 +106,24 @@ export function PositionsPage() {
   return (
     <div className={pageLayoutClass}>
       <Stagger delayMs={sectionDelays.header}>
-        <PageHeader
-          title="Positions"
-          description="Manage executive committee positions"
-          action={
-            <Button onClick={openCreate}>
-              <Plus className="h-4 w-4" />
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <PageHeader
+            title="Positions"
+            description="Manage executive committee positions"
+          />
+          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+            <Input 
+              placeholder="Search positions..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full sm:w-64"
+            />
+            <Button onClick={openCreate} className="w-full sm:w-auto whitespace-nowrap">
+              <Plus className="h-4 w-4 mr-2" />
               Add Position
             </Button>
-          }
-        />
+          </div>
+        </div>
       </Stagger>
 
       <Stagger delayMs={sectionDelays.primary}>
@@ -122,18 +140,32 @@ export function PositionsPage() {
               title="No positions"
               description="Create positions like President, Secretary, Treasurer."
             />
+          ) : !filteredPositions?.length ? (
+            <EmptyState
+              icon={ClipboardList}
+              title="No matching positions"
+              description="Try adjusting your search query."
+            />
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
+                  <TableHead>Eligible Year</TableHead>
                   <TableHead className="w-32 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {positions.map((position) => (
+                {filteredPositions.map((position) => (
                   <TableRow key={position.id}>
                     <TableCell className="font-medium">{position.name}</TableCell>
+                    <TableCell>
+                      {position.academic_year ? (
+                        <Badge variant="outline">{position.academic_year}</Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">Any</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"
@@ -175,6 +207,33 @@ export function PositionsPage() {
             >
               <Input id="position-name" placeholder="e.g. President" {...register('name')} />
             </FormField>
+
+            <FormField
+              label="Eligible Academic Year"
+              htmlFor="position-academic-year"
+              error={errors.academic_year?.message}
+            >
+              <Controller
+                control={control}
+                name="academic_year"
+                render={({ field }) => (
+                  <Select
+                    onValueChange={(value) => field.onChange(value === 'Any' ? null : value)}
+                    value={field.value || 'Any'}
+                  >
+                    <SelectTrigger id="position-academic-year">
+                      <SelectValue placeholder="Select eligible year (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Any">Any Year</SelectItem>
+                      <SelectItem value="2nd Year">2nd Year</SelectItem>
+                      <SelectItem value="3rd Year">3rd Year</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </FormField>
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={closeDialog}>
                 Cancel
