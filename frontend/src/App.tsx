@@ -10,8 +10,7 @@ import { LoginPage } from '@/pages/LoginPage'
 import {
   AdminDashboardPage,
   AdminLayout,
-  BallotPage,
-  CandidateApplicationPage,
+  MemberHomePage,
   MemberLayout,
 } from '@/routes/corePages'
 import {
@@ -57,6 +56,7 @@ export default function App() {
 
               <Route element={<ProtectedRoute allowedRoles={['MEMBER']} />}>
                 <Route
+                  path="/"
                   element={
                     <Suspense fallback={layoutFallback}>
                       <MemberLayout />
@@ -64,23 +64,19 @@ export default function App() {
                   }
                 >
                   <Route
-                    path="/vote"
+                    index
                     element={
                       <Suspense fallback={ballotFallback}>
-                        <BallotPage />
+                        <MemberHomePage />
                       </Suspense>
                     }
                   />
-                  <Route
-                    path="/apply"
-                    element={
-                      <Suspense fallback={pageFallback}>
-                        <CandidateApplicationPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route path="/my-votes" element={<Navigate to="/vote" replace />} />
                 </Route>
+                <Route path="/apply" element={<Navigate to="/" replace />} />
+                <Route path="/vote" element={<Navigate to="/" replace />} />
+                <Route path="/voting" element={<Navigate to="/" replace />} />
+                <Route path="/results" element={<Navigate to="/" replace />} />
+                <Route path="/my-votes" element={<Navigate to="/" replace />} />
               </Route>
 
               <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>

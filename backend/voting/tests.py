@@ -113,10 +113,13 @@ class ElectionLifecycleTestCase(TestCase):
         self.assertFalse(Election.objects.filter(pk=election.pk).exists())
         self.assertFalse(Vote.objects.filter(election_id=election.pk).exists())
 
-    def test_cannot_delete_active_election(self):
-        election = Election.objects.create(name="Active Election", status=ElectionStatus.ACTIVE)
+    def test_can_delete_scheduled_election(self):
+        election = Election.objects.create(
+            name="Scheduled Election", status=ElectionStatus.SCHEDULED
+        )
         response = self.client.delete(reverse("elections-detail", kwargs={"pk": election.pk}))
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(Election.objects.filter(pk=election.pk).exists())
 
     def test_can_delete_draft_election(self):
         election = Election.objects.create(name="Draft Election", status=ElectionStatus.DRAFT)

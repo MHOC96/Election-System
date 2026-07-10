@@ -1,5 +1,5 @@
 import { apiDelete, apiGet, apiPost, apiPatch } from '@/api/client'
-import type { Election, Paginated } from '@/types/api'
+import type { Election, Paginated, PublishedResults } from '@/types/api'
 
 function unwrapList<T>(data: Paginated<T> | T[]): T[] {
   return Array.isArray(data) ? data : data.results
@@ -8,6 +8,10 @@ function unwrapList<T>(data: Paginated<T> | T[]): T[] {
 export async function fetchElections() {
   const data = await apiGet<Paginated<Election> | Election[]>('/elections/')
   return unwrapList(data)
+}
+
+export async function fetchOngoingElection() {
+  return apiGet<Election | null>('/elections/ongoing/')
 }
 
 export async function fetchActiveElection() {
@@ -32,6 +36,14 @@ export async function updateElection(id: number, data: Partial<Election>) {
 
 export async function scheduleElection(id: number) {
   return apiPost<Election>(`/elections/${id}/schedule/`)
+}
+
+export async function startVotingElection(id: number, voting_end_at?: string) {
+  return apiPost<Election>(`/elections/${id}/start-voting/`, voting_end_at ? { voting_end_at } : {})
+}
+
+export async function fetchPublishedResults() {
+  return apiGet<PublishedResults | null>('/elections/published-results/')
 }
 
 export async function publishElectionResults(id: number) {

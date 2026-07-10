@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2, XCircle, ExternalLink, Clock, FileText } from 'lucide-react'
 import { getApiErrorMessage } from '@/api/client'
-import { fetchDraftElection } from '@/api/elections'
+import { fetchOngoingElection } from '@/api/elections'
 import { fetchAllApplications, reviewApplication, type CandidateApplication } from '@/api/applications'
 import { fetchPositions } from '@/api/positions'
 import { Button } from '@/components/ui/button'
@@ -37,15 +37,19 @@ export function ApplicationReviewPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState<string>('3rd Year')
   
-  const { data: draftElection, isLoading: loadingElection } = useQuery({
-    queryKey: ['elections', 'draft'],
-    queryFn: fetchDraftElection,
+  const { data: ongoingElection, isLoading: loadingElection } = useQuery({
+    queryKey: ['elections', 'ongoing'],
+    queryFn: fetchOngoingElection,
   })
 
+  const reviewOpen =
+    ongoingElection?.current_phase === 'REVIEWING' ||
+    ongoingElection?.current_phase === 'READY_FOR_VOTING'
+
   const { data: applications, isLoading: loadingApplications } = useQuery({
-    queryKey: ['applications', 'all', draftElection?.id],
+    queryKey: ['applications', 'all', ongoingElection?.id],
     queryFn: () => fetchAllApplications({ status: 'PENDING_REVIEW' }),
-    enabled: !!draftElection,
+    enabled: !!ongoingElection && reviewOpen,
   })
 
   const { data: positions } = useQuery({
@@ -129,14 +133,14 @@ export function ApplicationReviewPage() {
     )
   }
 
-  if (!draftElection) {
+  if (!ongoingElection || !reviewOpen) {
     return (
       <div className={pageLayoutClass}>
         <PageHeader title="Application Review" description="Review candidate applications" />
         <EmptyState
           icon={Clock}
-          title="No open elections"
-          description="There are currently no draft elections open for applications."
+          title="No applications to review"
+          description="Applications can be reviewed after the application window closes and before voting starts."
         />
       </div>
     )
@@ -148,7 +152,7 @@ export function ApplicationReviewPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <PageHeader
             title="Application Review"
-            description={`Review pending applications for: ${draftElection.name}`}
+            description={`Review pending applications for: ${ongoingElection.name}`}
           />
           {applications && applications.length > 0 && (
             <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">

@@ -42,11 +42,18 @@ export async function prepareAdminEntry(queryClient: QueryClient) {
   ])
 }
 
-/** Load member shell, ballot page chunk, and ballot API before first paint. */
+/** Load member shell and election state before first paint. */
 export async function prepareMemberEntry(queryClient: QueryClient) {
-  const { fetchBallot } = await import('@/api/votes')
+  const [{ fetchBallot }, { fetchOngoingElection }] = await Promise.all([
+    import('@/api/votes'),
+    import('@/api/elections'),
+  ])
   await Promise.all([
     preloadMemberShell(),
+    queryClient.ensureQueryData({
+      queryKey: ['elections', 'ongoing'],
+      queryFn: fetchOngoingElection,
+    }),
     queryClient.ensureQueryData({
       queryKey: BALLOT_QUERY_KEY,
       queryFn: fetchBallot,
@@ -189,7 +196,10 @@ export function prefetchMemberNavRoute(to: string, queryClient: QueryClient) {
   if (!markPrefetched(routeKey)) return
 
   switch (to) {
+    case '/':
     case '/vote':
+    case '/apply':
+    case '/voting':
       prefetchMemberLanding(queryClient)
       break
     default:
@@ -198,6 +208,12 @@ export function prefetchMemberNavRoute(to: string, queryClient: QueryClient) {
 }
 
 export function prefetchMemberLanding(queryClient: QueryClient) {
+  void import('@/api/elections').then(({ fetchOngoingElection }) => {
+    void queryClient.prefetchQuery({
+      queryKey: ['elections', 'ongoing'],
+      queryFn: fetchOngoingElection,
+    })
+  })
   void import('@/api/votes').then(({ fetchBallot }) => {
     void queryClient.prefetchQuery({
       queryKey: BALLOT_QUERY_KEY,

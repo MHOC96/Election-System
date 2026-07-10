@@ -1,15 +1,15 @@
 from django.conf import settings
-from django.db import models, transaction
+from django.db import models
 from django.utils import timezone
 
-from candidates.models import Candidate
-from positions.models import Position
+from candidates.models import ApplicationStatus, CandidateApplication
 
 
 class ElectionStatus(models.TextChoices):
     DRAFT = "DRAFT", "Draft"
     SCHEDULED = "SCHEDULED", "Scheduled"
     ARCHIVED = "ARCHIVED", "Archived"
+
 
 class ElectionPhase(models.TextChoices):
     DRAFT = "DRAFT", "Draft"
@@ -35,8 +35,9 @@ class Election(models.Model):
     application_end_at = models.DateTimeField(null=True, blank=True)
     voting_start_at = models.DateTimeField(null=True, blank=True)
     voting_end_at = models.DateTimeField(null=True, blank=True)
+    voting_started = models.BooleanField(default=False)
     results_published = models.BooleanField(default=False)
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -55,86 +56,93 @@ class Election(models.Model):
 
     @classmethod
     def get_ongoing(cls):
-        """Election that is not DRAFT and not ARCHIVED."""
-        return cls.objects.filter(status=ElectionStatus.SCHEDULED).first()
+        return cls.objects.filter(status=ElectionStatus.SCHEDULED).order_by("-created_at").first()
 
     @classmethod
     def get_recently_closed(cls):
-        # We can define recently closed as an election where voting_end_at < now, but still SCHEDULED
         now = timezone.now()
         return (
-            cls.objects.filter(status=ElectionStatus.SCHEDULED, voting_end_at__lte=now)
+            cls.objects.filter(
+                status=ElectionStatus.SCHEDULED,
+                voting_started=True,
+                voting_end_at__lte=now,
+            )
             .order_by("-voting_end_at")
             .first()
         )
+
+    def _has_pending_applications(self) -> bool:
+        return CandidateApplication.objects.filter(
+            election=self,
+            status=ApplicationStatus.PENDING_REVIEW,
+        ).exists()
 
     def get_current_phase(self) -> str:
         if self.status == ElectionStatus.DRAFT:
             return ElectionPhase.DRAFT
         if self.status == ElectionStatus.ARCHIVED:
             return ElectionPhase.ARCHIVED
-            
+
         if self.results_published:
             return ElectionPhase.RESULTS_PUBLISHED
-            
+
         now = timezone.now()
-        
-        if self.voting_end_at and now >= self.voting_end_at:
+
+        if self.voting_started and self.voting_end_at and now >= self.voting_end_at:
             return ElectionPhase.VOTING_CLOSED
-            
-        if self.voting_start_at and now >= self.voting_start_at:
+
+        if self.voting_started:
             return ElectionPhase.VOTING_OPEN
-            
+
         if self.application_end_at and now >= self.application_end_at:
-            # We can distinguish between REVIEWING and READY_FOR_VOTING by checking pending applications
-            # For simplicity in model, we can return REVIEWING if not voting yet
-            return ElectionPhase.REVIEWING
-            
-        if self.application_start_at and now >= self.application_start_at:
+            if self._has_pending_applications():
+                return ElectionPhase.REVIEWING
+            return ElectionPhase.READY_FOR_VOTING
+
+        if (
+            self.application_start_at
+            and self.application_end_at
+            and self.application_start_at <= now < self.application_end_at
+        ):
             return ElectionPhase.APPLICATIONS_OPEN
-            
-        return ElectionPhase.SCHEDULED
+
+        if self.status == ElectionStatus.SCHEDULED:
+            return ElectionPhase.SCHEDULED
+
+        return ElectionPhase.DRAFT
 
     @property
     def is_voting_open(self):
         return self.get_current_phase() == ElectionPhase.VOTING_OPEN
-        
-    def can_schedule(self):
+
+    @property
+    def applications_locked(self) -> bool:
+        if not self.application_end_at:
+            return False
+        return timezone.now() >= self.application_end_at
+
+    def can_open_applications(self) -> bool:
         return self.status == ElectionStatus.DRAFT
 
-    def schedule(self):
-        if not self.can_schedule():
-            raise ValueError("Only DRAFT elections can be scheduled.")
-        
-        # Validation checks
-        if not all([self.application_start_at, self.application_end_at, self.voting_start_at, self.voting_end_at]):
-            raise ValueError("All dates must be set before scheduling.")
-            
-        if self.application_start_at >= self.application_end_at:
-            raise ValueError("Application start must be before end.")
-        if self.application_end_at > self.voting_start_at:
-            raise ValueError("Application end must be before voting start.")
-        if self.voting_start_at >= self.voting_end_at:
-            raise ValueError("Voting start must be before end.")
-            
-        # Ensure no other scheduled election
-        if Election.objects.filter(status=ElectionStatus.SCHEDULED).exclude(pk=self.pk).exists():
-            raise ValueError("Another election is already scheduled. Archive it first.")
-            
-        self.status = ElectionStatus.SCHEDULED
-        self.save()
+    def open_applications(self):
+        from voting.services.election_lifecycle import open_applications
+
+        return open_applications(self)
+
+    def start_voting(self):
+        from voting.services.election_lifecycle import start_voting
+
+        return start_voting(self)
 
     def publish_results(self):
-        if self.get_current_phase() != ElectionPhase.VOTING_CLOSED:
-            raise ValueError("Cannot publish results until voting is closed.")
-        self.results_published = True
-        self.save()
-        
+        from voting.services.election_lifecycle import publish_results
+
+        return publish_results(self)
+
     def archive(self):
-        if self.status == ElectionStatus.ARCHIVED:
-            return
-        self.status = ElectionStatus.ARCHIVED
-        self.save()
+        from voting.services.election_lifecycle import archive_election
+
+        return archive_election(self)
 
 
 class Vote(models.Model):
@@ -144,12 +152,12 @@ class Vote(models.Model):
         related_name="votes",
     )
     position = models.ForeignKey(
-        Position,
+        "positions.Position",
         on_delete=models.PROTECT,
         related_name="votes",
     )
     candidate = models.ForeignKey(
-        Candidate,
+        "candidates.Candidate",
         on_delete=models.PROTECT,
         related_name="votes",
     )

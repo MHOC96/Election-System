@@ -1,3 +1,5 @@
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.db import transaction
 from django.db.models import Prefetch
 from rest_framework import generics, status
@@ -12,15 +14,21 @@ from candidates.serializers import CandidateSerializer
 from dashboard.services.stats_service import invalidate_dashboard_cache
 from positions.models import Position
 from positions.serializers import PositionSerializer
-from voting.models import Election, ElectionStatus, Vote
+from voting.models import Election, ElectionPhase, ElectionStatus, Vote
 from voting.serializers import ElectionSerializer, VoteSubmitSerializer
+from voting.services.election_lifecycle import (
+    ElectionLifecycleError,
+    can_edit_application_window,
+    can_edit_voting_window,
+    validate_application_window,
+    validate_voting_window,
+)
 from voting.services.vote_service import (
     VoteError,
     build_member_vote_status,
     get_member_vote_status,
     submit_vote,
 )
-from voting.services.election_guard import ElectionGuardError
 from voting.throttling import VoteRateThrottle
 
 
@@ -54,20 +62,64 @@ class ElectionDetailView(generics.RetrieveUpdateDestroyAPIView):
         serializer = self.get_serializer(self.get_object())
         return Response({"success": True, "data": serializer.data})
 
+    def update(self, request, *args, **kwargs):
+        election = self.get_object()
+        partial = kwargs.pop("partial", True)
+        data = request.data.copy()
+
+        if election.status == ElectionStatus.ARCHIVED:
+            raise ValidationError("Archived elections cannot be edited.")
+
+        now = timezone.now()
+
+        if "application_start_at" in data or "application_end_at" in data:
+            if not can_edit_application_window(election, now=now):
+                raise ValidationError(
+                    "Application dates are locked after the application period ends."
+                )
+
+        if "voting_end_at" in data:
+            if not can_edit_voting_window(election, now=now):
+                raise ValidationError(
+                    "Voting end time can only be changed before voting closes."
+                )
+            if election.voting_started and election.voting_end_at and now >= election.voting_end_at:
+                raise ValidationError("Voting has already ended.")
+
+        if "voting_start_at" in data:
+            raise ValidationError("Voting start time is set automatically when voting begins.")
+
+        serializer = self.get_serializer(election, data=data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+
+        updated = serializer.save()
+
+        try:
+            if updated.application_start_at and updated.application_end_at:
+                validate_application_window(
+                    updated.application_start_at,
+                    updated.application_end_at,
+                    now=now,
+                )
+            if updated.voting_end_at:
+                validate_voting_window(updated.voting_end_at, now=now)
+        except ElectionLifecycleError as exc:
+            raise ValidationError(str(exc)) from exc
+
+        invalidate_dashboard_cache(updated.id)
+        return Response({"success": True, "data": ElectionSerializer(updated).data})
+
     def destroy(self, request, *args, **kwargs):
         election = self.get_object()
-        if election.status != ElectionStatus.DRAFT:
-            raise ValidationError("Only draft elections can be deleted.")
-
         election_id = election.id
 
         with transaction.atomic():
-            # Clear all votes, candidates, and applications when an election is deleted to reset the system.
-            Vote.objects.all().delete()
+            Vote.objects.filter(election_id=election_id).delete()
             from candidates.models import Candidate, CandidateApplication
-            CandidateApplication.objects.all().delete()
+
+            CandidateApplication.objects.filter(election_id=election_id).delete()
+            Candidate.objects.filter(election_id=election_id).delete()
             Election.objects.filter(pk=election_id).delete()
-            Candidate.objects.all().delete()
 
         invalidate_dashboard_cache(election_id)
         return Response(
@@ -77,14 +129,43 @@ class ElectionDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class ElectionScheduleView(APIView):
+    """Open the application window (DRAFT → SCHEDULED)."""
+
     permission_classes = [IsAdmin]
 
     def post(self, request, pk):
         election = generics.get_object_or_404(Election, pk=pk)
         try:
-            election.schedule()
+            election.open_applications()
+        except ElectionLifecycleError as exc:
+            raise ValidationError(str(exc)) from exc
         except ValueError as exc:
-            raise ValidationError(str(exc))
+            raise ValidationError(str(exc)) from exc
+        invalidate_dashboard_cache(election.id)
+        return Response(
+            {"success": True, "data": ElectionSerializer(election).data},
+            status=status.HTTP_200_OK,
+        )
+
+
+class ElectionStartVotingView(APIView):
+    permission_classes = [IsAdmin]
+
+    def post(self, request, pk):
+        election = generics.get_object_or_404(Election, pk=pk)
+        voting_end_at = request.data.get("voting_end_at")
+        if voting_end_at and not election.voting_end_at:
+            parsed = parse_datetime(voting_end_at)
+            if parsed is None:
+                raise ValidationError("Invalid voting end time.")
+            if timezone.is_naive(parsed):
+                parsed = timezone.make_aware(parsed, timezone.get_current_timezone())
+            election.voting_end_at = parsed
+            election.save(update_fields=["voting_end_at", "updated_at"])
+        try:
+            election.start_voting()
+        except ElectionLifecycleError as exc:
+            raise ValidationError(str(exc)) from exc
         invalidate_dashboard_cache(election.id)
         return Response(
             {"success": True, "data": ElectionSerializer(election).data},
@@ -99,8 +180,10 @@ class ElectionPublishResultsView(APIView):
         election = generics.get_object_or_404(Election, pk=pk)
         try:
             election.publish_results()
+        except ElectionLifecycleError as exc:
+            raise ValidationError(str(exc)) from exc
         except ValueError as exc:
-            raise ValidationError(str(exc))
+            raise ValidationError(str(exc)) from exc
         invalidate_dashboard_cache(election.id)
         return Response(
             {"success": True, "data": ElectionSerializer(election).data},
@@ -115,9 +198,27 @@ class ElectionArchiveView(APIView):
         election = generics.get_object_or_404(Election, pk=pk)
         try:
             election.archive()
+        except ElectionLifecycleError as exc:
+            raise ValidationError(str(exc)) from exc
         except ValueError as exc:
-            raise ValidationError(str(exc))
+            raise ValidationError(str(exc)) from exc
         invalidate_dashboard_cache(election.id)
+        return Response(
+            {"success": True, "data": ElectionSerializer(election).data},
+            status=status.HTTP_200_OK,
+        )
+
+
+class OngoingElectionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        election = Election.get_ongoing()
+        if election is None:
+            return Response(
+                {"success": True, "data": None, "message": "No ongoing election."},
+                status=status.HTTP_200_OK,
+            )
         return Response(
             {"success": True, "data": ElectionSerializer(election).data},
             status=status.HTTP_200_OK,
@@ -246,21 +347,19 @@ class BallotView(APIView):
         )
         member_votes = {vote.position_id: vote.candidate_id for vote in member_votes_qs}
 
-        from django.db.models import Q
-        
         base_positions = Position.objects.prefetch_related(
             Prefetch(
                 "candidates",
-                queryset=Candidate.objects.select_related("position"),
+                queryset=Candidate.objects.filter(election_id=election.id).select_related(
+                    "position"
+                ),
             )
         ).order_by("name")
 
         if request.user.academic_year:
-            positions = base_positions.filter(
-                Q(academic_year__isnull=True) | Q(academic_year=request.user.academic_year)
-            )
+            positions = base_positions.filter(academic_year=request.user.academic_year)
         else:
-            positions = base_positions.filter(academic_year__isnull=True)
+            positions = Position.objects.none()
             
         position_items = []
         for position in positions:
@@ -295,3 +394,23 @@ class BallotView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class PublishedResultsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from voting.services.results_service import get_published_results
+
+        academic_year = getattr(request.user, "academic_year", None)
+        data = get_published_results(academic_year=academic_year)
+        if data is None:
+            return Response(
+                {
+                    "success": True,
+                    "data": None,
+                    "message": "No published results available.",
+                },
+                status=status.HTTP_200_OK,
+            )
+        return Response({"success": True, "data": data}, status=status.HTTP_200_OK)

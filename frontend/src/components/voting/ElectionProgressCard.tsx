@@ -49,7 +49,7 @@ export function ElectionProgressCard({
   return (
     <Card className="overflow-hidden border-primary/20 shadow-sm">
       <CardHeader className="border-b bg-gradient-to-br from-primary/5 via-transparent to-transparent pb-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
           <div className="space-y-1">
             <CardTitle className="text-xl">{electionName}</CardTitle>
             <CardDescription>

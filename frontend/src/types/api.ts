@@ -95,6 +95,7 @@ export interface Election {
   application_end_at: string | null
   voting_start_at: string | null
   voting_end_at: string | null
+  voting_started: boolean
   results_published: boolean
   created_at: string
   updated_at: string
@@ -113,6 +114,29 @@ export interface Ballot {
   can_vote: boolean
   election_ended: boolean
   vote_status: VoteStatus
+}
+
+export interface PublishedResultCandidate {
+  candidate_id: number
+  full_name: string
+  photo_url: string
+  vote_count: number
+  rank: number
+  vote_percentage: number
+}
+
+export interface PublishedResultPosition {
+  position_id: number
+  position_name: string
+  academic_year: AcademicYear
+  total_votes: number
+  winner: PublishedResultCandidate | null
+  candidates: PublishedResultCandidate[]
+}
+
+export interface PublishedResults {
+  election: Pick<Election, 'id' | 'name' | 'current_phase' | 'results_published'>
+  positions: PublishedResultPosition[]
 }
 
 export interface DashboardOverview {

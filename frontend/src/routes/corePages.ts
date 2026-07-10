@@ -12,6 +12,10 @@ export const AdminDashboardPage = lazyWithPreload(() =>
   import('@/pages/admin/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage })),
 )
 
+export const MemberHomePage = lazyWithPreload(() =>
+  import('@/pages/member/MemberHomePage').then((m) => ({ default: m.MemberHomePage })),
+)
+
 export const BallotPage = lazyWithPreload(() =>
   import('@/pages/member/BallotPage').then((m) => ({ default: m.BallotPage })),
 )
@@ -20,10 +24,14 @@ export const CandidateApplicationPage = lazyWithPreload(() =>
   import('@/pages/member/CandidateApplicationPage').then((m) => ({ default: m.CandidateApplicationPage })),
 )
 
+export const PublishedResultsPage = lazyWithPreload(() =>
+  import('@/pages/member/PublishedResultsPage').then((m) => ({ default: m.PublishedResultsPage })),
+)
+
 export function preloadAdminShell() {
   return Promise.all([AdminLayout.preload(), AdminDashboardPage.preload()])
 }
 
 export function preloadMemberShell() {
-  return Promise.all([MemberLayout.preload(), BallotPage.preload(), CandidateApplicationPage.preload()])
+  return Promise.all([MemberLayout.preload(), MemberHomePage.preload()])
 }

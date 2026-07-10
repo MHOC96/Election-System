@@ -200,6 +200,142 @@
     background: var(--gradient-brand);
   }
 
+  /* Election countdown — uses app tokens: primary, accent, chart-3, card */
+  .election-countdown {
+    --cd-title: hsl(var(--foreground));
+    --cd-subtitle: hsl(var(--muted-foreground));
+    --cd-label: hsl(var(--muted-foreground));
+    --cd-digit-bg: hsl(var(--card));
+    --cd-digit-border: hsl(var(--border));
+    --cd-digit-accent: hsl(var(--primary));
+    --cd-chip-bg: hsl(var(--accent));
+    --cd-chip-border: hsl(var(--primary) / 0.18);
+    --cd-chip-text: hsl(var(--accent-foreground));
+    --cd-date-bg: hsl(var(--muted) / 0.7);
+    --cd-date-border: hsl(var(--border));
+    --cd-date-text: hsl(var(--foreground));
+    --cd-glow-a: hsl(var(--primary) / 0.1);
+    --cd-glow-b: hsl(var(--chart-3) / 0.08);
+    --cd-shadow: hsl(var(--shadow-color) / 0.08);
+
+    background: linear-gradient(
+      152deg,
+      hsl(var(--card)) 0%,
+      hsl(var(--accent) / 0.5) 48%,
+      hsl(var(--primary) / 0.06) 100%
+    );
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-md);
+    transition:
+      background 0.45s ease,
+      border-color 0.45s ease,
+      box-shadow 0.45s ease,
+      color 0.45s ease;
+  }
+
+  .dark .election-countdown {
+    --cd-digit-bg: hsl(var(--secondary) / 0.65);
+    --cd-chip-bg: hsl(var(--primary) / 0.12);
+    --cd-chip-border: hsl(var(--primary) / 0.24);
+    --cd-chip-text: hsl(var(--primary));
+    --cd-date-bg: hsl(var(--muted) / 0.5);
+    --cd-glow-a: hsl(var(--primary) / 0.18);
+    --cd-glow-b: hsl(var(--chart-3) / 0.14);
+    --cd-shadow: hsl(var(--shadow-color) / 0.35);
+
+    background: linear-gradient(
+      152deg,
+      hsl(var(--card)) 0%,
+      hsl(var(--primary) / 0.1) 45%,
+      hsl(var(--chart-3) / 0.08) 100%
+    );
+    border-color: hsl(var(--border));
+    box-shadow: var(--shadow-lg);
+  }
+
+  .election-countdown--applications-upcoming {
+    --cd-glow-a: hsl(var(--primary) / 0.12);
+    --cd-glow-b: hsl(var(--chart-3) / 0.1);
+  }
+
+  .election-countdown--applications-open {
+    --cd-chip-bg: hsl(var(--primary) / 0.09);
+    --cd-chip-text: hsl(var(--primary));
+    --cd-glow-a: hsl(var(--success) / 0.1);
+    --cd-glow-b: hsl(var(--primary) / 0.08);
+    border-color: hsl(var(--success) / 0.22);
+  }
+
+  .dark .election-countdown--applications-open {
+    --cd-chip-bg: hsl(var(--success) / 0.12);
+    --cd-chip-text: hsl(var(--success));
+    border-color: hsl(var(--success) / 0.28);
+  }
+
+  .election-countdown--voting-open {
+    --cd-digit-accent: hsl(var(--chart-3));
+    --cd-chip-text: hsl(var(--chart-3));
+    --cd-glow-a: hsl(var(--primary) / 0.14);
+    --cd-glow-b: hsl(var(--chart-3) / 0.14);
+  }
+
+  .dark .election-countdown--voting-open {
+    --cd-digit-accent: hsl(var(--chart-3));
+    --cd-chip-text: hsl(var(--chart-3));
+  }
+
+  .election-countdown__digit {
+    background: var(--cd-digit-bg);
+    border: 1px solid var(--cd-digit-border);
+    box-shadow: var(--shadow-xs);
+    transition:
+      background 0.45s ease,
+      border-color 0.45s ease,
+      box-shadow 0.45s ease,
+      color 0.45s ease,
+      transform 0.25s ease;
+  }
+
+  .election-countdown__digit-value {
+    background: var(--gradient-brand);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    transition: opacity 0.45s ease;
+  }
+
+  .election-countdown--voting-open .election-countdown__digit-value {
+    background: linear-gradient(
+      135deg,
+      hsl(var(--primary)),
+      hsl(var(--chart-3))
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  .election-countdown__digit--seconds {
+    animation: countdown-pulse 1s ease-in-out infinite;
+  }
+
+  @keyframes countdown-pulse {
+    0%,
+    100% {
+      transform: scale(1);
+      box-shadow: var(--shadow-xs);
+    }
+    50% {
+      transform: scale(1.015);
+      box-shadow: var(--shadow-sm);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .election-countdown__digit--seconds {
+      animation: none;
+    }
+  }
+
   /* Subtle dotted grid background for hero/empty canvases */
   .bg-grid {
     background-image: radial-gradient(hsl(var(--muted-foreground) / 0.12) 1px, transparent 1px);

@@ -1,10 +1,10 @@
 from django.db import IntegrityError, transaction
-from django.db.models import Count
+from django.db.models import Count, Q
 
 from accounts.models import User
 from candidates.models import Candidate
 from positions.models import Position
-from voting.models import Election, ElectionStatus, Vote
+from voting.models import Election, ElectionPhase, Vote
 
 
 class VoteError(Exception):
@@ -19,9 +19,9 @@ def submit_vote(*, member: User, position_id: int, candidate_id: int) -> Vote:
         raise VoteError("Only active members are allowed to vote.", code="not_authorized")
 
     with transaction.atomic():
-        election = Election.objects.filter(status=ElectionStatus.ACTIVE).first()
-        if election is None:
-            raise VoteError("No active election.", code="election_not_active")
+        election = Election.get_ongoing()
+        if election is None or not election.is_voting_open:
+            raise VoteError("Voting is not currently open.", code="election_not_active")
 
         try:
             position = Position.objects.get(pk=position_id)
@@ -29,7 +29,10 @@ def submit_vote(*, member: User, position_id: int, candidate_id: int) -> Vote:
             raise VoteError("Invalid position.", code="invalid_position") from exc
 
         try:
-            candidate = Candidate.objects.select_related("position").get(pk=candidate_id)
+            candidate = Candidate.objects.select_related("position").get(
+                pk=candidate_id,
+                election_id=election.id,
+            )
         except Candidate.DoesNotExist as exc:
             raise VoteError("Invalid candidate.", code="invalid_candidate") from exc
 
@@ -38,8 +41,13 @@ def submit_vote(*, member: User, position_id: int, candidate_id: int) -> Vote:
                 "Candidate does not belong to the selected position.",
                 code="candidate_position_mismatch",
             )
-            
-        if position.academic_year and position.academic_year != member.academic_year:
+
+        if not member.academic_year:
+            raise VoteError(
+                "Your academic year is not set. Contact an administrator.",
+                code="ineligible_position",
+            )
+        if position.academic_year != member.academic_year:
             raise VoteError(
                 "You are not eligible to vote for this position.",
                 code="ineligible_position",
@@ -65,25 +73,25 @@ def submit_vote(*, member: User, position_id: int, candidate_id: int) -> Vote:
     return Vote.objects.select_related("position", "candidate").get(pk=vote.pk)
 
 
-def count_votable_positions(member: User | None = None, academic_year: str | None = None, election_id: int | None = None) -> int:
-    from django.db.models import Q, Count
+def count_votable_positions(
+    member: User | None = None,
+    academic_year: str | None = None,
+    election_id: int | None = None,
+) -> int:
     candidate_filter = Q()
     if election_id:
         candidate_filter &= Q(candidates__election_id=election_id)
-        
+
     qs = Position.objects.annotate(
         candidate_count=Count("candidates", filter=candidate_filter)
     ).filter(candidate_count__gt=0)
-    
-    target_year = academic_year
-    if not target_year and member:
-        target_year = member.academic_year
-        
+
+    target_year = academic_year or (member.academic_year if member else None)
     if target_year:
-        qs = qs.filter(Q(academic_year__isnull=True) | Q(academic_year=target_year))
-    elif member:
-        qs = qs.filter(academic_year__isnull=True)
-        
+        qs = qs.filter(academic_year=target_year)
+    else:
+        return 0
+
     return qs.count()
 
 

@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarCheck, CheckCircle2, Vote } from 'lucide-react'
 import { fetchBallot, submitVote } from '@/api/votes'
 import { getApiErrorMessage } from '@/api/client'
+import { ElectionCountdownHero } from '@/components/elections/ElectionCountdownHero'
 import { ElectionProgressCard } from '@/components/voting/ElectionProgressCard'
 import { CandidateCard } from '@/components/voting/CandidateCard'
 import { MemberSelectionItem } from '@/components/voting/MemberSelectionItem'
@@ -15,6 +16,7 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { sectionDelays, Stagger, StaggerChildren } from '@/components/motion/Stagger'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import { BALLOT_QUERY_KEY, BALLOT_STALE_MS } from '@/lib/query-sync'
+import { useCountdown } from '@/lib/use-countdown'
 import { handleRadioGroupKeyDown } from '@/lib/a11y'
 import { cn } from '@/lib/utils'
 import type { BallotItem, Candidate } from '@/types/api'
@@ -39,6 +41,18 @@ export function BallotPage() {
     placeholderData: (previous) => previous,
     retry: false,
   })
+
+  const votingEndAt = ballotQuery.data?.election?.voting_end_at ?? null
+  const votingCountdownMs = useCountdown(
+    ballotQuery.data?.can_vote ? votingEndAt : null,
+  )
+
+  useEffect(() => {
+    if (votingCountdownMs === 0 && votingEndAt) {
+      void queryClient.invalidateQueries({ queryKey: BALLOT_QUERY_KEY })
+      void queryClient.invalidateQueries({ queryKey: ['elections', 'ongoing'] })
+    }
+  }, [votingCountdownMs, votingEndAt, queryClient])
 
   const voteMutation = useMutation({
     mutationFn: ({ positionId, candidateId }: { positionId: number; candidateId: number }) =>
@@ -120,6 +134,18 @@ export function BallotPage() {
           description="View election details and submit your votes"
         />
       </Stagger>
+
+      {canVote && ballot.election ? (
+        <Stagger delayMs={sectionDelays.primary}>
+          <ElectionCountdownHero
+            variant="voting-open"
+            electionName={ballot.election.name}
+            targetAt={ballot.election.voting_end_at}
+            countdownMs={votingCountdownMs}
+            className="mb-2 sm:mb-0"
+          />
+        </Stagger>
+      ) : null}
 
       <Stagger delayMs={sectionDelays.primary}>
         <ElectionProgressCard
@@ -238,7 +264,7 @@ function PositionSection({
       )}
     >
       <CardHeader className="border-b bg-muted/20 pb-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
           <div>
             <h3 id={sectionId} className="text-lg font-semibold leading-none tracking-tight">
               {item.position.name}

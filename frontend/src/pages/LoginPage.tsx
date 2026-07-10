@@ -35,7 +35,7 @@ export function LoginPage() {
   const mcNumber = watch('mc_number')
 
   if (isAuthenticated && user) {
-    const target = user.role === 'ADMIN' ? '/admin' : '/vote'
+    const target = user.role === 'ADMIN' ? '/admin' : '/'
     return <Navigate to={target} replace />
   }
 
@@ -53,7 +53,7 @@ export function LoginPage() {
         navigate('/admin')
       } else {
         await prepareMemberEntry(queryClient)
-        navigate('/vote')
+        navigate('/')
       }
     } catch (error) {
       notifyError(getApiErrorMessage(error, 'Invalid credentials'))

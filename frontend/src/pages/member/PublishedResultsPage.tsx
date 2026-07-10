@@ -1,0 +1,111 @@
+import { useQuery } from '@tanstack/react-query'
+import { Trophy } from 'lucide-react'
+import { fetchPublishedResults } from '@/api/elections'
+import { EmptyState } from '@/components/shared/EmptyState'
+import { PageHeader } from '@/components/shared/PageHeader'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { sectionDelays, Stagger } from '@/components/motion/Stagger'
+import { pageLayoutClass } from '@/lib/design-tokens'
+import { optimizeCloudinaryUrl } from '@/lib/cloudinary'
+
+export function PublishedResultsPage() {
+  const { data: results, isLoading } = useQuery({
+    queryKey: ['elections', 'published-results'],
+    queryFn: fetchPublishedResults,
+    refetchInterval: 30_000,
+  })
+
+  if (isLoading) {
+    return (
+      <div className={pageLayoutClass}>
+        <Skeleton className="h-12 w-64" />
+        <Skeleton className="h-48 w-full" />
+      </div>
+    )
+  }
+
+  if (!results?.positions.length) {
+    return (
+      <div className={pageLayoutClass}>
+        <PageHeader title="Election Results" description="Published winners and vote counts" />
+        <EmptyState
+          icon={Trophy}
+          title="No results published yet"
+          description="Results will appear here after the admin publishes them."
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className={pageLayoutClass}>
+      <Stagger delayMs={sectionDelays.header}>
+        <PageHeader
+          title={results.election.name}
+          description="Official published results"
+        />
+      </Stagger>
+
+      <div className="grid gap-4">
+        {results.positions.map((position) => {
+          const winner = position.winner
+          return (
+            <Card key={position.position_id}>
+              <CardHeader>
+                <CardTitle className="text-lg">{position.position_name}</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {position.academic_year} · {position.total_votes} vote
+                  {position.total_votes === 1 ? '' : 's'} cast
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {winner ? (
+                  <div className="flex items-center gap-4 rounded-lg border bg-muted/30 p-4">
+                    <img
+                      src={optimizeCloudinaryUrl(winner.photo_url, 80)}
+                      alt=""
+                      className="h-16 w-16 rounded-full object-cover"
+                    />
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-primary">
+                        Winner
+                      </p>
+                      <p className="text-lg font-semibold">{winner.full_name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {winner.vote_count} votes ({winner.vote_percentage}%)
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No votes recorded for this position.</p>
+                )}
+
+                {position.candidates.length > 1 ? (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">All candidates</p>
+                    <ul className="space-y-1 text-sm">
+                      {position.candidates.map((candidate) => (
+                        <li
+                          key={candidate.candidate_id}
+                          className="flex justify-between gap-2 rounded-md px-2 py-1 hover:bg-muted/40"
+                        >
+                          <span>
+                            #{candidate.rank} {candidate.full_name}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {candidate.vote_count} ({candidate.vote_percentage}%)
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+    </div>
+  )
+}

@@ -9,6 +9,7 @@ import {
   deleteElection,
   fetchElections,
   scheduleElection,
+  startVotingElection,
   publishElectionResults,
   updateElection,
 } from '@/api/elections'
@@ -38,6 +39,7 @@ import { refreshDashboard, markQueriesStale } from '@/lib/query-sync'
 import { electionSchema, type ElectionForm } from '@/lib/form-schemas'
 import type { Election } from '@/types/api'
 import { cn, formatDate } from '@/lib/utils'
+import { isoToLocalInput, localInputToIso } from '@/lib/datetime'
 import { notifyError } from '@/lib/notify'
 
 export function ElectionsPage() {
@@ -48,8 +50,8 @@ export function ElectionsPage() {
   const [resultsElection, setResultsElection] = useState<Election | null>(null)
   const [resultsOpen, setResultsOpen] = useState(false)
 
-  const [scheduleTarget, setScheduleTarget] = useState<Election | null>(null)
-  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
+  const [startVotingTarget, setStartVotingTarget] = useState<Election | null>(null)
+  const [startVotingDialogOpen, setStartVotingDialogOpen] = useState(false)
 
   const {
     register,
@@ -62,15 +64,14 @@ export function ElectionsPage() {
   })
 
   const {
-    register: registerSchedule,
-    handleSubmit: handleScheduleSubmit,
-    reset: resetSchedule,
-    formState: { errors: scheduleErrors, isSubmitting: isScheduleSubmitting },
+    register: registerStartVoting,
+    handleSubmit: handleStartVotingSubmit,
+    reset: resetStartVoting,
+    formState: { errors: startVotingErrors, isSubmitting: isStartVotingSubmitting },
   } = useForm<{
-    voting_start_at: string
     voting_end_at: string
   }>({
-    defaultValues: { voting_start_at: '', voting_end_at: '' },
+    defaultValues: { voting_end_at: '' },
   })
 
   // State to hold editing election
@@ -135,13 +136,8 @@ export function ElectionsPage() {
     },
   })
 
-  const scheduleFlowMutation = useMutation({
-    mutationFn: async ({ id, values }: { id: number; values: any }) => {
-      // First update the dates
-      await updateElection(id, values)
-      // Then schedule it
-      return scheduleElection(id)
-    },
+  const openApplicationsMutation = useMutation({
+    mutationFn: scheduleElection,
     onSuccess: (updated) => {
       queryClient.setQueryData<Election[]>(['elections'], (old) =>
         (old ?? []).map((election) =>
@@ -150,11 +146,23 @@ export function ElectionsPage() {
       )
       refreshDashboard(queryClient)
       markQueriesStale(queryClient, ['members-deletion-status'])
-      closeScheduleDialog()
     },
-    onError: (error) => {
-      notifyError(getApiErrorMessage(error))
+    onError: (error) => notifyError(getApiErrorMessage(error)),
+  })
+
+  const startVotingMutation = useMutation({
+    mutationFn: async ({ id, voting_end_at }: { id: number; voting_end_at?: string }) =>
+      startVotingElection(id, voting_end_at),
+    onSuccess: (updated) => {
+      queryClient.setQueryData<Election[]>(['elections'], (old) =>
+        (old ?? []).map((election) =>
+          election.id === updated.id ? updated : election,
+        ),
+      )
+      refreshDashboard(queryClient)
+      closeStartVotingDialog()
     },
+    onError: (error) => notifyError(getApiErrorMessage(error)),
   })
 
   const deleteMutation = useMutation({
@@ -171,6 +179,7 @@ export function ElectionsPage() {
     onSuccess: () => {
       refreshDashboard(queryClient)
       markQueriesStale(queryClient, ['members-deletion-status'])
+      closeCreateDialog()
     },
     onError: (error, _id, context) => {
       if (context?.previous) {
@@ -200,58 +209,109 @@ export function ElectionsPage() {
     setEditingElection(election)
     reset({
       name: election.name,
-      application_start_at: election.application_start_at ? new Date(election.application_start_at).toISOString().slice(0, 16) : '',
-      application_end_at: election.application_end_at ? new Date(election.application_end_at).toISOString().slice(0, 16) : '',
-      voting_start_at: election.voting_start_at ? new Date(election.voting_start_at).toISOString().slice(0, 16) : '',
-      voting_end_at: election.voting_end_at ? new Date(election.voting_end_at).toISOString().slice(0, 16) : '',
+      application_start_at: isoToLocalInput(election.application_start_at),
+      application_end_at: isoToLocalInput(election.application_end_at),
+      voting_end_at: isoToLocalInput(election.voting_end_at),
     })
     setDialogOpen(true)
   }
 
-  const openScheduleDialog = (election: Election) => {
-    setScheduleTarget(election)
-    resetSchedule({
-      voting_start_at: election.voting_start_at ? new Date(election.voting_start_at).toISOString().slice(0, 16) : '',
-      voting_end_at: election.voting_end_at ? new Date(election.voting_end_at).toISOString().slice(0, 16) : '',
+  const openStartVotingDialog = (election: Election) => {
+    setStartVotingTarget(election)
+    resetStartVoting({
+      voting_end_at: isoToLocalInput(election.voting_end_at),
     })
-    setScheduleDialogOpen(true)
+    setStartVotingDialogOpen(true)
   }
 
-  const closeScheduleDialog = () => {
-    setScheduleDialogOpen(false)
-    setScheduleTarget(null)
+  const closeStartVotingDialog = () => {
+    setStartVotingDialogOpen(false)
+    setStartVotingTarget(null)
     requestAnimationFrame(() => restoreBodyPointerEvents())
   }
 
   const onCreateSubmit = (values: ElectionForm) => {
     const payload: Partial<ElectionForm> & { name: string } = {
-      ...values,
-      application_start_at: values.application_start_at || undefined,
-      application_end_at: values.application_end_at || undefined,
+      name: values.name,
     }
-    if (editingElection?.status === 'SCHEDULED') {
-      payload.voting_start_at = values.voting_start_at || undefined
-      payload.voting_end_at = values.voting_end_at || undefined
-    } else {
-      delete payload.voting_start_at
-      delete payload.voting_end_at
+
+    if (!editingElection || canEditApplicationDates(editingElection)) {
+      payload.application_start_at = localInputToIso(values.application_start_at)
+      payload.application_end_at = localInputToIso(values.application_end_at)
+    }
+
+    if (editingElection && showVotingFieldsInEdit && canEditVotingEnd(editingElection)) {
+      payload.voting_end_at = localInputToIso(values.voting_end_at)
     }
 
     if (editingElection) {
       updateMutation.mutate({ id: editingElection.id, values: payload })
     } else {
-      createMutation.mutate(payload)
+      createMutation.mutate({
+        name: values.name,
+        application_start_at: localInputToIso(values.application_start_at),
+        application_end_at: localInputToIso(values.application_end_at),
+      })
     }
   }
 
-  const onScheduleSubmit = (values: any) => {
-    if (!scheduleTarget) return
-    const payload = {
-      voting_start_at: values.voting_start_at || undefined,
-      voting_end_at: values.voting_end_at || undefined,
-    }
-    scheduleFlowMutation.mutate({ id: scheduleTarget.id, values: payload })
+  const requestDeleteFromEdit = () => {
+    if (!editingElection) return
+    setDeleteTarget(editingElection)
   }
+
+  const onStartVotingSubmit = (values: { voting_end_at: string }) => {
+    if (!startVotingTarget) return
+    startVotingMutation.mutate({
+      id: startVotingTarget.id,
+      voting_end_at: localInputToIso(values.voting_end_at),
+    })
+  }
+
+  const isApplicationPeriodEnded = (election: Election) => {
+    if (!election.application_end_at) return false
+    return new Date() >= new Date(election.application_end_at)
+  }
+
+  const getDeleteDescription = (election: Election) => {
+    if (election.status === 'DRAFT') {
+      return `Delete "${election.name}"? This cannot be undone.`
+    }
+    return `Delete "${election.name}" and all related votes, applications, and candidates? This permanently removes the election and cannot be undone.`
+  }
+
+  const canEditApplicationDates = (election: Election) => {
+    const now = new Date()
+    const appEnd = election.application_end_at ? new Date(election.application_end_at) : null
+    if (election.status === 'DRAFT') return true
+    if (election.status === 'SCHEDULED' && appEnd) return now < appEnd
+    return election.status === 'SCHEDULED' && !appEnd
+  }
+
+  const canEditVotingEnd = (election: Election) => {
+    const now = new Date()
+    const votingEnd = election.voting_end_at ? new Date(election.voting_end_at) : null
+    if (!['READY_FOR_VOTING', 'VOTING_OPEN'].includes(election.current_phase)) return false
+    if (!votingEnd) return true
+    return now < votingEnd
+  }
+
+  const canOpenEditDialog = (election: Election) => {
+    if (election.status === 'ARCHIVED') return false
+    return (
+      canEditApplicationDates(election) ||
+      canEditVotingEnd(election) ||
+      isApplicationPeriodEnded(election)
+    )
+  }
+
+  const showApplicationFieldsInEdit =
+    !editingElection || canEditApplicationDates(editingElection)
+
+  const showVotingFieldsInEdit =
+    !!editingElection &&
+    isApplicationPeriodEnded(editingElection) &&
+    editingElection.status !== 'ARCHIVED'
 
   const openResults = (election: Election) => {
     setResultsElection(election)
@@ -260,19 +320,8 @@ export function ElectionsPage() {
 
   const renderActions = (election: Election) => {
     const actions = []
-    
-    const now = new Date()
-    const appEnd = election.application_end_at ? new Date(election.application_end_at) : null
-    const votingEnd = election.voting_end_at ? new Date(election.voting_end_at) : null
-    
-    let canEdit = false;
-    if (election.status === 'DRAFT') {
-      canEdit = !appEnd || now < appEnd;
-    } else if (election.status === 'SCHEDULED') {
-      canEdit = !votingEnd || now < votingEnd;
-    }
 
-    if (canEdit) {
+    if (canOpenEditDialog(election)) {
       actions.push(
         <Button
           key="edit"
@@ -289,19 +338,41 @@ export function ElectionsPage() {
     }
 
     if (election.status === 'DRAFT') {
-      const canSchedule = electionScheduleReady
+      const hasAppDates = Boolean(election.application_start_at && election.application_end_at)
       actions.push(
         <Button
-          key="schedule"
+          key="open-apps"
           size="sm"
-          disabled={actionMutation.isPending || !canSchedule}
+          disabled={openApplicationsMutation.isPending || !hasAppDates}
+          title={!hasAppDates ? 'Set application start and end dates first' : undefined}
           onClick={(event) => {
             event.stopPropagation()
-            openScheduleDialog(election)
+            openApplicationsMutation.mutate(election.id)
           }}
         >
           <Play className="h-4 w-4 mr-1" />
-          Schedule
+          Open Applications
+        </Button>,
+      )
+    }
+
+    if (election.current_phase === 'READY_FOR_VOTING') {
+      actions.push(
+        <Button
+          key="start-voting"
+          size="sm"
+          disabled={startVotingMutation.isPending}
+          onClick={(event) => {
+            event.stopPropagation()
+            if (election.voting_end_at) {
+              startVotingMutation.mutate({ id: election.id })
+            } else {
+              openStartVotingDialog(election)
+            }
+          }}
+        >
+          <Play className="h-4 w-4 mr-1" />
+          Start Voting
         </Button>,
       )
     }
@@ -323,7 +394,7 @@ export function ElectionsPage() {
       )
     }
 
-    if (election.status !== 'ARCHIVED' && election.status !== 'DRAFT') {
+    if (election.current_phase === 'RESULTS_PUBLISHED') {
       actions.push(
         <Button
           key="archive"
@@ -341,24 +412,22 @@ export function ElectionsPage() {
       )
     }
 
-    if (election.status === 'DRAFT' || election.status === 'ARCHIVED') {
-      actions.push(
-        <Button
-          key="delete"
-          size="sm"
-          variant="outline"
-          className="text-destructive hover:text-destructive"
-          disabled={deleteMutation.isPending}
-          onClick={(event) => {
-            event.stopPropagation()
-            setDeleteTarget(election)
-          }}
-        >
-          <Trash2 className="h-4 w-4 mr-1" />
-          Delete
-        </Button>,
-      )
-    }
+    actions.push(
+      <Button
+        key="delete"
+        size="sm"
+        variant="outline"
+        className="text-destructive hover:text-destructive"
+        disabled={deleteMutation.isPending}
+        onClick={(event) => {
+          event.stopPropagation()
+          setDeleteTarget(election)
+        }}
+      >
+        <Trash2 className="h-4 w-4 mr-1" />
+        Delete
+      </Button>,
+    )
     
     return actions.length ? <div className="flex flex-wrap gap-2">{actions}</div> : null
   }
@@ -429,7 +498,7 @@ export function ElectionsPage() {
                 role={isClosed ? 'button' : undefined}
                 aria-label={isClosed ? `View results for ${election.name}` : undefined}
               >
-                <CardHeader className="flex flex-row items-start justify-between gap-4">
+                <CardHeader className="flex flex-col sm:flex-row items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <CardTitle className="text-lg">{election.name}</CardTitle>
@@ -437,8 +506,8 @@ export function ElectionsPage() {
                     </div>
                     <CardDescription className="mt-1">
                       Created {formatDate(election.created_at)}
-                      {election.application_start_at && ` · Apps open ${formatDate(election.application_start_at)}`}
-                      {election.voting_start_at && ` · Voting starts ${formatDate(election.voting_start_at)}`}
+                      {election.application_start_at && ` · Apps ${formatDate(election.application_start_at)} – ${election.application_end_at ? formatDate(election.application_end_at) : '…'}`}
+                      {election.voting_start_at && ` · Voting ${formatDate(election.voting_start_at)} – ${election.voting_end_at ? formatDate(election.voting_end_at) : '…'}`}
                     </CardDescription>
                     {isClosed ? (
                       <p className="mt-2 flex items-center gap-1 text-sm text-primary">
@@ -480,66 +549,99 @@ export function ElectionsPage() {
               />
             </FormField>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField label="Applications Start" htmlFor="application_start_at" error={errors.application_start_at?.message}>
-                <Input id="application_start_at" type="datetime-local" {...register('application_start_at')} />
-              </FormField>
-              
-              <FormField label="Applications End" htmlFor="application_end_at" error={errors.application_end_at?.message}>
-                <Input id="application_end_at" type="datetime-local" {...register('application_end_at')} />
-              </FormField>
-            </div>
-            
-            {editingElection?.status === 'SCHEDULED' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
-                <FormField label="Voting Start" htmlFor="edit_voting_start_at" error={errors.voting_start_at?.message}>
-                  <Input id="edit_voting_start_at" type="datetime-local" {...register('voting_start_at')} />
+            {showApplicationFieldsInEdit ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField label="Applications Start" htmlFor="application_start_at" error={errors.application_start_at?.message}>
+                  <Input id="application_start_at" type="datetime-local" {...register('application_start_at')} />
                 </FormField>
-                
-                <FormField label="Voting End" htmlFor="edit_voting_end_at" error={errors.voting_end_at?.message}>
-                  <Input id="edit_voting_end_at" type="datetime-local" {...register('voting_end_at')} />
+
+                <FormField label="Applications End" htmlFor="application_end_at" error={errors.application_end_at?.message}>
+                  <Input id="application_end_at" type="datetime-local" {...register('application_end_at')} />
                 </FormField>
               </div>
-            )}
+            ) : null}
+
+            {showVotingFieldsInEdit ? (
+              <div className="grid grid-cols-1 gap-4 border-t pt-4">
+                <FormField label="Voting Start" htmlFor="edit_voting_start_at">
+                  <Input
+                    id="edit_voting_start_at"
+                    type="datetime-local"
+                    value={isoToLocalInput(editingElection?.voting_start_at)}
+                    readOnly
+                    disabled
+                    className="bg-muted"
+                  />
+                  {!editingElection?.voting_start_at ? (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Recorded automatically when you press Start Voting.
+                    </p>
+                  ) : null}
+                </FormField>
+
+                <FormField label="Voting End" htmlFor="edit_voting_end_at" error={errors.voting_end_at?.message}>
+                  <Input
+                    id="edit_voting_end_at"
+                    type="datetime-local"
+                    disabled={!canEditVotingEnd(editingElection)}
+                    {...register('voting_end_at')}
+                  />
+                  {!canEditVotingEnd(editingElection) ? (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Voting end can be edited after review completes and before voting closes.
+                    </p>
+                  ) : null}
+                </FormField>
+              </div>
+            ) : null}
             
-            <DialogFooter>
+            <DialogFooter className="gap-2 sm:justify-between">
+              {editingElection ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={deleteMutation.isPending}
+                  onClick={requestDeleteFromEdit}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete
+                </Button>
+              ) : (
+                <span />
+              )}
+              <div className="flex gap-2 sm:ml-auto">
               <Button type="button" variant="outline" onClick={closeCreateDialog}>
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting || createMutation.isPending || updateMutation.isPending}>
                 {createMutation.isPending || updateMutation.isPending ? 'Saving...' : 'Save'}
               </Button>
+              </div>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={scheduleDialogOpen} onOpenChange={(open) => !open && closeScheduleDialog()}>
+      <Dialog open={startVotingDialogOpen} onOpenChange={(open) => !open && closeStartVotingDialog()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Schedule Election</DialogTitle>
+            <DialogTitle>Start Voting</DialogTitle>
           </DialogHeader>
-          <form onSubmit={(e) => void handleScheduleSubmit(onScheduleSubmit)(e)} className="space-y-4">
+          <form onSubmit={(e) => void handleStartVotingSubmit(onStartVotingSubmit)(e)} className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Set the dates for voting to officially start this election.
+              Set when voting must end. Voting begins immediately after you confirm.
             </p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField label="Voting Start" htmlFor="voting_start_at" error={scheduleErrors.voting_start_at?.message as string}>
-                <Input id="voting_start_at" type="datetime-local" required {...registerSchedule('voting_start_at')} />
-              </FormField>
-              
-              <FormField label="Voting End" htmlFor="voting_end_at" error={scheduleErrors.voting_end_at?.message as string}>
-                <Input id="voting_end_at" type="datetime-local" required {...registerSchedule('voting_end_at')} />
-              </FormField>
-            </div>
-            
+
+            <FormField label="Voting End" htmlFor="start_voting_end_at" error={startVotingErrors.voting_end_at?.message as string}>
+              <Input id="start_voting_end_at" type="datetime-local" required {...registerStartVoting('voting_end_at')} />
+            </FormField>
+
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={closeScheduleDialog}>
+              <Button type="button" variant="outline" onClick={closeStartVotingDialog}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isScheduleSubmitting || scheduleFlowMutation.isPending}>
-                {scheduleFlowMutation.isPending ? 'Scheduling...' : 'Schedule Election'}
+              <Button type="submit" disabled={isStartVotingSubmitting || startVotingMutation.isPending}>
+                {startVotingMutation.isPending ? 'Starting...' : 'Start Voting'}
               </Button>
             </DialogFooter>
           </form>
@@ -562,11 +664,7 @@ export function ElectionsPage() {
       <ConfirmDialog
         open={!!deleteTarget}
         title="Delete election?"
-        description={
-          deleteTarget?.status === 'ARCHIVED'
-            ? `Delete "${deleteTarget?.name}" and all associated vote records? Export reports first if you need a permanent archive.`
-            : `Remove draft election "${deleteTarget?.name}"? This cannot be undone.`
-        }
+        description={deleteTarget ? getDeleteDescription(deleteTarget) : ''}
         confirmLabel="Delete election"
         destructive
         loading={deleteMutation.isPending}

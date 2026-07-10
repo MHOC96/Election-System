@@ -15,7 +15,7 @@ from positions.models import Position
 from voting.services.election_guard import ElectionGuardError, assert_candidate_changes_allowed
 
 
-class CandidateListCreateView(generics.ListAPIView):
+class CandidateListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
     serializer_class = CandidateSerializer
 
@@ -32,6 +32,25 @@ class CandidateListCreateView(generics.ListAPIView):
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
         return Response({"success": True, "data": response.data})
+
+    def create(self, request, *args, **kwargs):
+        from voting.models import Election
+
+        election = Election.get_ongoing()
+        if election is None:
+            raise ValidationError("No election is available for adding candidates.")
+        try:
+            assert_candidate_changes_allowed(election)
+        except ElectionGuardError as exc:
+            raise ValidationError(str(exc)) from exc
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        candidate = serializer.save(election=election)
+        return Response(
+            {"success": True, "data": self.get_serializer(candidate).data},
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class PositionCandidateListCreateView(generics.ListAPIView):

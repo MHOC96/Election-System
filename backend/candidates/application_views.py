@@ -10,7 +10,7 @@ from accounts.permissions import IsAdmin, IsAdminOrReadOnly
 from candidates.models import CandidateApplication, ApplicationStatus, Candidate
 from candidates.serializers import CandidateApplicationSerializer, ApplicationReviewSerializer, CandidateApplicationDocumentUploadSerializer, CandidatePhotoUploadSerializer
 from candidates.services.cloudinary_service import upload_candidate_document, upload_candidate_photo
-from voting.models import Election, ElectionStatus
+from voting.models import Election, ElectionPhase, ElectionStatus
 
 
 class MemberApplicationListCreateView(generics.ListCreateAPIView):
@@ -25,7 +25,6 @@ class MemberApplicationListCreateView(generics.ListCreateAPIView):
         return Response({"success": True, "data": response.data})
 
     def create(self, request, *args, **kwargs):
-        from voting.models import ElectionPhase
         election = Election.get_ongoing()
         if not election:
             raise ValidationError("There is no scheduled election.")
@@ -33,14 +32,16 @@ class MemberApplicationListCreateView(generics.ListCreateAPIView):
         if election.get_current_phase() != ElectionPhase.APPLICATIONS_OPEN:
             raise ValidationError("Applications are not currently open.")
 
-        # Ensure the member has not already applied for this position in this election
-        position_id = request.data.get("position")
+        # Ensure the member has not already applied for this election
         if CandidateApplication.objects.filter(
             election=election,
             member=request.user,
-            position_id=position_id,
         ).exclude(status__in=[ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN]).exists():
-            raise ValidationError("You have already submitted an active application for this position.")
+            raise ValidationError(
+                "You have already submitted an application for this election."
+            )
+
+        position_id = request.data.get("position")
 
         # Validate academic year
         from positions.models import Position
@@ -105,6 +106,10 @@ class AdminApplicationReviewView(APIView):
             
         if application.status != ApplicationStatus.PENDING_REVIEW:
             raise ValidationError(f"Cannot review an application with status {application.status}")
+
+        phase = application.election.get_current_phase()
+        if phase not in (ElectionPhase.REVIEWING, ElectionPhase.READY_FOR_VOTING):
+            raise ValidationError("Applications can only be reviewed after the application period ends.")
             
         serializer = ApplicationReviewSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

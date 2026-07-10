@@ -17,6 +17,7 @@ class ElectionSerializer(serializers.ModelSerializer):
             "application_end_at",
             "voting_start_at",
             "voting_end_at",
+            "voting_started",
             "results_published",
             "created_at",
             "updated_at",
@@ -25,6 +26,8 @@ class ElectionSerializer(serializers.ModelSerializer):
             "id",
             "status",
             "current_phase",
+            "voting_started",
+            "results_published",
             "created_at",
             "updated_at",
         )

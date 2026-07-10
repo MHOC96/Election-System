@@ -1,13 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Clock, CheckCircle2, XCircle } from 'lucide-react'
+import { Clock } from 'lucide-react'
 import { getApiErrorMessage } from '@/api/client'
-import { fetchActiveElection } from '@/api/elections'
+import { fetchOngoingElection } from '@/api/elections'
 import { fetchPositions } from '@/api/positions'
-import { fetchMyApplications, submitApplication, uploadDeclarationForm, uploadApplicationPhoto, type CandidateApplication } from '@/api/applications'
+import { fetchMyApplications, submitApplication, uploadDeclarationForm, uploadApplicationPhoto } from '@/api/applications'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
@@ -20,8 +20,10 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { sectionDelays, Stagger } from '@/components/motion/Stagger'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import { notifyError, notifySuccess } from '@/lib/notify'
-import { Badge } from '@/components/ui/badge'
+import { ApplicationStatusBadge } from '@/components/applications/ApplicationStatusBadge'
 import { PhotoCropDialog } from '@/components/shared/PhotoCropDialog'
+import { ElectionCountdownHero } from '@/components/elections/ElectionCountdownHero'
+import { useCountdown } from '@/lib/use-countdown'
 
 const applicationSchema = z.object({
   full_name: z.string().trim().min(1, 'Full Name is required'),
@@ -41,9 +43,10 @@ export function CandidateApplicationPage() {
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
   const [croppedPreview, setCroppedPreview] = useState<string | null>(null)
   
-  const { data: activeElection, isLoading: loadingElection } = useQuery({
-    queryKey: ['elections', 'active'],
-    queryFn: fetchActiveElection,
+  const { data: ongoingElection, isLoading: loadingElection } = useQuery({
+    queryKey: ['elections', 'ongoing'],
+    queryFn: fetchOngoingElection,
+    refetchInterval: 15_000,
   })
 
   const { data: positions, isLoading: loadingPositions } = useQuery({
@@ -130,11 +133,26 @@ export function CandidateApplicationPage() {
     })
   }
 
-  const getApplicationForPosition = (positionId: number) => {
-    if (!myApplications) return null
-    // Get the most recent non-withdrawn application
-    return myApplications.find((app) => app.position === positionId)
+  const getMyElectionApplication = () => {
+    if (!myApplications || !ongoingElection) return null
+    return myApplications.find((app) => app.election === ongoingElection.id) ?? null
   }
+
+  const phase = ongoingElection?.current_phase
+  const isScheduled = phase === 'SCHEDULED'
+  const isApplicationsOpen = phase === 'APPLICATIONS_OPEN'
+  const showApplySection = isScheduled || isApplicationsOpen
+
+  const appStart = ongoingElection?.application_start_at ?? null
+  const appEnd = ongoingElection?.application_end_at ?? null
+  const countdownTarget = isApplicationsOpen ? appEnd : isScheduled ? appStart : null
+  const countdownMs = useCountdown(countdownTarget)
+
+  useEffect(() => {
+    if (countdownMs === 0 && countdownTarget) {
+      void queryClient.invalidateQueries({ queryKey: ['elections', 'ongoing'] })
+    }
+  }, [countdownMs, countdownTarget, queryClient])
 
   const isLoading = loadingElection || loadingPositions || loadingApplications
 
@@ -147,81 +165,44 @@ export function CandidateApplicationPage() {
     )
   }
 
-  const now = new Date()
-  const appStart = activeElection?.application_start_at ? new Date(activeElection.application_start_at) : null
-  const appEnd = activeElection?.application_end_at ? new Date(activeElection.application_end_at) : null
-
-  const applicationsNotStarted = appStart && now < appStart
-  const applicationsClosed = appEnd && now > appEnd
-  const isApplicationsOpen = activeElection?.current_phase === 'APPLICATIONS_OPEN'
-
-  if (!activeElection || (applicationsClosed && activeElection.current_phase !== 'SCHEDULED')) {
+  if (!ongoingElection || !showApplySection) {
     return (
       <div className={pageLayoutClass}>
         <PageHeader title="Candidate Application" description="Apply for executive committee positions" />
         <EmptyState
           icon={Clock}
-          title="No open applications"
-          description={applicationsClosed ? "The application window has closed." : "There are currently no elections open for candidate applications."}
+          title="Applications are not open"
+          description="There are currently no elections accepting candidate applications."
         />
       </div>
     )
   }
 
-  if (applicationsNotStarted) {
-    return (
-      <div className={pageLayoutClass}>
-        <PageHeader title="Candidate Application" description={`Upcoming: ${activeElection.name}`} />
-        <EmptyState
-          icon={Clock}
-          title="Applications Not Yet Open"
-          description={`Applications will open on ${appStart.toLocaleString()}. Please check back later.`}
-        />
-      </div>
-    )
-  }
-
-  const StatusBadge = ({ status, reason }: { status: CandidateApplication['status'], reason?: string }) => {
-    switch (status) {
-      case 'PENDING_REVIEW':
-        return <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20"><Clock className="w-3 h-3 mr-1"/> Pending</Badge>
-      case 'APPROVED':
-        return <Badge variant="secondary" className="bg-green-500/10 text-green-500 hover:bg-green-500/20"><CheckCircle2 className="w-3 h-3 mr-1"/> Approved</Badge>
-      case 'REJECTED':
-        return (
-          <div className="flex flex-col items-end gap-1">
-            <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1"/> Rejected</Badge>
-            {reason && <span className="text-xs text-muted-foreground">{reason}</span>}
-          </div>
-        )
-      default:
-        return <Badge>{status}</Badge>
-    }
-  }
+  const myApplication = getMyElectionApplication()
+  const hasApplied = Boolean(myApplication)
+  const canStartApplication = isApplicationsOpen && !hasApplied
 
   return (
     <div className={pageLayoutClass}>
       <Stagger delayMs={sectionDelays.header}>
         <PageHeader
           title="Candidate Application"
-          description={`Apply for positions in: ${activeElection.name}`}
+          description={`Apply for positions in: ${ongoingElection.name}`}
         />
-        {isApplicationsOpen && appEnd && (
-          <div className="mb-6 p-4 rounded-lg bg-primary/10 border border-primary/20 flex items-center gap-3 text-primary">
-            <Clock className="w-5 h-5" />
-            <div>
-              <p className="font-medium text-sm">Applications are open</p>
-              <p className="text-xs opacity-90">Closing on {appEnd.toLocaleString()}</p>
-            </div>
-          </div>
-        )}
+        <ElectionCountdownHero
+          variant={isScheduled ? 'applications-upcoming' : 'applications-open'}
+          electionName={ongoingElection.name}
+          targetAt={isScheduled ? appStart : appEnd}
+          countdownMs={countdownMs}
+          className="mb-6 sm:mb-8"
+        />
       </Stagger>
 
       <Stagger delayMs={sectionDelays.primary}>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {positions?.map((position) => {
-            const application = getApplicationForPosition(position.id)
-            
+            const isMyPosition = myApplication?.position === position.id
+
             return (
               <Card key={position.id} className="flex flex-col">
                 <CardHeader>
@@ -231,25 +212,36 @@ export function CandidateApplicationPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow">
-                  {application ? (
+                  {isMyPosition && myApplication ? (
                     <div className="flex flex-col items-start gap-2">
-                      <Label className="text-muted-foreground">My Application Status:</Label>
-                      <StatusBadge status={application.status} reason={application.rejection_reason} />
+                      <Label className="text-muted-foreground">My application status</Label>
+                      <ApplicationStatusBadge
+                        status={myApplication.status}
+                        reason={myApplication.rejection_reason}
+                      />
                     </div>
+                  ) : hasApplied ? (
+                    <p className="text-sm text-muted-foreground">
+                      You already applied for another position in this election.
+                    </p>
                   ) : (
                     <p className="text-sm text-muted-foreground">
-                      You haven't applied for this position.
+                      You can apply for one position in this election.
                     </p>
                   )}
                 </CardContent>
                 <CardFooter>
-                  {!application || application.status === 'REJECTED' ? (
-                    <Button onClick={() => openApply(position.id)} className="w-full" disabled={!isApplicationsOpen}>
-                      {!isApplicationsOpen ? 'Applications Not Open' : 'Apply Now'}
+                  {isMyPosition && myApplication ? (
+                    <Button disabled variant="secondary" className="w-full">
+                      Application submitted
                     </Button>
                   ) : (
-                    <Button disabled variant="secondary" className="w-full">
-                      Application Submitted
+                    <Button
+                      onClick={() => openApply(position.id)}
+                      className="w-full"
+                      disabled={!canStartApplication}
+                    >
+                      {isScheduled ? 'Opens soon' : hasApplied ? 'Already applied' : 'Apply now'}
                     </Button>
                   )}
                 </CardFooter>

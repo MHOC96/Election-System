@@ -72,9 +72,9 @@ class CandidateApplication(models.Model):
         ordering = ["-created_at"]
         constraints = [
             models.UniqueConstraint(
-                fields=["election", "member", "position"],
-                condition=~models.Q(status="REJECTED") & ~models.Q(status="WITHDRAWN"),
-                name="unique_active_application_per_member",
+                fields=["election", "member"],
+                condition=~models.Q(status__in=[ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN]),
+                name="unique_active_application_per_member_election",
             ),
         ]
 
