@@ -4,6 +4,7 @@ import { fetchMyApplications } from '@/api/applications'
 import { fetchOngoingElection } from '@/api/elections'
 import { ApplicationStatusBadge } from '@/components/applications/ApplicationStatusBadge'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { Countdown } from '@/components/shared/Countdown'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -87,6 +88,11 @@ export function MemberApplicationStatusPage() {
     <div className={pageLayoutClass}>
       <Stagger delayMs={sectionDelays.header}>
         <PageHeader title={phaseCopy.title} description={phaseCopy.description} />
+        {election.current_phase === 'READY_FOR_VOTING' && election.voting_start_at ? (
+          <div className="mt-6 mb-2 max-w-3xl">
+            <Countdown targetDate={election.voting_start_at} label="Voting opens in" />
+          </div>
+        ) : null}
       </Stagger>
 
       <Stagger delayMs={sectionDelays.primary}>

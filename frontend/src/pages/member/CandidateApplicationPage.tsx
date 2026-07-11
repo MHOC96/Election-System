@@ -8,8 +8,9 @@ import { getApiErrorMessage } from '@/api/client'
 import { fetchOngoingElection } from '@/api/elections'
 import { fetchPositions } from '@/api/positions'
 import { fetchMyApplications, submitApplication, uploadDeclarationForm, uploadApplicationPhoto } from '@/api/applications'
+import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -42,6 +43,7 @@ export function CandidateApplicationPage() {
   const [selectedPosition, setSelectedPosition] = useState<number | null>(null)
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
   const [croppedPreview, setCroppedPreview] = useState<string | null>(null)
+  const { user } = useAuth()
   
   const { data: ongoingElection, isLoading: loadingElection } = useQuery({
     queryKey: ['elections', 'ongoing'],
@@ -202,14 +204,13 @@ export function CandidateApplicationPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {positions?.map((position) => {
             const isMyPosition = myApplication?.position === position.id
+            const isEligibleYear = !position.academic_year || position.academic_year === user?.academic_year
+            const canApplyForThisPosition = canStartApplication && isEligibleYear
 
             return (
               <Card key={position.id} className="flex flex-col">
                 <CardHeader>
                   <CardTitle className="text-lg">{position.name}</CardTitle>
-                  <CardDescription>
-                    {position.academic_year ? `Requires: ${position.academic_year}` : 'Open to all years'}
-                  </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow">
                   {isMyPosition && myApplication ? (
@@ -223,6 +224,10 @@ export function CandidateApplicationPage() {
                   ) : hasApplied ? (
                     <p className="text-sm text-muted-foreground">
                       You already applied for another position in this election.
+                    </p>
+                  ) : !isEligibleYear ? (
+                    <p className="text-sm text-destructive">
+                      You are not eligible for this position. It requires {position.academic_year}.
                     </p>
                   ) : (
                     <p className="text-sm text-muted-foreground">
@@ -239,9 +244,15 @@ export function CandidateApplicationPage() {
                     <Button
                       onClick={() => openApply(position.id)}
                       className="w-full"
-                      disabled={!canStartApplication}
+                      disabled={!canApplyForThisPosition}
                     >
-                      {isScheduled ? 'Opens soon' : hasApplied ? 'Already applied' : 'Apply now'}
+                      {isScheduled 
+                        ? 'Opens soon' 
+                        : hasApplied 
+                          ? 'Already applied' 
+                          : !isEligibleYear 
+                            ? 'Not eligible' 
+                            : 'Apply now'}
                     </Button>
                   )}
                 </CardFooter>

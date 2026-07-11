@@ -19,6 +19,7 @@ class ElectionSerializer(serializers.ModelSerializer):
             "voting_end_at",
             "voting_started",
             "results_published",
+            "require_all_positions_filled",
             "created_at",
             "updated_at",
         )

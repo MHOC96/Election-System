@@ -45,7 +45,7 @@ export function PositionsPage() {
     formState: { errors, isSubmitting },
   } = useForm<PositionForm>({
     resolver: zodResolver(positionSchema),
-    defaultValues: { name: '', academic_year: '3rd Year', importance: 0 },
+    defaultValues: { name: '', academic_year: undefined, max_winners: 1 },
   })
 
   const { data: positions, isLoading } = useQuery({
@@ -60,9 +60,9 @@ export function PositionsPage() {
   const saveMutation = useMutation({
     mutationFn: (values: PositionForm) => {
       // @ts-ignore - Assuming api needs to be updated to accept academic_year
-      if (editing) return updatePosition(editing.id, values.name, values.academic_year, values.importance)
+      if (editing) return updatePosition(editing.id, values.name, values.academic_year, undefined, values.max_winners)
       // @ts-ignore
-      return createPosition(values.name, values.academic_year, values.importance)
+      return createPosition(values.name, values.academic_year, undefined, values.max_winners)
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['positions'] })
@@ -82,20 +82,20 @@ export function PositionsPage() {
 
   const openCreate = () => {
     setEditing(null)
-    reset({ name: '', academic_year: '3rd Year', importance: 0 })
+    reset({ name: '', academic_year: undefined, max_winners: 1 })
     setDialogOpen(true)
   }
 
   const openEdit = (position: Position) => {
     setEditing(position)
-    reset({ name: position.name, academic_year: position.academic_year, importance: position.importance })
+    reset({ name: position.name, academic_year: position.academic_year as '3rd Year' | '2nd Year' | undefined, max_winners: position.max_winners })
     setDialogOpen(true)
   }
 
   const closeDialog = () => {
     setDialogOpen(false)
     setEditing(null)
-    reset({ name: '', academic_year: '3rd Year', importance: 0 })
+    reset({ name: '', academic_year: undefined, max_winners: 1 })
     requestAnimationFrame(() => restoreBodyPointerEvents())
   }
 
@@ -152,6 +152,7 @@ export function PositionsPage() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Eligible Year</TableHead>
+                  <TableHead>Winners</TableHead>
                   <TableHead className="w-32 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -160,8 +161,9 @@ export function PositionsPage() {
                   <TableRow key={position.id}>
                     <TableCell className="font-medium">{position.name}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">{position.academic_year}</Badge>
+                      {position.academic_year ? <Badge variant="outline">{position.academic_year}</Badge> : null}
                     </TableCell>
+                    <TableCell>{position.max_winners}</TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"
@@ -218,7 +220,7 @@ export function PositionsPage() {
                     value={field.value}
                   >
                     <SelectTrigger id="position-academic-year">
-                      <SelectValue placeholder="Select eligible year" />
+                      <SelectValue placeholder="Select year" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="2nd Year">2nd Year</SelectItem>
@@ -230,17 +232,18 @@ export function PositionsPage() {
             </FormField>
 
             <FormField
-              label="Sort Order (Lower = First, e.g. 1)"
-              htmlFor="position-importance"
-              error={errors.importance?.message}
+              label="Number of Winners"
+              htmlFor="position-max-winners"
+              error={errors.max_winners?.message}
             >
               <Input
-                id="position-importance"
+                id="position-max-winners"
                 type="number"
-                min="0"
-                {...register('importance', { valueAsNumber: true })}
+                min="1"
+                {...register('max_winners', { valueAsNumber: true })}
               />
             </FormField>
+
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={closeDialog}>

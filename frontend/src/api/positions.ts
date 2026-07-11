@@ -10,12 +10,12 @@ export async function fetchPositions() {
   return unwrapList(data)
 }
 
-export async function createPosition(name: string, academic_year?: AcademicYear | null, importance?: number) {
-  return apiPost<Position>('/positions/', { name, academic_year, importance })
+export async function createPosition(name: string, academic_year?: AcademicYear | null, importance?: number, max_winners?: number) {
+  return apiPost<Position>('/positions/', { name, academic_year, importance, max_winners })
 }
 
-export async function updatePosition(id: number, name: string, academic_year?: AcademicYear | null, importance?: number) {
-  return apiPatch<Position>(`/positions/${id}/`, { name, academic_year, importance })
+export async function updatePosition(id: number, name: string, academic_year?: AcademicYear | null, importance?: number, max_winners?: number) {
+  return apiPatch<Position>(`/positions/${id}/`, { name, academic_year, importance, max_winners })
 }
 
 export async function deletePosition(id: number) {

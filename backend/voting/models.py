@@ -37,7 +37,7 @@ class Election(models.Model):
     voting_end_at = models.DateTimeField(null=True, blank=True)
     voting_started = models.BooleanField(default=False)
     results_published = models.BooleanField(default=False)
-
+    require_all_positions_filled = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -88,10 +88,12 @@ class Election(models.Model):
 
         now = timezone.now()
 
-        if self.voting_started and self.voting_end_at and now >= self.voting_end_at:
+        has_started_voting = self.voting_started or (self.voting_start_at and now >= self.voting_start_at)
+
+        if has_started_voting and self.voting_end_at and now >= self.voting_end_at:
             return ElectionPhase.VOTING_CLOSED
 
-        if self.voting_started:
+        if has_started_voting:
             return ElectionPhase.VOTING_OPEN
 
         if self.application_end_at and now >= self.application_end_at:

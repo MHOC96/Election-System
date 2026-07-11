@@ -26,6 +26,9 @@ export async function createElection(data: {
   name: string;
   application_start_at?: string;
   application_end_at?: string;
+  voting_start_at?: string;
+  voting_end_at?: string;
+  require_all_positions_filled?: boolean;
 }) {
   return apiPost<Election>('/elections/', data)
 }
@@ -38,8 +41,11 @@ export async function scheduleElection(id: number) {
   return apiPost<Election>(`/elections/${id}/schedule/`)
 }
 
-export async function startVotingElection(id: number, voting_end_at?: string) {
-  return apiPost<Election>(`/elections/${id}/start-voting/`, voting_end_at ? { voting_end_at } : {})
+export async function startVotingElection(id: number, voting_start_at?: string, voting_end_at?: string) {
+  return apiPost<Election>(`/elections/${id}/start-voting/`, {
+    ...(voting_start_at ? { voting_start_at } : {}),
+    ...(voting_end_at ? { voting_end_at } : {}),
+  })
 }
 
 export async function fetchPublishedResults() {

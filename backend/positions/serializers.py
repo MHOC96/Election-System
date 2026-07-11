@@ -6,7 +6,7 @@ from positions.models import Position
 class PositionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Position
-        fields = ("id", "name", "academic_year", "importance", "created_at", "updated_at")
+        fields = ("id", "name", "academic_year", "importance", "max_winners", "created_at", "updated_at")
         read_only_fields = ("id", "created_at", "updated_at")
 
     def validate_name(self, value):

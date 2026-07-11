@@ -4,6 +4,7 @@ export interface User {
   id: number
   cpm_number: string
   role: UserRole
+  academic_year?: AcademicYear | null
   is_active: boolean
   has_changed_password: boolean
   created_at: string
@@ -54,8 +55,9 @@ export interface MemberImportResult {
 export interface Position {
   id: number
   name: string
-  academic_year: AcademicYear
+  academic_year?: AcademicYear | null
   importance: number
+  max_winners: number
   created_at: string
   updated_at: string
 }
@@ -97,6 +99,7 @@ export interface Election {
   voting_end_at: string | null
   voting_started: boolean
   results_published: boolean
+  require_all_positions_filled: boolean
   created_at: string
   updated_at: string
 }
@@ -128,9 +131,9 @@ export interface PublishedResultCandidate {
 export interface PublishedResultPosition {
   position_id: number
   position_name: string
-  academic_year: AcademicYear
+  academic_year?: AcademicYear | null
   total_votes: number
-  winner: PublishedResultCandidate | null
+  winners: PublishedResultCandidate[]
   candidates: PublishedResultCandidate[]
 }
 
@@ -202,7 +205,7 @@ export interface LiveStats {
     position_name: string
     total_votes: number
     rankings: CandidateRanking[]
-    highest_voted_candidate: CandidateRanking | null
+    winners: CandidateRanking[]
   }[]
   highest_voted_overall: CandidateRanking | null
   cached_seconds?: number

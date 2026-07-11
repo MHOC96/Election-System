@@ -281,7 +281,7 @@ def get_live_stats(
                 highest_overall = entry
 
         position_total_votes = sum(item["vote_count"] for item in position_candidates)
-        top = rankings[0] if rankings else None
+        winners = rankings[:position.max_winners]
 
         position_stats.append(
             {
@@ -289,7 +289,7 @@ def get_live_stats(
                 "position_name": position.name,
                 "total_votes": position_total_votes,
                 "rankings": rankings,
-                "highest_voted_candidate": top,
+                "winners": winners,
             }
         )
 
@@ -327,7 +327,7 @@ def get_position_rankings(position_id: int, election_id: int | None = None) -> d
                 "position_name": position.name,
                 "total_votes": item["total_votes"],
                 "rankings": item["rankings"],
-                "highest_voted_candidate": item["highest_voted_candidate"],
+                "winners": item["winners"],
             }
     return {
         "election": live_stats["election"],
@@ -335,7 +335,7 @@ def get_position_rankings(position_id: int, election_id: int | None = None) -> d
         "position_name": position.name,
         "total_votes": 0,
         "rankings": [],
-        "highest_voted_candidate": None,
+        "winners": [],
     }
 
 

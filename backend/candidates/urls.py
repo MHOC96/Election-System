@@ -4,6 +4,7 @@ from candidates.views import (
     CandidateClearAllView,
     CandidateDetailView,
     CandidateListCreateView,
+    CandidateModificationStatusView,
     CandidatePhotoUploadView,
 )
 
@@ -24,6 +25,7 @@ urlpatterns = [
     path("applications/<int:pk>/review/", AdminApplicationReviewView.as_view(), name="applications-review"),
     
     # Candidates
+    path("modification-status/", CandidateModificationStatusView.as_view(), name="candidates-modification-status"),
     path("upload-photo/", CandidatePhotoUploadView.as_view(), name="candidates-upload-photo"),
     path("clear-all/", CandidateClearAllView.as_view(), name="candidates-clear-all"),
     path("", CandidateListCreateView.as_view(), name="candidates-list-create"),

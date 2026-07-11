@@ -63,14 +63,14 @@ def get_published_results(*, academic_year: str | None) -> dict | None:
         for index, item in enumerate(ranked, start=1):
             item["rank"] = index
             item["vote_percentage"] = _pct(item["vote_count"], total_votes)
-        winner = ranked[0] if ranked else None
+        winners = ranked[:position.max_winners]
         position_items.append(
             {
                 "position_id": position.id,
                 "position_name": position.name,
                 "academic_year": position.academic_year,
                 "total_votes": total_votes,
-                "winner": winner,
+                "winners": winners,
                 "candidates": ranked,
             }
         )

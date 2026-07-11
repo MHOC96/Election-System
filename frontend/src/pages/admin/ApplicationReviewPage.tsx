@@ -35,7 +35,8 @@ export function ApplicationReviewPage() {
   const [rejectingApp, setRejectingApp] = useState<CandidateApplication | null>(null)
   const [selectedPosition, setSelectedPosition] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [activeTab, setActiveTab] = useState<string>('3rd Year')
+  const [activeStatusTab, setActiveStatusTab] = useState<string>('PENDING_REVIEW')
+  const [activeYearTab, setActiveYearTab] = useState<string>('3rd Year')
   
   const { data: ongoingElection, isLoading: loadingElection } = useQuery({
     queryKey: ['elections', 'ongoing'],
@@ -47,8 +48,8 @@ export function ApplicationReviewPage() {
     ongoingElection?.current_phase === 'READY_FOR_VOTING'
 
   const { data: applications, isLoading: loadingApplications } = useQuery({
-    queryKey: ['applications', 'all', ongoingElection?.id],
-    queryFn: () => fetchAllApplications({ status: 'PENDING_REVIEW' }),
+    queryKey: ['applications', 'all', ongoingElection?.id, activeStatusTab],
+    queryFn: () => fetchAllApplications({ status: activeStatusTab }),
     enabled: !!ongoingElection && reviewOpen,
   })
 
@@ -63,8 +64,9 @@ export function ApplicationReviewPage() {
     const matchesSearch = 
       app.full_name.toLowerCase().includes(searchLower) ||
       app.cpm_number.toLowerCase().includes(searchLower) ||
-      app.mc_number.toLowerCase().includes(searchLower)
-    const matchesYear = app.member_academic_year === activeTab
+      app.mc_number.toLowerCase().includes(searchLower) ||
+      app.position_name.toLowerCase().includes(searchLower)
+    const matchesYear = app.member_academic_year === activeYearTab
     return matchesPosition && matchesSearch && matchesYear
   })
 
@@ -185,12 +187,21 @@ export function ApplicationReviewPage() {
       </Stagger>
 
       <Stagger delayMs={sectionDelays.secondary}>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6 w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="3rd Year">3rd Year</TabsTrigger>
-            <TabsTrigger value="2nd Year">2nd Year</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex flex-col sm:flex-row gap-4 mb-6 w-full justify-between">
+          <Tabs value={activeStatusTab} onValueChange={setActiveStatusTab} className="w-full sm:w-auto">
+            <TabsList className="grid w-full sm:w-[400px] grid-cols-3">
+              <TabsTrigger value="PENDING_REVIEW">Pending</TabsTrigger>
+              <TabsTrigger value="APPROVED">Approved</TabsTrigger>
+              <TabsTrigger value="REJECTED">Rejected</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Tabs value={activeYearTab} onValueChange={setActiveYearTab} className="w-full sm:w-auto">
+            <TabsList className="grid w-full sm:w-48 grid-cols-2">
+              <TabsTrigger value="3rd Year">3rd Year</TabsTrigger>
+              <TabsTrigger value="2nd Year">2nd Year</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
       </Stagger>
 
       <Stagger delayMs={sectionDelays.tertiary}>
@@ -199,8 +210,8 @@ export function ApplicationReviewPage() {
             {!applications?.length ? (
               <EmptyState
                 icon={CheckCircle2}
-                title="All caught up!"
-                description="There are no pending applications to review right now."
+                title={activeStatusTab === 'PENDING_REVIEW' ? "All caught up!" : "No applications"}
+                description={`There are no ${activeStatusTab.toLowerCase().replace('_', ' ')} applications right now.`}
               />
             ) : !filteredApplications?.length ? (
               <EmptyState
@@ -227,7 +238,15 @@ export function ApplicationReviewPage() {
                               <TableHead>Candidate Name</TableHead>
                               <TableHead>MC / CPM Number</TableHead>
                               <TableHead>Declaration</TableHead>
-                              <TableHead className="w-32 text-right">Actions</TableHead>
+                              {activeStatusTab === 'PENDING_REVIEW' && (
+                                <TableHead className="w-32 text-right">Actions</TableHead>
+                              )}
+                              {activeStatusTab === 'REJECTED' && (
+                                <TableHead>Reason</TableHead>
+                              )}
+                              {activeStatusTab === 'APPROVED' && (
+                                <TableHead className="text-right">Status</TableHead>
+                              )}
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -259,26 +278,38 @@ export function ApplicationReviewPage() {
                                     </a>
                                   </Button>
                                 </TableCell>
-                                <TableCell className="text-right whitespace-nowrap">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                    onClick={() => handleApprove(app.id)}
-                                    disabled={reviewMutation.isPending}
-                                  >
-                                    <CheckCircle2 className="h-4 w-4 mr-1" /> Approve
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-destructive hover:bg-destructive/10"
-                                    onClick={() => openReject(app)}
-                                    disabled={reviewMutation.isPending}
-                                  >
-                                    <XCircle className="h-4 w-4 mr-1" /> Reject
-                                  </Button>
-                                </TableCell>
+                                {activeStatusTab === 'PENDING_REVIEW' && (
+                                  <TableCell className="text-right whitespace-nowrap">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                      onClick={() => handleApprove(app.id)}
+                                      disabled={reviewMutation.isPending}
+                                    >
+                                      <CheckCircle2 className="h-4 w-4 mr-1" /> Approve
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-destructive hover:bg-destructive/10"
+                                      onClick={() => openReject(app)}
+                                      disabled={reviewMutation.isPending}
+                                    >
+                                      <XCircle className="h-4 w-4 mr-1" /> Reject
+                                    </Button>
+                                  </TableCell>
+                                )}
+                                {activeStatusTab === 'REJECTED' && (
+                                  <TableCell>
+                                    <span className="text-sm text-destructive">{app.rejection_reason}</span>
+                                  </TableCell>
+                                )}
+                                {activeStatusTab === 'APPROVED' && (
+                                  <TableCell className="text-right">
+                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Approved</Badge>
+                                  </TableCell>
+                                )}
                               </TableRow>
                             ))}
                           </TableBody>

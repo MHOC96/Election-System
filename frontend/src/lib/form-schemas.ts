@@ -7,7 +7,7 @@ export const positionSchema = z.object({
     .min(1, 'Position name is required')
     .max(100, 'Position name must be 100 characters or fewer'),
   academic_year: z.enum(['2nd Year', '3rd Year']),
-  importance: z.number().int().nonnegative(),
+  max_winners: z.number().int().positive(),
 })
 
 export type PositionForm = z.infer<typeof positionSchema>
@@ -22,6 +22,7 @@ export const electionSchema = z.object({
   application_end_at: z.string().optional(),
   voting_start_at: z.string().optional(),
   voting_end_at: z.string().optional(),
+  require_all_positions_filled: z.boolean(),
 })
 
 export type ElectionForm = z.infer<typeof electionSchema>

@@ -123,15 +123,17 @@ def start_voting(election: Election) -> Election:
     if election.voting_end_at <= now:
         raise ElectionLifecycleError("Voting end time must be in the future.")
 
-    missing = positions_missing_approved_candidates(election)
-    if missing:
-        raise ElectionLifecycleError(
-            "Each position must have at least one approved candidate before voting starts. "
-            f"Missing: {', '.join(missing)}."
-        )
+    if election.require_all_positions_filled:
+        missing = positions_missing_approved_candidates(election)
+        if missing:
+            raise ElectionLifecycleError(
+                "Each position must have at least one approved candidate before voting starts. "
+                f"Missing: {', '.join(missing)}."
+            )
 
     election.voting_started = True
-    election.voting_start_at = now
+    if not election.voting_start_at:
+        election.voting_start_at = now
     election.save()
     return election
 

@@ -50,3 +50,9 @@ export async function uploadCandidatePhoto(file: File) {
   formData.append('photo', file)
   return apiUpload<{ photo_url: string; public_id: string }>('/candidates/upload-photo/', formData)
 }
+
+export async function fetchModificationStatus() {
+  const data = await apiGet<{ allowed: boolean; reason?: string }>('/candidates/modification-status/')
+  return data
+}
+

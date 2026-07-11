@@ -60,7 +60,7 @@ export function ElectionsPage() {
     formState: { errors, isSubmitting },
   } = useForm<ElectionForm>({
     resolver: zodResolver(electionSchema),
-    defaultValues: { name: '', application_start_at: '', application_end_at: '' },
+    defaultValues: { name: '', application_start_at: '', application_end_at: '', require_all_positions_filled: true },
   })
 
   const {
@@ -69,9 +69,10 @@ export function ElectionsPage() {
     reset: resetStartVoting,
     formState: { errors: startVotingErrors, isSubmitting: isStartVotingSubmitting },
   } = useForm<{
+    voting_start_at: string
     voting_end_at: string
   }>({
-    defaultValues: { voting_end_at: '' },
+    defaultValues: { voting_start_at: '', voting_end_at: '' },
   })
 
   // State to hold editing election
@@ -151,8 +152,8 @@ export function ElectionsPage() {
   })
 
   const startVotingMutation = useMutation({
-    mutationFn: async ({ id, voting_end_at }: { id: number; voting_end_at?: string }) =>
-      startVotingElection(id, voting_end_at),
+    mutationFn: async ({ id, voting_start_at, voting_end_at }: { id: number; voting_start_at?: string; voting_end_at?: string }) =>
+      startVotingElection(id, voting_start_at, voting_end_at),
     onSuccess: (updated) => {
       queryClient.setQueryData<Election[]>(['elections'], (old) =>
         (old ?? []).map((election) =>
@@ -201,7 +202,7 @@ export function ElectionsPage() {
   const closeCreateDialog = () => {
     setDialogOpen(false)
     setEditingElection(null)
-    reset({ name: '', application_start_at: '', application_end_at: '' })
+    reset({ name: '', application_start_at: '', application_end_at: '', require_all_positions_filled: true })
     requestAnimationFrame(() => restoreBodyPointerEvents())
   }
 
@@ -211,7 +212,9 @@ export function ElectionsPage() {
       name: election.name,
       application_start_at: isoToLocalInput(election.application_start_at),
       application_end_at: isoToLocalInput(election.application_end_at),
+      voting_start_at: isoToLocalInput(election.voting_start_at),
       voting_end_at: isoToLocalInput(election.voting_end_at),
+      require_all_positions_filled: election.require_all_positions_filled ?? true,
     })
     setDialogOpen(true)
   }
@@ -219,6 +222,7 @@ export function ElectionsPage() {
   const openStartVotingDialog = (election: Election) => {
     setStartVotingTarget(election)
     resetStartVoting({
+      voting_start_at: isoToLocalInput(election.voting_start_at),
       voting_end_at: isoToLocalInput(election.voting_end_at),
     })
     setStartVotingDialogOpen(true)
@@ -231,8 +235,9 @@ export function ElectionsPage() {
   }
 
   const onCreateSubmit = (values: ElectionForm) => {
-    const payload: Partial<ElectionForm> & { name: string } = {
+    const payload: Partial<ElectionForm> & { name: string, require_all_positions_filled?: boolean } = {
       name: values.name,
+      require_all_positions_filled: values.require_all_positions_filled,
     }
 
     if (!editingElection || canEditApplicationDates(editingElection)) {
@@ -240,7 +245,8 @@ export function ElectionsPage() {
       payload.application_end_at = localInputToIso(values.application_end_at)
     }
 
-    if (editingElection && showVotingFieldsInEdit && canEditVotingEnd(editingElection)) {
+    if (editingElection && showVotingFieldsInEdit && canEditVotingDates(editingElection)) {
+      payload.voting_start_at = localInputToIso(values.voting_start_at)
       payload.voting_end_at = localInputToIso(values.voting_end_at)
     }
 
@@ -251,6 +257,9 @@ export function ElectionsPage() {
         name: values.name,
         application_start_at: localInputToIso(values.application_start_at),
         application_end_at: localInputToIso(values.application_end_at),
+        voting_start_at: localInputToIso(values.voting_start_at),
+        voting_end_at: localInputToIso(values.voting_end_at),
+        require_all_positions_filled: values.require_all_positions_filled,
       })
     }
   }
@@ -260,18 +269,15 @@ export function ElectionsPage() {
     setDeleteTarget(editingElection)
   }
 
-  const onStartVotingSubmit = (values: { voting_end_at: string }) => {
+  const onStartVotingSubmit = (values: { voting_start_at: string; voting_end_at: string }) => {
     if (!startVotingTarget) return
     startVotingMutation.mutate({
       id: startVotingTarget.id,
+      voting_start_at: localInputToIso(values.voting_start_at),
       voting_end_at: localInputToIso(values.voting_end_at),
     })
   }
 
-  const isApplicationPeriodEnded = (election: Election) => {
-    if (!election.application_end_at) return false
-    return new Date() >= new Date(election.application_end_at)
-  }
 
   const getDeleteDescription = (election: Election) => {
     if (election.status === 'DRAFT') {
@@ -288,20 +294,21 @@ export function ElectionsPage() {
     return election.status === 'SCHEDULED' && !appEnd
   }
 
-  const canEditVotingEnd = (election: Election) => {
-    const now = new Date()
-    const votingEnd = election.voting_end_at ? new Date(election.voting_end_at) : null
-    if (!['READY_FOR_VOTING', 'VOTING_OPEN'].includes(election.current_phase)) return false
-    if (!votingEnd) return true
-    return now < votingEnd
+  const canEditVotingDates = (election: Election) => {
+    if (['VOTING_CLOSED', 'RESULTS_PUBLISHED', 'ARCHIVED'].includes(election.current_phase)) return false
+    return true
+  }
+
+  const isApplicationPeriodEnded = (election: Election) => {
+    if (!election.application_end_at) return false
+    return new Date() >= new Date(election.application_end_at)
   }
 
   const canOpenEditDialog = (election: Election) => {
     if (election.status === 'ARCHIVED') return false
     return (
       canEditApplicationDates(election) ||
-      canEditVotingEnd(election) ||
-      isApplicationPeriodEnded(election)
+      canEditVotingDates(election)
     )
   }
 
@@ -309,9 +316,7 @@ export function ElectionsPage() {
     !editingElection || canEditApplicationDates(editingElection)
 
   const showVotingFieldsInEdit =
-    !!editingElection &&
-    isApplicationPeriodEnded(editingElection) &&
-    editingElection.status !== 'ARCHIVED'
+    !!editingElection && isApplicationPeriodEnded(editingElection) && canEditVotingDates(editingElection)
 
   const openResults = (election: Election) => {
     setResultsElection(election)
@@ -563,35 +568,34 @@ export function ElectionsPage() {
 
             {showVotingFieldsInEdit ? (
               <div className="grid grid-cols-1 gap-4 border-t pt-4">
-                <FormField label="Voting Start" htmlFor="edit_voting_start_at">
+                <FormField label="Voting Start" htmlFor="edit_voting_start_at" error={errors.voting_start_at?.message}>
                   <Input
                     id="edit_voting_start_at"
                     type="datetime-local"
-                    value={isoToLocalInput(editingElection?.voting_start_at)}
-                    readOnly
-                    disabled
-                    className="bg-muted"
+                    disabled={editingElection ? !canEditVotingDates(editingElection) : false}
+                    {...register('voting_start_at')}
                   />
-                  {!editingElection?.voting_start_at ? (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Recorded automatically when you press Start Voting.
-                    </p>
-                  ) : null}
                 </FormField>
 
                 <FormField label="Voting End" htmlFor="edit_voting_end_at" error={errors.voting_end_at?.message}>
                   <Input
                     id="edit_voting_end_at"
                     type="datetime-local"
-                    disabled={!canEditVotingEnd(editingElection)}
+                    disabled={editingElection ? !canEditVotingDates(editingElection) : false}
                     {...register('voting_end_at')}
                   />
-                  {!canEditVotingEnd(editingElection) ? (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Voting end can be edited after review completes and before voting closes.
-                    </p>
-                  ) : null}
                 </FormField>
+                <div className="flex items-center gap-2 pt-2">
+                  <input
+                    id="require-positions-filled"
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    {...register('require_all_positions_filled')}
+                  />
+                  <label htmlFor="require-positions-filled" className="text-sm font-medium leading-none">
+                    Require candidates for all positions to start voting
+                  </label>
+                </div>
               </div>
             ) : null}
             
@@ -629,8 +633,12 @@ export function ElectionsPage() {
           </DialogHeader>
           <form onSubmit={(e) => void handleStartVotingSubmit(onStartVotingSubmit)(e)} className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Set when voting must end. Voting begins immediately after you confirm.
+              Set when voting will start and end. If the start time is empty or in the past, voting begins immediately.
             </p>
+
+            <FormField label="Voting Start (Optional)" htmlFor="start_voting_start_at" error={startVotingErrors.voting_start_at?.message as string}>
+              <Input id="start_voting_start_at" type="datetime-local" {...registerStartVoting('voting_start_at')} />
+            </FormField>
 
             <FormField label="Voting End" htmlFor="start_voting_end_at" error={startVotingErrors.voting_end_at?.message as string}>
               <Input id="start_voting_end_at" type="datetime-local" required {...registerStartVoting('voting_end_at')} />

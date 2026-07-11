@@ -9,8 +9,9 @@ class AcademicYear(models.TextChoices):
 
 class Position(models.Model):
     name = models.CharField(max_length=100)
-    academic_year = models.CharField(max_length=10, choices=AcademicYear.choices)
+    academic_year = models.CharField(max_length=10, choices=AcademicYear.choices, null=True, blank=True)
     importance = models.IntegerField(default=0)
+    max_winners = models.IntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

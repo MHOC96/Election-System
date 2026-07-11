@@ -8,10 +8,10 @@ import {
   createCandidate,
   deleteCandidate,
   fetchCandidates,
+  fetchModificationStatus,
   updateCandidate,
   uploadCandidatePhoto,
 } from '@/api/candidates'
-import { fetchMemberDeletionStatus } from '@/api/members'
 import { fetchPositions } from '@/api/positions'
 import { getApiErrorMessage } from '@/api/client'
 import {
@@ -65,16 +65,16 @@ export function CandidatesPage() {
     queryFn: fetchPositions,
   })
 
-  const { data: deletionStatus, isLoading: deletionStatusLoading } = useQuery({
-    queryKey: ['members-deletion-status'],
-    queryFn: fetchMemberDeletionStatus,
+  const { data: modificationStatus, isLoading: modificationStatusLoading } = useQuery({
+    queryKey: ['candidates-modification-status'],
+    queryFn: fetchModificationStatus,
     refetchInterval: 30_000,
     staleTime: 0,
   })
 
-  const canModifyCandidates = deletionStatus?.allowed !== false
+  const canModifyCandidates = modificationStatus?.allowed !== false
   const showElectionLockedNotice =
-    !deletionStatusLoading && deletionStatus !== undefined && !canModifyCandidates
+    !modificationStatusLoading && modificationStatus !== undefined && !canModifyCandidates
   const totalCandidates = candidates?.length ?? 0
 
   const groupedCandidates = useMemo(() => {

@@ -30,6 +30,7 @@ def get_results_report_data(election_id: int | None = None, academic_year: str |
     stats = get_live_stats(election.id, use_cache=True, academic_year=academic_year)
     rows = []
     for position in stats["positions"]:
+        winner_ids = {w["candidate_id"] for w in position.get("winners", [])}
         for ranking in position["rankings"]:
             rows.append(
                 {
@@ -38,7 +39,7 @@ def get_results_report_data(election_id: int | None = None, academic_year: str |
                     "candidate": ranking["full_name"],
                     "votes": ranking["vote_count"],
                     "percentage": ranking["vote_percentage"],
-                    "is_winner": ranking["rank"] == 1,
+                    "is_winner": ranking["candidate_id"] in winner_ids,
                 }
             )
     title = "Election Results Report"

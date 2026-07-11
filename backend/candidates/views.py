@@ -12,6 +12,7 @@ from candidates.services.cloudinary_service import upload_candidate_photo
 from candidates.services.deletion_service import clear_all_candidates
 from members.services.deletion_service import MemberDeletionNotAllowedError
 from positions.models import Position
+from voting.models import Election
 from voting.services.election_guard import ElectionGuardError, assert_candidate_changes_allowed
 
 
@@ -33,9 +34,21 @@ class CandidateListCreateView(generics.ListCreateAPIView):
         response = super().list(request, *args, **kwargs)
         return Response({"success": True, "data": response.data})
 
-    def create(self, request, *args, **kwargs):
-        from voting.models import Election
+class CandidateModificationStatusView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
 
+    def get(self, request):
+        election = Election.get_ongoing()
+        if election is None:
+            return Response({"success": True, "data": {"allowed": False, "reason": "No active election"}})
+        
+        try:
+            assert_candidate_changes_allowed(election)
+            return Response({"success": True, "data": {"allowed": True}})
+        except ElectionGuardError as exc:
+            return Response({"success": True, "data": {"allowed": False, "reason": str(exc)}})
+
+    def create(self, request, *args, **kwargs):
         election = Election.get_ongoing()
         if election is None:
             raise ValidationError("No election is available for adding candidates.")

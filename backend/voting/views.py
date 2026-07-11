@@ -153,7 +153,19 @@ class ElectionStartVotingView(APIView):
 
     def post(self, request, pk):
         election = generics.get_object_or_404(Election, pk=pk)
+        voting_start_at = request.data.get("voting_start_at")
         voting_end_at = request.data.get("voting_end_at")
+        update_fields = []
+
+        if voting_start_at:
+            parsed_start = parse_datetime(voting_start_at)
+            if parsed_start is None:
+                raise ValidationError("Invalid voting start time.")
+            if timezone.is_naive(parsed_start):
+                parsed_start = timezone.make_aware(parsed_start, timezone.get_current_timezone())
+            election.voting_start_at = parsed_start
+            update_fields.append("voting_start_at")
+
         if voting_end_at and not election.voting_end_at:
             parsed = parse_datetime(voting_end_at)
             if parsed is None:
@@ -161,7 +173,12 @@ class ElectionStartVotingView(APIView):
             if timezone.is_naive(parsed):
                 parsed = timezone.make_aware(parsed, timezone.get_current_timezone())
             election.voting_end_at = parsed
-            election.save(update_fields=["voting_end_at", "updated_at"])
+            update_fields.append("voting_end_at")
+
+        if update_fields:
+            update_fields.append("updated_at")
+            election.save(update_fields=update_fields)
+
         try:
             election.start_voting()
         except ElectionLifecycleError as exc:

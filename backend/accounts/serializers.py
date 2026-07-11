@@ -68,7 +68,7 @@ class LogoutSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("id", "cpm_number", "role", "is_active", "created_at", "has_changed_password")
+        fields = ("id", "cpm_number", "role", "is_active", "created_at", "has_changed_password", "academic_year")
         read_only_fields = fields
 
 

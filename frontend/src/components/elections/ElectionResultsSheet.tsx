@@ -163,7 +163,7 @@ export function ElectionResultsSheet({ election, open, onOpenChange }: ElectionR
                   liveStats.positions
                     .filter((position) => position.rankings.length > 0)
                     .map((position) => {
-                    const winner = position.highest_voted_candidate
+                    const winners = position.winners
                     const turnout = summary.position_turnout.find(
                       (item) => item.position_id === position.position_id,
                     )
@@ -173,9 +173,10 @@ export function ElectionResultsSheet({ election, open, onOpenChange }: ElectionR
                         <CardHeader className="pb-2">
                           <div className="flex items-start justify-between gap-3">
                             <CardTitle className="text-base">{position.position_name}</CardTitle>
-                            {winner ? (
+                            {winners && winners.length > 0 ? (
                               <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                                Winner: {winner.full_name}
+                                {winners.length === 1 ? 'Winner: ' : 'Winners: '}
+                                {winners.map((w) => w.full_name).join(', ')}
                               </span>
                             ) : null}
                           </div>

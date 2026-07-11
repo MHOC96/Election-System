@@ -49,7 +49,7 @@ export function PublishedResultsPage() {
 
       <div className="grid gap-4">
         {results.positions.map((position) => {
-          const winner = position.winner
+          const winners = position.winners
           return (
             <Card key={position.position_id}>
               <CardHeader>
@@ -60,22 +60,26 @@ export function PublishedResultsPage() {
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
-                {winner ? (
-                  <div className="flex items-center gap-4 rounded-lg border bg-muted/30 p-4">
-                    <img
-                      src={optimizeCloudinaryUrl(winner.photo_url, 80)}
-                      alt=""
-                      className="h-16 w-16 rounded-full object-cover"
-                    />
-                    <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-primary">
-                        Winner
-                      </p>
-                      <p className="text-lg font-semibold">{winner.full_name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {winner.vote_count} votes ({winner.vote_percentage}%)
-                      </p>
-                    </div>
+                {winners && winners.length > 0 ? (
+                  <div className="flex flex-col gap-4">
+                    {winners.map((winner) => (
+                      <div key={winner.candidate_id} className="flex items-center gap-4 rounded-lg border bg-muted/30 p-4">
+                        <img
+                          src={optimizeCloudinaryUrl(winner.photo_url, 80)}
+                          alt=""
+                          className="h-16 w-16 rounded-full object-cover"
+                        />
+                        <div>
+                          <p className="text-xs font-medium uppercase tracking-wide text-primary">
+                            Winner
+                          </p>
+                          <p className="text-lg font-semibold">{winner.full_name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {winner.vote_count} votes ({winner.vote_percentage}%)
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">No votes recorded for this position.</p>
