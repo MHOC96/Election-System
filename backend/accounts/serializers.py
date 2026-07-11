@@ -80,6 +80,16 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class MemberProfileSerializer(UserSerializer):
+    """Includes institutional MC number (unchanged after member password updates)."""
+
+    mc_number = serializers.CharField(read_only=True)
+
+    class Meta(UserSerializer.Meta):
+        fields = (*UserSerializer.Meta.fields, "mc_number")
+        read_only_fields = fields
+
+
 class ChangePasswordSerializer(serializers.Serializer):
     current_password = serializers.CharField(write_only=True)
     new_password = serializers.CharField(write_only=True, min_length=6)

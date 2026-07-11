@@ -247,7 +247,7 @@ export function MemberImportPanel({
             onDrop={onDrop}
             onClick={openFilePicker}
             className={cn(
-              'flex cursor-pointer flex-col items-center justify-center gap-3 border-2 border-transparent px-6 py-10 text-center transition-all',
+              'flex cursor-pointer flex-col items-center justify-center gap-3 border-2 border-transparent px-4 py-6 text-center transition-all sm:px-6 sm:py-10',
               dragOver && 'border-primary bg-primary/5 ring-2 ring-primary/20',
               dropZoneBusy && 'cursor-wait opacity-80',
             )}
@@ -362,14 +362,14 @@ export function MemberImportPanel({
           </CardHeader>
 
           <CardContent className="space-y-4 pt-5">
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
               <StatChip label="Ready to import" value={filePreview.valid_rows} tone="success" />
               <StatChip label="Invalid rows" value={filePreview.invalid_rows} tone="destructive" />
               <StatChip label="Total rows" value={filePreview.total_rows} tone="neutral" />
             </div>
 
             {filePreview.preview.length > 0 ? (
-              <div className="overflow-x-auto rounded-lg border">
+              <div className="table-scroll-wrapper rounded-lg border">
                 <table className="w-full min-w-[320px] text-sm">
                   <thead className="border-b bg-muted/30 text-left text-xs uppercase tracking-wide text-muted-foreground">
                     <tr>
@@ -462,7 +462,7 @@ export function MemberImportPanel({
           </CardHeader>
 
           <CardContent className="space-y-5 pt-5">
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
               <StatChip label="Imported" value={result.successful} tone="success" />
               <StatChip label="Failed" value={result.failed_rows.length} tone="destructive" />
               <StatChip label="Duplicates" value={result.duplicates.length} tone="warning" />

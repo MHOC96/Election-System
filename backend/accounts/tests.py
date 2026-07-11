@@ -52,7 +52,7 @@ class AuthenticationAPITestCase(TestCase):
         response = self.client.get(reverse("auth-me"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["cpm_number"], "CPM001")
-        self.assertNotIn("mc_number", response.data["data"])
+        self.assertEqual(response.data["data"]["mc_number"], "member-secret")
 
     def test_login_response_omits_mc_number(self):
         response = self._login("CPM001", "member-secret")
@@ -177,6 +177,9 @@ class ChangePasswordAPITestCase(TestCase):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {new_access}")
         me_response = self.client.get(reverse("auth-me"))
         self.assertEqual(me_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(me_response.data["data"]["mc_number"], "member-secret")
+        self.member.refresh_from_db()
+        self.assertEqual(self.member.mc_number, "member-secret")
 
 
 class UserModelTestCase(TestCase):

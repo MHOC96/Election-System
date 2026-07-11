@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { apiGet, apiPost, setLoggingOut } from '@/api/client'
-import { clearAuth, getRefreshToken, markFreshLogin, setAuthTokens, setSessionMcHint } from '@/lib/auth-storage'
+import { clearAuth, getRefreshToken, markFreshLogin, setAuthTokens } from '@/lib/auth-storage'
 import type { User } from '@/types/api'
 
 export interface LoginPayload {
@@ -19,7 +19,6 @@ const API_URL = import.meta.env.VITE_API_URL ?? '/api'
 export async function login(payload: LoginPayload): Promise<User> {
   const data = await apiPost<LoginResult>('/auth/login/', payload)
   setAuthTokens(data.access, data.refresh, data.user)
-  setSessionMcHint(payload.mc_number)
   markFreshLogin()
   return data.user
 }

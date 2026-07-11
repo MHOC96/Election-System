@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import { fetchMe, login as apiLogin, logout as apiLogout, type LoginPayload } from '@/api/auth'
-import { clearAuth, consumeFreshLogin, getAccessToken, getStoredUser } from '@/lib/auth-storage'
+import { clearAuth, consumeFreshLogin, getAccessToken, getRefreshToken, getStoredUser, setAuthTokens } from '@/lib/auth-storage'
 import type { User } from '@/types/api'
 import { ForcePasswordChangeModal } from '@/components/auth/ForcePasswordChangeModal'
 
@@ -29,12 +29,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = useCallback(async () => {
     const token = getAccessToken()
+    const refresh = getRefreshToken()
     if (!token) {
       setUser(null)
       return
     }
     const me = await fetchMe()
     setUser(me)
+    if (refresh) {
+      setAuthTokens(token, refresh, me)
+    }
   }, [])
 
   useEffect(() => {
@@ -60,10 +64,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refreshUser])
 
   const login = useCallback(async (payload: LoginPayload) => {
-    const loggedIn = await apiLogin(payload)
-    setUser(loggedIn)
+    await apiLogin(payload)
+    let profile: User | null = getStoredUser()
+    if (profile?.role === 'MEMBER') {
+      profile = await fetchMe()
+      const access = getAccessToken()
+      const refresh = getRefreshToken()
+      if (access && refresh) {
+        setAuthTokens(access, refresh, profile)
+      }
+    }
+    setUser(profile)
     setIsLoading(false)
-    return loggedIn
+    return profile!
   }, [])
 
   const logout = useCallback(async () => {

@@ -7,7 +7,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from accounts.models import User
 from accounts.permissions import IsAdmin, IsMember
-from accounts.serializers import LoginSerializer, LogoutSerializer, UserSerializer
+from accounts.serializers import LoginSerializer, LogoutSerializer, MemberProfileSerializer, UserSerializer
 from accounts.throttling import AuthRateThrottle
 from audit.constants import AuditAction
 from audit.services.audit_service import log_action
@@ -90,10 +90,14 @@ class MeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        if request.user.is_member:
+            payload = MemberProfileSerializer(request.user).data
+        else:
+            payload = UserSerializer(request.user).data
         return Response(
             {
                 "success": True,
-                "data": UserSerializer(request.user).data,
+                "data": payload,
             },
             status=status.HTTP_200_OK,
         )

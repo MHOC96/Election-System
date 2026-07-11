@@ -38,7 +38,7 @@ export const StatCard = memo(function StatCard({
         )}
       </CardHeader>
       <CardContent>
-        <div className="text-3xl font-semibold tabular-nums tracking-tight">{value}</div>
+        <div className="text-2xl font-semibold tabular-nums tracking-tight sm:text-3xl">{value}</div>
         {description && <p className="mt-1 text-xs text-muted-foreground">{description}</p>}
       </CardContent>
     </Card>

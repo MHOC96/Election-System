@@ -79,7 +79,7 @@ export function ElectionResultsSheet({ election, open, onOpenChange }: ElectionR
             </p>
           ) : (
             <>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -171,7 +171,7 @@ export function ElectionResultsSheet({ election, open, onOpenChange }: ElectionR
                           <div className="flex items-start justify-between gap-3">
                             <CardTitle className="text-base">{position.position_name}</CardTitle>
                             {winners && winners.length > 0 ? (
-                              <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                              <span className="shrink-0 max-w-[50%] truncate rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary sm:text-xs sm:max-w-none">
                                 {winners.length === 1 ? 'Winner: ' : 'Winners: '}
                                 {winners.map((w) => w.full_name).join(', ')}
                               </span>

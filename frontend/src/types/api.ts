@@ -3,6 +3,7 @@ export type UserRole = 'ADMIN' | 'MEMBER'
 export interface User {
   id: number
   cpm_number: string
+  mc_number?: string
   role: UserRole
   academic_year?: AcademicYear | null
   is_active: boolean

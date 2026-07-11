@@ -48,15 +48,15 @@ import {
   getElectionScheduleBlockReason,
 } from '@/lib/election-readiness'
 import { MEMBERS_STALE_MS, refreshDashboard, markQueriesStale } from '@/lib/query-sync'
-import { electionSchema, startVotingSchema, type ElectionForm, type StartVotingForm } from '@/lib/form-schemas'
+import { electionSchema, type ElectionForm } from '@/lib/form-schemas'
 import type { Election } from '@/types/api'
 import { cn, formatDate } from '@/lib/utils'
 import { isoToLocalInput, localInputToIso } from '@/lib/datetime'
 import {
+  canShowStartVotingAction,
   electionNeedsPhaseRefresh,
   getElectionCountdown,
   getElectionNextStep,
-  isVotingStartPending,
 } from '@/lib/election-lifecycle-ui'
 import { notifyError } from '@/lib/notify'
 
@@ -68,9 +68,6 @@ export function ElectionsPage() {
   const [resultsElection, setResultsElection] = useState<Election | null>(null)
   const [resultsOpen, setResultsOpen] = useState(false)
 
-  const [startVotingTarget, setStartVotingTarget] = useState<Election | null>(null)
-  const [startVotingDialogOpen, setStartVotingDialogOpen] = useState(false)
-
   const {
     register,
     handleSubmit,
@@ -79,16 +76,6 @@ export function ElectionsPage() {
   } = useForm<ElectionForm>({
     resolver: zodResolver(electionSchema),
     defaultValues: { name: '', application_start_at: '', application_end_at: '', require_all_positions_filled: true },
-  })
-
-  const {
-    register: registerStartVoting,
-    handleSubmit: handleStartVotingSubmit,
-    reset: resetStartVoting,
-    formState: { errors: startVotingErrors, isSubmitting: isStartVotingSubmitting },
-  } = useForm<StartVotingForm>({
-    resolver: zodResolver(startVotingSchema),
-    defaultValues: { voting_start_at: '', voting_end_at: '' },
   })
 
   // State to hold editing election
@@ -185,7 +172,6 @@ export function ElectionsPage() {
         ),
       )
       refreshDashboard(queryClient)
-      closeStartVotingDialog()
     },
     onError: (error) => notifyError(getApiErrorMessage(error)),
   })
@@ -243,21 +229,6 @@ export function ElectionsPage() {
     setDialogOpen(true)
   }
 
-  const openStartVotingDialog = (election: Election) => {
-    setStartVotingTarget(election)
-    resetStartVoting({
-      voting_start_at: isoToLocalInput(election.voting_start_at),
-      voting_end_at: isoToLocalInput(election.voting_end_at),
-    })
-    setStartVotingDialogOpen(true)
-  }
-
-  const closeStartVotingDialog = () => {
-    setStartVotingDialogOpen(false)
-    setStartVotingTarget(null)
-    requestAnimationFrame(() => restoreBodyPointerEvents())
-  }
-
   const onCreateSubmit = (values: ElectionForm) => {
     const payload: Partial<ElectionForm> & { name: string, require_all_positions_filled?: boolean } = {
       name: values.name,
@@ -294,16 +265,6 @@ export function ElectionsPage() {
     if (!editingElection) return
     setDeleteTarget(editingElection)
   }
-
-  const onStartVotingSubmit = (values: StartVotingForm) => {
-    if (!startVotingTarget) return
-    startVotingMutation.mutate({
-      id: startVotingTarget.id,
-      voting_start_at: localInputToIso(values.voting_start_at),
-      voting_end_at: localInputToIso(values.voting_end_at),
-    })
-  }
-
 
   const getDeleteDescription = (election: Election) => {
     if (election.status === 'DRAFT') {
@@ -387,7 +348,7 @@ export function ElectionsPage() {
       )
     }
 
-    if (election.current_phase === 'READY_FOR_VOTING' && !isVotingStartPending(election)) {
+    if (canShowStartVotingAction(election)) {
       actions.push(
         <Button
           key="start-voting"
@@ -395,11 +356,7 @@ export function ElectionsPage() {
           disabled={startVotingMutation.isPending}
           onClick={(event) => {
             event.stopPropagation()
-            if (election.voting_end_at) {
-              startVotingMutation.mutate({ id: election.id })
-            } else {
-              openStartVotingDialog(election)
-            }
+            startVotingMutation.mutate({ id: election.id })
           }}
         >
           <Play className="h-4 w-4 mr-1" />
@@ -553,8 +510,6 @@ export function ElectionsPage() {
                       </div>
                       <CardDescription className="mt-1">
                         Created {formatDate(election.created_at)}
-                        {election.application_start_at && ` · Apps ${formatDate(election.application_start_at)} – ${election.application_end_at ? formatDate(election.application_end_at) : '…'}`}
-                        {election.voting_start_at && ` · Voting ${formatDate(election.voting_start_at)} – ${election.voting_end_at ? formatDate(election.voting_end_at) : '…'}`}
                       </CardDescription>
                       {isClosed ? (
                         <p className="mt-2 flex items-center gap-1 text-sm text-primary">
@@ -687,37 +642,6 @@ export function ElectionsPage() {
                 {createMutation.isPending || updateMutation.isPending ? 'Saving...' : 'Save'}
               </Button>
               </div>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={startVotingDialogOpen} onOpenChange={(open) => !open && closeStartVotingDialog()}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Start Voting</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={(e) => void handleStartVotingSubmit(onStartVotingSubmit)(e)} className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Set when voting will start and end. If the start time is in the future, a live countdown
-              appears on this page and on the member ballot until voting opens.
-            </p>
-
-            <FormField label="Voting Start (Optional)" htmlFor="start_voting_start_at" error={startVotingErrors.voting_start_at?.message as string}>
-              <Input id="start_voting_start_at" type="datetime-local" {...registerStartVoting('voting_start_at')} />
-            </FormField>
-
-            <FormField label="Voting End" htmlFor="start_voting_end_at" error={startVotingErrors.voting_end_at?.message as string}>
-              <Input id="start_voting_end_at" type="datetime-local" required {...registerStartVoting('voting_end_at')} />
-            </FormField>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={closeStartVotingDialog}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isStartVotingSubmitting || startVotingMutation.isPending}>
-                {startVotingMutation.isPending ? 'Starting...' : 'Start Voting'}
-              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

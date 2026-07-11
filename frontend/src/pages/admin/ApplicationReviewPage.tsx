@@ -251,91 +251,155 @@ export function ApplicationReviewPage() {
                     return (
                       <div key={positionName} className="rounded-md border overflow-hidden">
                         <div className="bg-muted/50 px-4 py-3 border-b flex justify-between items-center">
-                          <h3 className="font-semibold text-lg">{positionName}</h3>
+                          <h3 className="font-semibold text-base sm:text-lg">{positionName}</h3>
                           <Badge variant="outline">{apps.length}</Badge>
                         </div>
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Candidate Name</TableHead>
-                              <TableHead>CPM Number</TableHead>
-                              <TableHead>Declaration</TableHead>
-                              {activeStatusTab === 'PENDING_REVIEW' && (
-                                <TableHead className="w-32 text-right">Actions</TableHead>
-                              )}
-                              {activeStatusTab === 'REJECTED' && (
-                                <TableHead>Reason</TableHead>
-                              )}
-                              {activeStatusTab === 'APPROVED' && (
-                                <TableHead className="text-right">Status</TableHead>
-                              )}
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
+
+                        {/* Mobile card view */}
+                        <div className="md:hidden">
+                          <div className="divide-y">
                             {apps.map((app) => (
-                              <TableRow key={app.id}>
-                                <TableCell className="font-medium">
-                                  <div className="flex items-center gap-3">
-                                    {app.photo_url && (
-                                      <img 
-                                        src={app.photo_url} 
-                                        alt={app.full_name} 
-                                        loading="lazy"
-                                        className="h-10 w-10 rounded-full object-cover border"
-                                      />
-                                    )}
-                                    <span>{app.full_name}</span>
+                              <div key={app.id} className="px-4 py-3 space-y-3">
+                                <div className="flex items-center gap-3">
+                                  {app.photo_url && (
+                                    <img 
+                                      src={app.photo_url} 
+                                      alt={app.full_name} 
+                                      loading="lazy"
+                                      className="h-10 w-10 rounded-full object-cover border shrink-0"
+                                    />
+                                  )}
+                                  <div className="min-w-0 flex-1">
+                                    <p className="font-medium text-sm truncate">{app.full_name}</p>
+                                    <p className="text-xs text-muted-foreground">CPM: {app.cpm_number}</p>
                                   </div>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="text-sm text-muted-foreground">
-                                    CPM: {app.cpm_number}
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <Button variant="link" size="sm" asChild className="px-0">
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <Button variant="link" size="sm" asChild className="px-0 h-auto">
                                     <a href={app.declaration_file} target="_blank" rel="noopener noreferrer">
-                                      <FileText className="w-4 h-4 mr-2" />
-                                      View Document <ExternalLink className="w-3 h-3 ml-1" />
+                                      <FileText className="w-3.5 h-3.5 mr-1" />
+                                      Declaration <ExternalLink className="w-3 h-3 ml-1" />
                                     </a>
                                   </Button>
-                                </TableCell>
+                                  {activeStatusTab === 'PENDING_REVIEW' && (
+                                    <div className="ml-auto flex gap-1.5">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 text-green-600 border-green-200 hover:bg-green-50"
+                                        onClick={() => handleApprove(app.id)}
+                                        disabled={reviewMutation.isPending}
+                                      >
+                                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Approve
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 text-destructive border-destructive/30 hover:bg-destructive/10"
+                                        onClick={() => openReject(app)}
+                                        disabled={reviewMutation.isPending}
+                                      >
+                                        <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
+                                      </Button>
+                                    </div>
+                                  )}
+                                  {activeStatusTab === 'REJECTED' && (
+                                    <span className="text-xs text-destructive">{app.rejection_reason}</span>
+                                  )}
+                                  {activeStatusTab === 'APPROVED' && (
+                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 ml-auto">Approved</Badge>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Desktop table view */}
+                        <div className="hidden md:block">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Candidate Name</TableHead>
+                                <TableHead>CPM Number</TableHead>
+                                <TableHead>Declaration</TableHead>
                                 {activeStatusTab === 'PENDING_REVIEW' && (
-                                  <TableCell className="text-right whitespace-nowrap">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                      onClick={() => handleApprove(app.id)}
-                                      disabled={reviewMutation.isPending}
-                                    >
-                                      <CheckCircle2 className="h-4 w-4 mr-1" /> Approve
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-destructive hover:bg-destructive/10"
-                                      onClick={() => openReject(app)}
-                                      disabled={reviewMutation.isPending}
-                                    >
-                                      <XCircle className="h-4 w-4 mr-1" /> Reject
-                                    </Button>
-                                  </TableCell>
+                                  <TableHead className="w-32 text-right">Actions</TableHead>
                                 )}
                                 {activeStatusTab === 'REJECTED' && (
-                                  <TableCell>
-                                    <span className="text-sm text-destructive">{app.rejection_reason}</span>
-                                  </TableCell>
+                                  <TableHead>Reason</TableHead>
                                 )}
                                 {activeStatusTab === 'APPROVED' && (
-                                  <TableCell className="text-right">
-                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Approved</Badge>
-                                  </TableCell>
+                                  <TableHead className="text-right">Status</TableHead>
                                 )}
                               </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
+                            </TableHeader>
+                            <TableBody>
+                              {apps.map((app) => (
+                                <TableRow key={app.id}>
+                                  <TableCell className="font-medium">
+                                    <div className="flex items-center gap-3">
+                                      {app.photo_url && (
+                                        <img 
+                                          src={app.photo_url} 
+                                          alt={app.full_name} 
+                                          loading="lazy"
+                                          className="h-10 w-10 rounded-full object-cover border"
+                                        />
+                                      )}
+                                      <span>{app.full_name}</span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="text-sm text-muted-foreground">
+                                      CPM: {app.cpm_number}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Button variant="link" size="sm" asChild className="px-0">
+                                      <a href={app.declaration_file} target="_blank" rel="noopener noreferrer">
+                                        <FileText className="w-4 h-4 mr-2" />
+                                        View Document <ExternalLink className="w-3 h-3 ml-1" />
+                                      </a>
+                                    </Button>
+                                  </TableCell>
+                                  {activeStatusTab === 'PENDING_REVIEW' && (
+                                    <TableCell className="text-right whitespace-nowrap">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                        onClick={() => handleApprove(app.id)}
+                                        disabled={reviewMutation.isPending}
+                                      >
+                                        <CheckCircle2 className="h-4 w-4 mr-1" /> Approve
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-destructive hover:bg-destructive/10"
+                                        onClick={() => openReject(app)}
+                                        disabled={reviewMutation.isPending}
+                                      >
+                                        <XCircle className="h-4 w-4 mr-1" /> Reject
+                                      </Button>
+                                    </TableCell>
+                                  )}
+                                  {activeStatusTab === 'REJECTED' && (
+                                    <TableCell>
+                                      <span className="text-sm text-destructive">{app.rejection_reason}</span>
+                                    </TableCell>
+                                  )}
+                                  {activeStatusTab === 'APPROVED' && (
+                                    <TableCell className="text-right">
+                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Approved</Badge>
+                                    </TableCell>
+                                  )}
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
                       </div>
                 )})}
               </div>

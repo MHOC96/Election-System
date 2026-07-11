@@ -48,9 +48,9 @@ export function ReportsPage() {
           title="Reports"
           description="Export election data in PDF, Excel, or CSV"
           action={
-            <div className="w-40">
+            <div className="w-full min-w-[10rem] sm:w-auto">
               <Select value={format} onValueChange={(v) => setFormat(v as ExportFormat)}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full sm:w-40">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -65,7 +65,7 @@ export function ReportsPage() {
       </Stagger>
 
       <Stagger delayMs={sectionDelays.header + 50}>
-        <div className="mb-6 w-full max-w-xs">
+        <div className="mb-4 sm:mb-6 w-full max-w-xs">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="3rd Year">3rd Year</TabsTrigger>

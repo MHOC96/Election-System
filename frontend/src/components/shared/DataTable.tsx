@@ -68,7 +68,7 @@ export function DataTable({
             {mobileView ? <div className="md:hidden">{mobileView}</div> : null}
             <div
               className={cn(
-                'relative transition-opacity duration-150',
+                'table-scroll-wrapper relative transition-opacity duration-150',
                 mobileView && 'hidden md:block',
                 isRefreshing && 'opacity-60',
               )}

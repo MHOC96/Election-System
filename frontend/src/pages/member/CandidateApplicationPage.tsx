@@ -22,7 +22,6 @@ import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { sectionDelays, Stagger } from '@/components/motion/Stagger'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import { ONGOING_ELECTION_QUERY_KEY } from '@/lib/query-sync'
-import { getSessionMcHint } from '@/lib/auth-storage'
 import { notifyError, notifySuccess } from '@/lib/notify'
 import { ApplicationStatusBadge } from '@/components/applications/ApplicationStatusBadge'
 import { PhotoCropDialog } from '@/components/shared/PhotoCropDialog'
@@ -59,8 +58,8 @@ export function CandidateApplicationPage() {
   const [croppedPreview, setCroppedPreview] = useState<string | null>(null)
   const [isSubmittingApplication, setIsSubmittingApplication] = useState(false)
   const submitInFlightRef = useRef(false)
-  const { user, isLoading: authLoading } = useAuth()
-  const mcHint = getSessionMcHint()
+  const { user, isLoading: authLoading, refreshUser } = useAuth()
+  const originalMcNumber = user?.mc_number ?? ''
 
   const { data: ongoingElection, isLoading: loadingElection, isError: electionError, isFetching: fetchingElection, refetch: refetchElection } = useOngoingElection()
 
@@ -91,6 +90,12 @@ export function CandidateApplicationPage() {
     resolver: zodResolver(applicationSchema),
     defaultValues: buildDefaultFormValues(user?.cpm_number ?? ''),
   })
+
+  useEffect(() => {
+    if (user?.role === 'MEMBER' && !user.mc_number) {
+      void refreshUser()
+    }
+  }, [user, refreshUser])
 
   useEffect(() => {
     if (!selectedPosition) return
@@ -339,13 +344,13 @@ export function CandidateApplicationPage() {
                 />
               </FormField>
 
-              <FormField label="MC Number" htmlFor="mc_number_display" hint="From your login session">
+              <FormField label="MC Number" htmlFor="mc_number_display" hint="Your original institutional MC number">
                 <Input
                   id="mc_number_display"
                   readOnly
                   autoComplete="off"
-                  value={mcHint ?? ''}
-                  placeholder={mcHint ? undefined : 'Sign in again to display'}
+                  value={originalMcNumber}
+                  placeholder={authLoading ? 'Loading…' : 'Unavailable'}
                   className="bg-muted cursor-not-allowed text-muted-foreground"
                 />
               </FormField>

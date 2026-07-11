@@ -29,8 +29,21 @@ export function isFutureDate(iso: string | null | undefined): boolean {
 }
 
 export function isVotingStartPending(election: Election): boolean {
-  if (election.current_phase !== 'READY_FOR_VOTING' || !election.voting_start_at) return false
+  if (election.current_phase !== 'READY_FOR_VOTING') return false
+  if (!election.voting_started || !election.voting_start_at) return false
   return isFutureDate(election.voting_start_at)
+}
+
+export function hasVotingSchedule(election: Election): boolean {
+  return Boolean(election.voting_start_at && election.voting_end_at)
+}
+
+export function canShowStartVotingAction(election: Election): boolean {
+  return (
+    election.current_phase === 'READY_FOR_VOTING' &&
+    hasVotingSchedule(election) &&
+    !election.voting_started
+  )
 }
 
 export function isApplicationsOpeningSoon(election: Election): boolean {
@@ -111,15 +124,15 @@ export function getElectionNextStep(election: Election): ElectionNextStep | null
           detail: 'Members will be able to cast votes when the scheduled time arrives.',
         }
       }
-      if (election.voting_end_at) {
+      if (canShowStartVotingAction(election)) {
         return {
           title: 'Next: Start voting',
-          detail: 'Open the ballot for members when you are ready.',
+          detail: 'Click Start Voting to schedule the ballot for members.',
         }
       }
       return {
         title: 'Next: Schedule voting',
-        detail: 'Set voting start and end times, then start voting.',
+        detail: 'Set voting start and end times in Edit, then save before starting voting.',
       }
     case 'VOTING_OPEN':
       return {

@@ -153,7 +153,7 @@ export const PositionLiveResultCard = memo(function PositionLiveResultCard({
         className,
       )}
     >
-      <CardHeader className="space-y-3 border-b bg-muted/30 pb-4">
+      <CardHeader className="space-y-3 border-b bg-muted/30 px-4 pb-4 sm:px-6">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base font-semibold leading-tight">{positionName}</CardTitle>
           {hasVotes && (
@@ -163,13 +163,13 @@ export const PositionLiveResultCard = memo(function PositionLiveResultCard({
           )}
         </div>
 
-        <div className="rounded-xl border bg-card p-3">
+        <div className="rounded-xl border bg-card p-2.5 sm:p-3">
           <div className="mb-2 flex items-end justify-between gap-2">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Position turnout
               </p>
-              <p className="mt-0.5 text-2xl font-bold tabular-nums tracking-tight">
+              <p className="mt-0.5 text-xl font-bold tabular-nums tracking-tight sm:text-2xl">
                 {totalVotes.toLocaleString()}
                 <span className="text-base font-normal text-muted-foreground">
                   {' '}
@@ -178,7 +178,7 @@ export const PositionLiveResultCard = memo(function PositionLiveResultCard({
               </p>
             </div>
             <p className="text-right">
-              <span className="text-xl font-bold tabular-nums text-primary">
+              <span className="text-lg font-bold tabular-nums text-primary sm:text-xl">
                 {formatPercent(turnoutPercentage)}
               </span>
               <span className="mt-0.5 block text-[11px] text-muted-foreground">of members</span>
@@ -200,7 +200,7 @@ export const PositionLiveResultCard = memo(function PositionLiveResultCard({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-3 pt-4">
+      <CardContent className="space-y-3 px-4 pt-4 sm:px-6">
         {hasVotes ? (
           <>
             {top4.length > 0 && (

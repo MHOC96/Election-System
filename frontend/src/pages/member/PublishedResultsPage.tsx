@@ -63,13 +63,13 @@ export function PublishedResultsPage() {
                 {winners && winners.length > 0 ? (
                   <div className="flex flex-col gap-4">
                     {winners.map((winner) => (
-                      <div key={winner.candidate_id} className="flex items-center gap-4 rounded-lg border bg-muted/30 p-4">
+                      <div key={winner.candidate_id} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 rounded-lg border bg-muted/30 p-3 sm:p-4">
                         <img
                           src={optimizeCloudinaryUrl(winner.photo_url, 80)}
                           alt=""
-                          className="h-16 w-16 rounded-full object-cover"
+                          className="h-14 w-14 sm:h-16 sm:w-16 rounded-full object-cover shrink-0"
                         />
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <p className="text-xs font-medium uppercase tracking-wide text-primary">
                             Winner
                           </p>

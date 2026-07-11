@@ -47,7 +47,7 @@ export function CandidatePositionGroups({
             </div>
           </CardHeader>
 
-          <CardContent className="p-4 sm:p-5">
+          <CardContent className="p-3 sm:p-4 md:p-5">
             {candidates.length === 0 ? (
               <div className="flex items-center gap-3 rounded-xl border border-dashed bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
                 <UserRound className="h-5 w-5 shrink-0 opacity-60" aria-hidden="true" />

@@ -256,6 +256,29 @@ export function MembersPage() {
         emptyIcon={Users}
         emptyTitle={`No ${activeTab} members yet`}
         emptyDescription="Import a CSV or XLSX file with CPM and MC numbers to get started."
+        mobileView={
+          data?.results.length ? (
+            <div className="mobile-card-list">
+              {data.results.map((member) => (
+                <div key={member.id} className="mobile-card-item">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold text-sm">{member.cpm_number}</p>
+                    <p className="text-xs text-muted-foreground">MC: ••••••••</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    onClick={() => openEdit(member)}
+                    aria-label={`Edit ${member.cpm_number}`}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : undefined
+        }
         pagination={
           data
             ? {

@@ -289,7 +289,7 @@ export function AdminDashboardPage() {
                     (isLive ? LIVE_POLL_INTERVAL_MS : SUMMARY_POLL_INTERVAL_MS) / 1000
                   }
                 />
-                <Badge variant={isLive ? 'success' : 'secondary'}>
+                <Badge variant={isLive ? 'success' : 'secondary'} className="max-w-full truncate">
                   {summary.election.name} — {summary.election.current_phase.replace(/_/g, ' ')}
                 </Badge>
               </div>
@@ -333,7 +333,7 @@ export function AdminDashboardPage() {
 
             <div>
 
-              <h2 className="text-lg font-semibold">Live results</h2>
+              <h2 className="text-base font-semibold sm:text-lg">Live results</h2>
 
               <p className="text-sm text-muted-foreground">
 
@@ -421,20 +421,20 @@ export function AdminDashboardPage() {
               </div>
 
               <div className="grid grid-cols-3 gap-2">
-                <div className="flex min-h-[4.25rem] flex-col items-center justify-center rounded-lg border bg-success/5 px-2 py-2.5 text-center ring-1 ring-inset ring-success/15">
-                  <p className="text-lg font-semibold tabular-nums leading-none text-success">
+                <div className="flex min-h-[4.25rem] flex-col items-center justify-center rounded-lg border bg-success/5 px-1 sm:px-2 py-2 sm:py-2.5 text-center ring-1 ring-inset ring-success/15">
+                  <p className="text-base sm:text-lg font-semibold tabular-nums leading-none text-success">
                     {formatCount(summary.members_completed_ballot)}
                   </p>
                   <p className="mt-1.5 text-xs text-muted-foreground">Completed</p>
                 </div>
-                <div className="flex min-h-[4.25rem] flex-col items-center justify-center rounded-lg border bg-warning/5 px-2 py-2.5 text-center ring-1 ring-inset ring-warning/15">
-                  <p className="text-lg font-semibold tabular-nums leading-none text-warning">
+                <div className="flex min-h-[4.25rem] flex-col items-center justify-center rounded-lg border bg-warning/5 px-1 sm:px-2 py-2 sm:py-2.5 text-center ring-1 ring-inset ring-warning/15">
+                  <p className="text-base sm:text-lg font-semibold tabular-nums leading-none text-warning">
                     {formatCount(summary.members_partial_ballot)}
                   </p>
                   <p className="mt-1.5 text-xs text-muted-foreground">Partial</p>
                 </div>
-                <div className="flex min-h-[4.25rem] flex-col items-center justify-center rounded-lg border bg-muted/30 px-2 py-2.5 text-center">
-                  <p className="text-lg font-semibold tabular-nums leading-none">
+                <div className="flex min-h-[4.25rem] flex-col items-center justify-center rounded-lg border bg-muted/30 px-1 sm:px-2 py-2 sm:py-2.5 text-center">
+                  <p className="text-base sm:text-lg font-semibold tabular-nums leading-none">
                     {formatCount(summary.members_no_votes)}
                   </p>
                   <p className="mt-1.5 text-xs text-muted-foreground">No votes</p>

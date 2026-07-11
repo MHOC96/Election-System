@@ -397,4 +397,43 @@
       transform: translateX(100%);
     }
   }
+
+  /* Responsive table wrapper — horizontal scroll on narrow viewports */
+  .table-scroll-wrapper {
+    -webkit-overflow-scrolling: touch;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  .table-scroll-wrapper::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .table-scroll-wrapper::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.2);
+    border-radius: 9999px;
+  }
+
+  /* Mobile card list for table alternatives */
+  .mobile-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+
+  .mobile-card-list > .mobile-card-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-radius: var(--radius);
+    border: 1px solid hsl(var(--border));
+    background: hsl(var(--card));
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .mobile-card-list > .mobile-card-item:active {
+    background: hsl(var(--muted));
+  }
 }

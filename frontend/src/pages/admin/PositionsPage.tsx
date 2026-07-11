@@ -147,27 +147,27 @@ export function PositionsPage() {
               description="Try adjusting your search query."
             />
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Eligible Year</TableHead>
-                  <TableHead>Winners</TableHead>
-                  <TableHead className="w-32 text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Mobile card view */}
+              <div className="mobile-card-list md:hidden">
                 {filteredPositions.map((position) => (
-                  <TableRow key={position.id}>
-                    <TableCell className="font-medium">{position.name}</TableCell>
-                    <TableCell>
-                      {position.academic_year ? <Badge variant="outline">{position.academic_year}</Badge> : null}
-                    </TableCell>
-                    <TableCell>{position.max_winners}</TableCell>
-                    <TableCell className="text-right">
+                  <div key={position.id} className="mobile-card-item">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold text-sm">{position.name}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        {position.academic_year ? (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">{position.academic_year}</Badge>
+                        ) : null}
+                        <span className="text-xs text-muted-foreground">
+                          {position.max_winners} winner{position.max_winners === 1 ? '' : 's'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-0.5">
                       <Button
                         variant="ghost"
                         size="icon"
+                        className="h-8 w-8"
                         onClick={() => openEdit(position)}
                         aria-label={`Edit ${position.name}`}
                       >
@@ -176,16 +176,60 @@ export function PositionsPage() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        className="h-8 w-8"
                         onClick={() => setDeleteTarget(position)}
                         aria-label={`Delete ${position.name}`}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+
+              {/* Desktop table view */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Eligible Year</TableHead>
+                      <TableHead>Winners</TableHead>
+                      <TableHead className="w-32 text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPositions.map((position) => (
+                      <TableRow key={position.id}>
+                        <TableCell className="font-medium">{position.name}</TableCell>
+                        <TableCell>
+                          {position.academic_year ? <Badge variant="outline">{position.academic_year}</Badge> : null}
+                        </TableCell>
+                        <TableCell>{position.max_winners}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEdit(position)}
+                            aria-label={`Edit ${position.name}`}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeleteTarget(position)}
+                            aria-label={`Delete ${position.name}`}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
