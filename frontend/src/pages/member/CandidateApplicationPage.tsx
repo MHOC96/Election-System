@@ -96,8 +96,8 @@ export function CandidateApplicationPage() {
     setSelectedPosition(positionId)
     reset({
       full_name: '',
-      mc_number: '',
-      cpm_number: '',
+      mc_number: user?.mc_number ?? '',
+      cpm_number: user?.cpm_number ?? '',
       contact_number: '',
       declaration_agreed: undefined,
     })
@@ -276,12 +276,12 @@ export function CandidateApplicationPage() {
             </FormField>
             
             <div className="grid grid-cols-2 gap-4">
-              <FormField label="MC Number" htmlFor="mc_number" error={errors.mc_number?.message} required>
-                <Input id="mc_number" {...register('mc_number')} />
+              <FormField label="MC Number" htmlFor="mc_number" error={errors.mc_number?.message}>
+                <Input id="mc_number" readOnly className="bg-muted cursor-not-allowed text-muted-foreground" {...register('mc_number')} />
               </FormField>
               
-              <FormField label="CPM Number" htmlFor="cpm_number" error={errors.cpm_number?.message} required>
-                <Input id="cpm_number" {...register('cpm_number')} />
+              <FormField label="CPM Number" htmlFor="cpm_number" error={errors.cpm_number?.message}>
+                <Input id="cpm_number" readOnly className="bg-muted cursor-not-allowed text-muted-foreground" {...register('cpm_number')} />
               </FormField>
             </div>
             

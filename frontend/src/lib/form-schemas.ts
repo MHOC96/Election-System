@@ -22,7 +22,7 @@ export const electionSchema = z.object({
   application_end_at: z.string().optional(),
   voting_start_at: z.string().optional(),
   voting_end_at: z.string().optional(),
-  require_all_positions_filled: z.boolean(),
+  require_all_positions_filled: z.boolean().optional(),
 })
 
 export type ElectionForm = z.infer<typeof electionSchema>

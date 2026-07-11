@@ -6,6 +6,7 @@ const FRESH_LOGIN_KEY = 'election_fresh_login'
 export interface StoredUser {
   id: number
   cpm_number: string
+  mc_number: string
   role: 'ADMIN' | 'MEMBER'
   is_active: boolean
   has_changed_password: boolean

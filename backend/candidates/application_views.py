@@ -56,6 +56,8 @@ class MemberApplicationListCreateView(generics.ListCreateAPIView):
         data = request.data.copy()
         data["election"] = election.pk
         data["member"] = request.user.pk
+        data["cpm_number"] = request.user.cpm_number
+        data["mc_number"] = request.user.mc_number
         
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)

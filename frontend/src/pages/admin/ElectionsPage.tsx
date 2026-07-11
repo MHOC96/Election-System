@@ -246,7 +246,9 @@ export function ElectionsPage() {
     }
 
     if (editingElection && showVotingFieldsInEdit && canEditVotingDates(editingElection)) {
-      payload.voting_start_at = localInputToIso(values.voting_start_at)
+      if (!editingElection.voting_started) {
+        payload.voting_start_at = localInputToIso(values.voting_start_at)
+      }
       payload.voting_end_at = localInputToIso(values.voting_end_at)
     }
 
@@ -572,7 +574,7 @@ export function ElectionsPage() {
                   <Input
                     id="edit_voting_start_at"
                     type="datetime-local"
-                    disabled={editingElection ? !canEditVotingDates(editingElection) : false}
+                    disabled={editingElection ? (!canEditVotingDates(editingElection) || editingElection.voting_started) : false}
                     {...register('voting_start_at')}
                   />
                 </FormField>

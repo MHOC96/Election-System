@@ -87,7 +87,11 @@ class ElectionDetailView(generics.RetrieveUpdateDestroyAPIView):
                 raise ValidationError("Voting has already ended.")
 
         if "voting_start_at" in data:
-            raise ValidationError("Voting start time is set automatically when voting begins.")
+            if election.voting_started:
+                raise ValidationError("Voting start time cannot be changed after voting has begun.")
+            if "voting_end_at" in data and data["voting_start_at"] and data["voting_end_at"]:
+                if data["voting_start_at"] >= data["voting_end_at"]:
+                    raise ValidationError("Voting start time must be before voting end time.")
 
         serializer = self.get_serializer(election, data=data, partial=partial)
         serializer.is_valid(raise_exception=True)
