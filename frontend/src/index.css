@@ -258,6 +258,34 @@
     --cd-glow-b: hsl(var(--chart-3) / 0.1);
   }
 
+  .election-countdown--voting-upcoming {
+    --cd-chip-bg: hsl(var(--chart-3) / 0.1);
+    --cd-chip-border: hsl(var(--chart-3) / 0.22);
+    --cd-chip-text: hsl(var(--chart-3));
+    --cd-glow-a: hsl(var(--chart-3) / 0.16);
+    --cd-glow-b: hsl(var(--primary) / 0.12);
+    --cd-digit-accent: hsl(var(--chart-3));
+    border-color: hsl(var(--chart-3) / 0.28);
+    box-shadow:
+      var(--shadow-md),
+      0 0 0 1px hsl(var(--chart-3) / 0.06);
+  }
+
+  .dark .election-countdown--voting-upcoming {
+    --cd-chip-bg: hsl(var(--chart-3) / 0.14);
+    --cd-chip-text: hsl(var(--chart-3));
+    border-color: hsl(var(--chart-3) / 0.32);
+    box-shadow:
+      var(--shadow-lg),
+      0 0 24px hsl(var(--chart-3) / 0.08);
+  }
+
+  .election-countdown--voting-upcoming .election-countdown__digit-value {
+    background: linear-gradient(135deg, hsl(var(--chart-3)), hsl(var(--primary)));
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
   .election-countdown--applications-open {
     --cd-chip-bg: hsl(var(--primary) / 0.09);
     --cd-chip-text: hsl(var(--primary));

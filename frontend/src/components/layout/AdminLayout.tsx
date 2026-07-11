@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
 import { adminNavItems } from '@/lib/navigation'
 import { shellContentClass } from '@/lib/design-tokens'
-import { warmAdminConsole } from '@/lib/prefetch'
+import { warmAdminConsole, resetConsoleWarmupState } from '@/lib/prefetch'
 import { MobileNavSheet } from '@/components/layout/MobileNavSheet'
 import { AdminSidebarFooter } from '@/components/layout/AdminSidebarFooter'
 import { ShellActions } from '@/components/layout/ShellActions'
@@ -30,6 +30,7 @@ export function AdminLayout() {
     if (isLoggingOut) return
     setIsLoggingOut(true)
     queryClient.cancelQueries()
+    resetConsoleWarmupState()
     queryClient.clear()
     try {
       await logout()

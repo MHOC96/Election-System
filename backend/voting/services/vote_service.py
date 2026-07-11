@@ -101,6 +101,7 @@ def build_member_vote_status(
     *,
     votes: list[Vote] | None = None,
     positions_total: int | None = None,
+    current_phase: str | None = None,
 ) -> dict:
     if positions_total is None:
         positions_total = count_votable_positions(member, election_id=election.id if election else None)
@@ -137,13 +138,15 @@ def build_member_vote_status(
     ]
 
     positions_voted = len(vote_items)
+    phase = current_phase or election.get_current_phase()
+    can_vote = phase == ElectionPhase.VOTING_OPEN
 
     return {
         "election": {
             "id": election.id,
             "name": election.name,
             "status": election.status,
-            "current_phase": election.get_current_phase(),
+            "current_phase": phase,
             "voting_start_at": election.voting_start_at,
             "voting_end_at": election.voting_end_at,
         },
@@ -152,7 +155,7 @@ def build_member_vote_status(
         "positions_total": positions_total,
         "positions_remaining": max(positions_total - positions_voted, 0),
         "all_positions_voted": positions_voted == positions_total and positions_total > 0,
-        "can_vote": election.is_voting_open,
+        "can_vote": can_vote,
         "election_ended": False,
     }
 

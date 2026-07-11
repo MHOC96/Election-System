@@ -1,4 +1,4 @@
-import { Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
@@ -22,6 +22,9 @@ import {
   ApplicationReviewPage,
 } from '@/routes/adminPages'
 import { AppToaster } from '@/components/shared/AppToaster'
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
+import { AuthSessionBridge } from '@/components/auth/AuthSessionBridge'
+import { initTabCoordinator } from '@/lib/tab-coordinator'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,11 +49,15 @@ const ballotFallback = (
 )
 
 export default function App() {
+  useEffect(() => initTabCoordinator(), [])
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <AuthProvider>
-          <BrowserRouter>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <AuthProvider>
+            <BrowserRouter>
+            <AuthSessionBridge />
             <Routes>
               <Route path="/login" element={<LoginPage />} />
 
@@ -150,10 +157,11 @@ export default function App() {
 
               <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
-          </BrowserRouter>
-          <AppToaster />
-        </AuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+            </BrowserRouter>
+            <AppToaster />
+          </AuthProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   )
 }

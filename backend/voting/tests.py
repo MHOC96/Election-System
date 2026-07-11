@@ -1,5 +1,9 @@
+from datetime import timedelta
+
+from django.db import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -8,6 +12,14 @@ from candidates.models import AcademicYear, Candidate
 from positions.models import Position
 from voting.models import Election, ElectionStatus, Vote
 from voting.services.vote_service import VoteError, submit_vote
+from voting.test_helpers import (
+    create_applications_open_election,
+    create_archived_election,
+    create_draft_election,
+    create_scheduled_election,
+    create_voting_closed_election,
+    create_voting_open_election,
+)
 
 
 class ElectionLifecycleTestCase(TestCase):
@@ -31,77 +43,79 @@ class ElectionLifecycleTestCase(TestCase):
             HTTP_AUTHORIZATION=f"Bearer {response.data['data']['access']}"
         )
 
-    def _seed_election_ready(self):
-        position = Position.objects.create(name="President")
-        Candidate.objects.create(
-            full_name="Alice",
-            academic_year=AcademicYear.SECOND_YEAR,
-            photo_url="https://res.cloudinary.com/demo/image/upload/v1/a.jpg",
-            position=position,
-        )
-
-    def test_create_and_start_election(self):
-        self._seed_election_ready()
-        create_response = self.client.post(
+    def test_create_draft_election(self):
+        response = self.client.post(
             reverse("elections-list-create"),
             {"name": "2026 EC Election"},
             format="json",
         )
-        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
-        election_id = create_response.data["data"]["id"]
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["data"]["status"], ElectionStatus.DRAFT)
 
-        start_response = self.client.post(
-            reverse("elections-start", kwargs={"pk": election_id})
-        )
-        self.assertEqual(start_response.status_code, status.HTTP_200_OK)
-        self.assertEqual(start_response.data["data"]["status"], ElectionStatus.ACTIVE)
-
-    def test_only_one_active_election(self):
-        self._seed_election_ready()
-        e1 = Election.objects.create(name="Election 1", status=ElectionStatus.ACTIVE)
-        e2 = Election.objects.create(name="Election 2", status=ElectionStatus.DRAFT)
-        response = self.client.post(reverse("elections-start", kwargs={"pk": e2.pk}))
+    def test_schedule_requires_application_dates(self):
+        election = create_draft_election()
+        response = self.client.post(reverse("elections-schedule", kwargs={"pk": election.pk}))
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        e1.refresh_from_db()
-        self.assertEqual(e1.status, ElectionStatus.ACTIVE)
 
-    def test_stop_and_resume_election(self):
-        self._seed_election_ready()
-        election = Election.objects.create(name="Election", status=ElectionStatus.DRAFT)
-        election.start()
-        stop_response = self.client.post(
-            reverse("elections-stop", kwargs={"pk": election.pk})
+    def test_schedule_draft_election(self):
+        now = timezone.now()
+        election = create_draft_election(
+            application_start_at=now + timedelta(hours=1),
+            application_end_at=now + timedelta(days=1),
         )
-        self.assertEqual(stop_response.data["data"]["status"], ElectionStatus.STOPPED)
+        response = self.client.post(reverse("elections-schedule", kwargs={"pk": election.pk}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["data"]["status"], ElectionStatus.SCHEDULED)
 
-        start_response = self.client.post(
-            reverse("elections-start", kwargs={"pk": election.pk})
+    def test_cannot_schedule_second_non_archived_election(self):
+        now = timezone.now()
+        first = create_draft_election(
+            name="First",
+            application_start_at=now + timedelta(hours=1),
+            application_end_at=now + timedelta(days=1),
         )
-        self.assertEqual(start_response.data["data"]["status"], ElectionStatus.ACTIVE)
+        schedule_first = self.client.post(reverse("elections-schedule", kwargs={"pk": first.pk}))
+        self.assertEqual(schedule_first.status_code, status.HTTP_200_OK)
 
-    def test_close_election(self):
-        election = Election.objects.create(name="Election", status=ElectionStatus.ACTIVE)
-        response = self.client.post(reverse("elections-close", kwargs={"pk": election.pk}))
-        self.assertEqual(response.data["data"]["status"], ElectionStatus.CLOSED)
+        second = create_draft_election(
+            name="Second",
+            application_start_at=now + timedelta(hours=2),
+            application_end_at=now + timedelta(days=2),
+        )
+        response = self.client.post(reverse("elections-schedule", kwargs={"pk": second.pk}))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_delete_draft_election(self):
+        election = create_draft_election()
+        response = self.client.delete(reverse("elections-detail", kwargs={"pk": election.pk}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(Election.objects.filter(pk=election.pk).exists())
+
+    def test_delete_scheduled_election(self):
+        election = create_scheduled_election()
+        response = self.client.delete(reverse("elections-detail", kwargs={"pk": election.pk}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(Election.objects.filter(pk=election.pk).exists())
 
     def test_delete_closed_election_cascades_votes(self):
-        from accounts.models import User, UserRole
-        from candidates.models import AcademicYear, Candidate
-        from positions.models import Position
-
-        position = Position.objects.create(name="President")
+        position = Position.objects.create(
+            name="President",
+            academic_year=AcademicYear.SECOND_YEAR,
+        )
+        election = create_voting_closed_election()
         candidate = Candidate.objects.create(
             full_name="Alice",
             academic_year=AcademicYear.SECOND_YEAR,
             photo_url="https://res.cloudinary.com/demo/image/upload/v1/a.jpg",
             position=position,
+            election=election,
         )
         member = User.objects.create_user(
             cpm_number="CPM310",
             mc_number="member-pass",
             role=UserRole.MEMBER,
+            academic_year=AcademicYear.SECOND_YEAR,
         )
-        election = Election.objects.create(name="Closed Election", status=ElectionStatus.CLOSED)
         Vote.objects.create(
             member=member,
             position=position,
@@ -112,51 +126,6 @@ class ElectionLifecycleTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(Election.objects.filter(pk=election.pk).exists())
         self.assertFalse(Vote.objects.filter(election_id=election.pk).exists())
-
-    def test_can_delete_scheduled_election(self):
-        election = Election.objects.create(
-            name="Scheduled Election", status=ElectionStatus.SCHEDULED
-        )
-        response = self.client.delete(reverse("elections-detail", kwargs={"pk": election.pk}))
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertFalse(Election.objects.filter(pk=election.pk).exists())
-
-    def test_can_delete_draft_election(self):
-        election = Election.objects.create(name="Draft Election", status=ElectionStatus.DRAFT)
-        response = self.client.delete(reverse("elections-detail", kwargs={"pk": election.pk}))
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertFalse(Election.objects.filter(pk=election.pk).exists())
-
-    def test_cannot_create_without_candidates(self):
-        create_response = self.client.post(
-            reverse("elections-list-create"),
-            {"name": "Empty Election"},
-            format="json",
-        )
-        self.assertEqual(create_response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_cannot_start_when_position_missing_candidate(self):
-        Position.objects.create(name="President")
-        Position.objects.create(name="Secretary")
-        position = Position.objects.first()
-        Candidate.objects.create(
-            full_name="Alice",
-            academic_year=AcademicYear.SECOND_YEAR,
-            photo_url="https://res.cloudinary.com/demo/image/upload/v1/a.jpg",
-            position=position,
-        )
-        create_response = self.client.post(
-            reverse("elections-list-create"),
-            {"name": "Partial Election"},
-            format="json",
-        )
-        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
-        election_id = create_response.data["data"]["id"]
-        start_response = self.client.post(
-            reverse("elections-start", kwargs={"pk": election_id})
-        )
-        self.assertEqual(start_response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("Secretary", start_response.data["error"]["message"])
 
 
 class VotingTestCase(TestCase):
@@ -172,22 +141,25 @@ class VotingTestCase(TestCase):
             cpm_number="CPM301",
             mc_number="member-pass",
             role=UserRole.MEMBER,
+            academic_year=AcademicYear.SECOND_YEAR,
         )
         self.other_member = User.objects.create_user(
             cpm_number="CPM302",
             mc_number="member-pass2",
             role=UserRole.MEMBER,
+            academic_year=AcademicYear.SECOND_YEAR,
         )
-        self.position = Position.objects.create(name="President")
+        self.position = Position.objects.create(
+            name="President",
+            academic_year=AcademicYear.SECOND_YEAR,
+        )
+        self.election = create_voting_open_election()
         self.candidate = Candidate.objects.create(
             full_name="Alice",
             academic_year=AcademicYear.SECOND_YEAR,
             photo_url="https://res.cloudinary.com/demo/image/upload/v1/sample.jpg",
             position=self.position,
-        )
-        self.election = Election.objects.create(
-            name="2026 Election",
-            status=ElectionStatus.ACTIVE,
+            election=self.election,
         )
 
     def _login(self, cpm_number, mc_number):
@@ -233,8 +205,8 @@ class VotingTestCase(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_vote_blocked_when_election_stopped(self):
-        self.election.status = ElectionStatus.STOPPED
+    def test_vote_blocked_when_voting_not_open(self):
+        self.election.voting_started = False
         self.election.save()
         self._login("CPM301", "member-pass")
         response = self.client.post(
@@ -288,27 +260,29 @@ class VotingTestCase(TestCase):
             "Alice",
         )
 
-    def test_ballot_available_when_election_stopped(self):
-        self.election.status = ElectionStatus.STOPPED
+    def test_ballot_available_before_voting_opens(self):
+        now = timezone.now()
+        self.election.voting_started = False
+        self.election.voting_start_at = now + timedelta(hours=2)
+        self.election.voting_end_at = now + timedelta(hours=4)
         self.election.save()
         self._login("CPM301", "member-pass")
         response = self.client.get(reverse("votes-ballot"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(response.data["data"]["can_vote"])
-        self.assertEqual(response.data["data"]["election"]["status"], ElectionStatus.STOPPED)
+        self.assertEqual(response.data["data"]["election"]["status"], ElectionStatus.SCHEDULED)
 
-    def test_my_status_hidden_after_election_closed(self):
+    def test_my_status_empty_when_no_ongoing_election(self):
         submit_vote(
             member=self.member,
             position_id=self.position.pk,
             candidate_id=self.candidate.pk,
         )
-        self.election.status = ElectionStatus.CLOSED
+        self.election.status = ElectionStatus.ARCHIVED
         self.election.save()
         self._login("CPM301", "member-pass")
         response = self.client.get(reverse("votes-my-status"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data["data"]["election_ended"])
         self.assertEqual(response.data["data"]["votes"], [])
 
     def test_votes_are_immutable(self):
@@ -320,6 +294,74 @@ class VotingTestCase(TestCase):
         vote_admin = VoteAdminChecker()
         self.assertFalse(vote_admin.has_change_permission(None, vote))
         self.assertFalse(vote_admin.has_delete_permission(None, vote))
+
+
+class VoteUniqueConstraintTestCase(TestCase):
+    """Ensures one vote per member per position is scoped to an election."""
+
+    def setUp(self):
+        self.member = User.objects.create_user(
+            cpm_number="CPM900",
+            mc_number="member-pass",
+            role=UserRole.MEMBER,
+            academic_year=AcademicYear.SECOND_YEAR,
+        )
+        self.position = Position.objects.create(
+            name="President",
+            academic_year=AcademicYear.SECOND_YEAR,
+        )
+        self.election_one = Election.objects.create(
+            name="Election 2025",
+            status=ElectionStatus.ARCHIVED,
+        )
+        self.election_two = Election.objects.create(
+            name="Election 2026",
+            status=ElectionStatus.SCHEDULED,
+        )
+        self.candidate_one = Candidate.objects.create(
+            full_name="Alice 2025",
+            academic_year=AcademicYear.SECOND_YEAR,
+            photo_url="https://res.cloudinary.com/demo/image/upload/v1/a.jpg",
+            position=self.position,
+            election=self.election_one,
+        )
+        self.candidate_two = Candidate.objects.create(
+            full_name="Bob 2026",
+            academic_year=AcademicYear.SECOND_YEAR,
+            photo_url="https://res.cloudinary.com/demo/image/upload/v1/b.jpg",
+            position=self.position,
+            election=self.election_two,
+        )
+
+    def test_same_member_position_allowed_across_elections(self):
+        Vote.objects.create(
+            member=self.member,
+            position=self.position,
+            candidate=self.candidate_one,
+            election=self.election_one,
+        )
+        vote = Vote.objects.create(
+            member=self.member,
+            position=self.position,
+            candidate=self.candidate_two,
+            election=self.election_two,
+        )
+        self.assertEqual(vote.election_id, self.election_two.id)
+
+    def test_duplicate_vote_same_election_rejected(self):
+        Vote.objects.create(
+            member=self.member,
+            position=self.position,
+            candidate=self.candidate_one,
+            election=self.election_one,
+        )
+        with self.assertRaises(IntegrityError):
+            Vote.objects.create(
+                member=self.member,
+                position=self.position,
+                candidate=self.candidate_one,
+                election=self.election_one,
+            )
 
 
 class VoteAdminChecker:

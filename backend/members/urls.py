@@ -5,11 +5,13 @@ from members.views import (
     MemberClearAllView,
     MemberDeletionStatusView,
     MemberDetailView,
+    MemberImportStatusView,
     MemberImportView,
     MemberListView,
 )
 
 urlpatterns = [
+    path("import/<int:job_id>/", MemberImportStatusView.as_view(), name="members-import-status"),
     path("import/", MemberImportView.as_view(), name="members-import"),
     path("deletion-status/", MemberDeletionStatusView.as_view(), name="members-deletion-status"),
     path("clear-all/", MemberClearAllView.as_view(), name="members-clear-all"),

@@ -1,85 +1,62 @@
 import { CalendarClock, Sparkles } from 'lucide-react'
-import { splitCountdown } from '@/lib/datetime'
+import { CountdownDisplay } from '@/components/shared/CountdownDisplay'
 import { formatDate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
 export type CountdownVariant =
   | 'applications-upcoming'
   | 'applications-open'
+  | 'voting-upcoming'
   | 'voting-open'
 
 interface ElectionCountdownHeroProps {
   variant: CountdownVariant
   electionName: string
   targetAt: string | null
-  countdownMs: number | null
   className?: string
 }
 
 const variantCopy: Record<
   CountdownVariant,
-  { eyebrow: string; title: string; targetPrefix: string; modifier: string }
+  { eyebrow: string; title: string; targetPrefix: string; modifier: string; countdownLabel: string }
 > = {
   'applications-upcoming': {
     eyebrow: 'Candidate applications',
     title: 'Applications opening soon',
     targetPrefix: 'Opens',
     modifier: 'election-countdown--applications-upcoming',
+    countdownLabel: 'Time until applications open',
   },
   'applications-open': {
     eyebrow: 'Candidate applications',
     title: 'Applications are live',
     targetPrefix: 'Closes',
     modifier: 'election-countdown--applications-open',
+    countdownLabel: 'Time remaining',
+  },
+  'voting-upcoming': {
+    eyebrow: 'Executive election',
+    title: 'Voting opens soon',
+    targetPrefix: 'Opens',
+    modifier: 'election-countdown--voting-upcoming',
+    countdownLabel: 'Time until voting starts',
   },
   'voting-open': {
     eyebrow: 'Executive election',
     title: 'Voting is live',
     targetPrefix: 'Closes',
     modifier: 'election-countdown--voting-open',
+    countdownLabel: 'Time remaining',
   },
-}
-
-function TimeUnit({
-  value,
-  label,
-  pulse,
-}: {
-  value: number
-  label: string
-  pulse?: boolean
-}) {
-  return (
-    <div
-      className={cn(
-        'election-countdown__digit flex w-full min-w-0 flex-col items-center justify-center rounded-xl px-2 py-2.5 sm:rounded-2xl sm:px-3 sm:py-3.5 md:px-4 md:py-4',
-        pulse && 'election-countdown__digit--seconds',
-      )}
-    >
-      <span className="election-countdown__digit-value text-2xl font-bold leading-none tabular-nums tracking-tight sm:text-3xl md:text-4xl">
-        {String(value).padStart(2, '0')}
-      </span>
-      <span
-        className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] sm:mt-2 sm:text-xs sm:tracking-[0.2em]"
-        style={{ color: 'var(--cd-label)' }}
-      >
-        {label}
-      </span>
-    </div>
-  )
 }
 
 export function ElectionCountdownHero({
   variant,
   electionName,
   targetAt,
-  countdownMs,
   className,
 }: ElectionCountdownHeroProps) {
   const copy = variantCopy[variant]
-  const parts =
-    countdownMs !== null ? splitCountdown(countdownMs) : { days: 0, hours: 0, minutes: 0, seconds: 0 }
-  const showDays = parts.days > 0
 
   return (
     <section
@@ -148,26 +125,7 @@ export function ElectionCountdownHero({
           ) : null}
         </div>
 
-        {countdownMs !== null ? (
-          <div className="space-y-2.5 sm:space-y-3">
-            <p className="text-xs font-medium sm:text-sm" style={{ color: 'var(--cd-subtitle)' }}>
-              {variant === 'applications-upcoming'
-                ? 'Time until applications open'
-                : 'Time remaining'}
-            </p>
-            <div
-              className={cn(
-                'grid w-full gap-2 sm:gap-3',
-                showDays ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3',
-              )}
-            >
-              {showDays ? <TimeUnit value={parts.days} label="Days" /> : null}
-              <TimeUnit value={parts.hours} label="Hours" />
-              <TimeUnit value={parts.minutes} label="Minutes" />
-              <TimeUnit value={parts.seconds} label="Seconds" pulse />
-            </div>
-          </div>
-        ) : null}
+        <CountdownDisplay targetAt={targetAt} label={copy.countdownLabel} />
       </div>
     </section>
   )

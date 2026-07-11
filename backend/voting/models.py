@@ -1,5 +1,7 @@
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
+from django.db.models import Count, Q
 from django.utils import timezone
 
 from candidates.models import ApplicationStatus, CandidateApplication
@@ -46,17 +48,39 @@ class Election(models.Model):
         indexes = [
             models.Index(fields=["status"]),
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["status"],
+                condition=Q(status=ElectionStatus.SCHEDULED),
+                name="unique_scheduled_election",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.status})"
 
     @classmethod
+    def with_phase_annotations(cls, queryset=None):
+        qs = queryset if queryset is not None else cls.objects.all()
+        return qs.annotate(
+            pending_application_count=Count(
+                "applications",
+                filter=Q(applications__status=ApplicationStatus.PENDING_REVIEW),
+            )
+        )
+
+    @classmethod
     def get_active(cls):
-        return cls.objects.exclude(status=ElectionStatus.ARCHIVED).order_by("-created_at").first()
+        return cls.with_phase_annotations().exclude(status=ElectionStatus.ARCHIVED).order_by("-created_at").first()
 
     @classmethod
     def get_ongoing(cls):
-        return cls.objects.filter(status=ElectionStatus.SCHEDULED).order_by("-created_at").first()
+        return (
+            cls.with_phase_annotations()
+            .filter(status=ElectionStatus.SCHEDULED)
+            .order_by("-created_at")
+            .first()
+        )
 
     @classmethod
     def get_recently_closed(cls):
@@ -72,12 +96,31 @@ class Election(models.Model):
         )
 
     def _has_pending_applications(self) -> bool:
-        return CandidateApplication.objects.filter(
-            election=self,
-            status=ApplicationStatus.PENDING_REVIEW,
-        ).exists()
+        if hasattr(self, "_cached_has_pending_applications"):
+            return self._cached_has_pending_applications
+
+        pending_count = getattr(self, "pending_application_count", None)
+        if pending_count is not None:
+            result = pending_count > 0
+        else:
+            result = CandidateApplication.objects.filter(
+                election=self,
+                status=ApplicationStatus.PENDING_REVIEW,
+            ).exists()
+
+        self._cached_has_pending_applications = result
+        return result
 
     def get_current_phase(self) -> str:
+        cached = getattr(self, "_cached_current_phase", None)
+        if cached is not None:
+            return cached
+
+        phase = self._resolve_current_phase()
+        self._cached_current_phase = phase
+        return phase
+
+    def _resolve_current_phase(self) -> str:
         if self.status == ElectionStatus.DRAFT:
             return ElectionPhase.DRAFT
         if self.status == ElectionStatus.ARCHIVED:
@@ -88,7 +131,7 @@ class Election(models.Model):
 
         now = timezone.now()
 
-        has_started_voting = self.voting_started or (self.voting_start_at and now >= self.voting_start_at)
+        has_started_voting = self.voting_started and (not self.voting_start_at or now >= self.voting_start_at)
 
         if has_started_voting and self.voting_end_at and now >= self.voting_end_at:
             return ElectionPhase.VOTING_CLOSED
@@ -174,8 +217,8 @@ class Vote(models.Model):
         ordering = ["-created_at"]
         constraints = [
             models.UniqueConstraint(
-                fields=["member", "position"],
-                name="unique_vote_per_member_position",
+                fields=["member", "position", "election"],
+                name="unique_vote_per_member_position_election",
             ),
         ]
         indexes = [

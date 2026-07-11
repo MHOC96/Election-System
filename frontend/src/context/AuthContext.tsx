@@ -9,11 +9,8 @@ import {
 } from 'react'
 import { fetchMe, login as apiLogin, logout as apiLogout, type LoginPayload } from '@/api/auth'
 import { clearAuth, consumeFreshLogin, getAccessToken, getStoredUser } from '@/lib/auth-storage'
-import { scheduleIdle } from '@/lib/schedule-idle'
 import type { User } from '@/types/api'
 import { ForcePasswordChangeModal } from '@/components/auth/ForcePasswordChangeModal'
-
-
 
 interface AuthContextValue {
   user: User | null
@@ -28,7 +25,7 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => getStoredUser())
-  const [isLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(() => Boolean(getAccessToken()))
 
   const refreshUser = useCallback(async () => {
     const token = getAccessToken()
@@ -45,29 +42,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!token) {
       if (getStoredUser()) clearAuth()
       setUser(null)
+      setIsLoading(false)
       return
     }
 
     if (consumeFreshLogin()) {
+      setIsLoading(false)
       return
     }
 
-    scheduleIdle(() => {
-      void refreshUser().catch(() => {
+    void refreshUser()
+      .catch(() => {
         clearAuth()
         setUser(null)
       })
-    })
+      .finally(() => setIsLoading(false))
   }, [refreshUser])
 
   const login = useCallback(async (payload: LoginPayload) => {
     const loggedIn = await apiLogin(payload)
     setUser(loggedIn)
+    setIsLoading(false)
     return loggedIn
   }, [])
 
   const logout = useCallback(async () => {
     setUser(null)
+    setIsLoading(false)
     await apiLogout()
   }, [])
 
@@ -86,13 +87,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={value}>
       {children}
-      {user && user.role === 'MEMBER' && !user.has_changed_password && (
-        <ForcePasswordChangeModal 
-          open={true} 
+      {user && user.role === 'MEMBER' && !user.has_changed_password && !isLoading && (
+        <ForcePasswordChangeModal
+          open={true}
           onSuccess={async () => {
-            // Re-fetch user so that has_changed_password updates
             await refreshUser()
-          }} 
+          }}
         />
       )}
     </AuthContext.Provider>

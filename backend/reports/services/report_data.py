@@ -1,3 +1,4 @@
+from django.contrib.postgres.aggregates import StringAgg
 from django.db.models import Count
 
 from accounts.models import User, UserRole
@@ -55,8 +56,11 @@ def get_results_report_data(election_id: int | None = None, academic_year: str |
 
 def get_candidates_report_data(election_id: int | None = None, academic_year: str | None = None) -> dict:
     from django.db.models import Q
+
     election = _resolve_election(election_id)
     candidates_qs = Candidate.objects.select_related("position")
+    if election:
+        candidates_qs = candidates_qs.filter(election_id=election.id)
     if academic_year:
         candidates_qs = candidates_qs.filter(Q(position__academic_year__isnull=True) | Q(position__academic_year=academic_year))
     candidates = candidates_qs.order_by("position__name", "full_name")
@@ -119,7 +123,10 @@ def get_turnout_report_data(election_id: int | None = None, academic_year: str |
 def get_participation_report_data(election_id: int | None = None, academic_year: str | None = None) -> dict:
     election = _require_election(election_id)
     from voting.services.vote_service import count_votable_positions
-    total_positions = count_votable_positions(academic_year=academic_year)
+    total_positions = count_votable_positions(
+        academic_year=academic_year,
+        election_id=election.id,
+    )
     
     members_qs = User.objects.filter(role=UserRole.MEMBER, is_active=True)
     if academic_year:
@@ -130,24 +137,23 @@ def get_participation_report_data(election_id: int | None = None, academic_year:
     if academic_year:
         votes_qs = votes_qs.filter(member__academic_year=academic_year)
 
-    vote_map = (
-        votes_qs
-        .values("member_id")
-        .annotate(positions_voted=Count("position_id", distinct=True))
-    )
-    voted_counts = {row["member_id"]: row["positions_voted"] for row in vote_map}
-
-    member_positions = {}
-    for vote in (
-        votes_qs
-        .select_related("position", "member")
-        .order_by("member__cpm_number", "position__name")
-    ):
-        member_positions.setdefault(vote.member_id, []).append(vote.position.name)
+    vote_stats = {
+        row["member_id"]: row
+        for row in votes_qs.values("member_id").annotate(
+            positions_voted=Count("position_id", distinct=True),
+            voted_positions=StringAgg(
+                "position__name",
+                delimiter=", ",
+                distinct=True,
+                ordering="position__name",
+            ),
+        )
+    }
 
     rows = []
     for member in members:
-        positions_voted = voted_counts.get(member.id, 0)
+        stats = vote_stats.get(member.id)
+        positions_voted = stats["positions_voted"] if stats else 0
         if positions_voted == 0:
             status = "No Vote"
         elif total_positions > 0 and positions_voted >= total_positions:
@@ -161,7 +167,7 @@ def get_participation_report_data(election_id: int | None = None, academic_year:
                 "positions_voted": positions_voted,
                 "total_positions": total_positions,
                 "participation_status": status,
-                "voted_positions": ", ".join(member_positions.get(member.id, [])),
+                "voted_positions": stats["voted_positions"] if stats else "",
             }
         )
 

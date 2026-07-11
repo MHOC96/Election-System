@@ -12,8 +12,11 @@ from candidates.services.cloudinary_service import upload_candidate_photo
 from candidates.services.deletion_service import clear_all_candidates
 from members.services.deletion_service import MemberDeletionNotAllowedError
 from positions.models import Position
+from dashboard.services.stats_service import invalidate_dashboard_cache
 from voting.models import Election
 from voting.services.election_guard import ElectionGuardError, assert_candidate_changes_allowed
+from audit.constants import AuditAction
+from audit.services.audit_service import log_action
 
 
 class CandidateListCreateView(generics.ListCreateAPIView):
@@ -34,6 +37,39 @@ class CandidateListCreateView(generics.ListCreateAPIView):
         response = super().list(request, *args, **kwargs)
         return Response({"success": True, "data": response.data})
 
+    def create(self, request, *args, **kwargs):
+        election = Election.get_ongoing()
+        try:
+            assert_candidate_changes_allowed(election)
+        except ElectionGuardError as exc:
+            raise ValidationError(str(exc)) from exc
+
+        if election is None:
+            raise ValidationError("A scheduled election is required before adding candidates.")
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        candidate = serializer.save(election=election)
+        if election is not None:
+            invalidate_dashboard_cache(election.id)
+        else:
+            invalidate_dashboard_cache()
+        log_action(
+            action=AuditAction.CANDIDATE_CREATED,
+            request=request,
+            actor=request.user,
+            metadata={
+                "candidate_id": candidate.id,
+                "position_id": candidate.position_id,
+                "election_id": candidate.election_id,
+            },
+        )
+        return Response(
+            {"success": True, "data": self.get_serializer(candidate).data},
+            status=status.HTTP_201_CREATED,
+        )
+
+
 class CandidateModificationStatusView(APIView):
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
 
@@ -47,23 +83,6 @@ class CandidateModificationStatusView(APIView):
             return Response({"success": True, "data": {"allowed": True}})
         except ElectionGuardError as exc:
             return Response({"success": True, "data": {"allowed": False, "reason": str(exc)}})
-
-    def create(self, request, *args, **kwargs):
-        election = Election.get_ongoing()
-        if election is None:
-            raise ValidationError("No election is available for adding candidates.")
-        try:
-            assert_candidate_changes_allowed(election)
-        except ElectionGuardError as exc:
-            raise ValidationError(str(exc)) from exc
-
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        candidate = serializer.save(election=election)
-        return Response(
-            {"success": True, "data": self.get_serializer(candidate).data},
-            status=status.HTTP_201_CREATED,
-        )
 
 
 class PositionCandidateListCreateView(generics.ListAPIView):
@@ -103,6 +122,16 @@ class CandidateDetailView(generics.RetrieveUpdateDestroyAPIView):
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        if instance.election_id:
+            invalidate_dashboard_cache(instance.election_id)
+        else:
+            invalidate_dashboard_cache()
+        log_action(
+            action=AuditAction.CANDIDATE_UPDATED,
+            request=request,
+            actor=request.user,
+            metadata={"candidate_id": instance.id, "position_id": instance.position_id},
+        )
         return Response({"success": True, "data": serializer.data})
 
     def destroy(self, request, *args, **kwargs):
@@ -114,7 +143,20 @@ class CandidateDetailView(generics.RetrieveUpdateDestroyAPIView):
 
         if instance.has_votes():
             raise ValidationError("Cannot delete a candidate who has received votes.")
+        candidate_id = instance.id
+        position_id = instance.position_id
+        election_id = instance.election_id
         instance.delete()
+        if election_id:
+            invalidate_dashboard_cache(election_id)
+        else:
+            invalidate_dashboard_cache()
+        log_action(
+            action=AuditAction.CANDIDATE_DELETED,
+            request=request,
+            actor=request.user,
+            metadata={"candidate_id": candidate_id, "position_id": position_id},
+        )
         return Response(
             {"success": True, "message": "Candidate deleted successfully."},
             status=status.HTTP_200_OK,
@@ -181,6 +223,13 @@ class CandidatePhotoUploadView(APIView):
                 },
                 status=status.HTTP_502_BAD_GATEWAY,
             )
+
+        log_action(
+            action=AuditAction.CANDIDATE_PHOTO_UPLOADED,
+            request=request,
+            actor=request.user,
+            metadata={"public_id": result.get("public_id"), "photo_url": result.get("photo_url")},
+        )
 
         return Response(
             {"success": True, "data": result},

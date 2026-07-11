@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 
 import { Activity, Plus, TrendingUp, Trophy, Users, Vote } from 'lucide-react'
@@ -7,6 +7,7 @@ import { Activity, Plus, TrendingUp, Trophy, Users, Vote } from 'lucide-react'
 import { fetchDashboardOverview } from '@/api/dashboard'
 
 import { useDocumentVisible } from '@/lib/useDocumentVisible'
+import { shouldOwnPoll } from '@/lib/tab-coordinator'
 
 import { LazyParticipationDonutChart } from '@/components/charts/LazyCharts'
 
@@ -37,10 +38,11 @@ import { StatCard } from '@/components/shared/StatCard'
 
 import { pageLayoutClass } from '@/lib/design-tokens'
 import {
+  DASHBOARD_DEFAULT_ACADEMIC_YEAR,
   DASHBOARD_POLL_MS,
-  DASHBOARD_QUERY_KEY,
   DASHBOARD_STALE_MS,
   DASHBOARD_SUMMARY_POLL_MS,
+  dashboardOverviewQueryKey,
 } from '@/lib/query-sync'
 
 import { cn, formatPercent } from '@/lib/utils'
@@ -70,15 +72,28 @@ function formatCount(value: number): string {
 
 export function AdminDashboardPage() {
 
+  const queryClient = useQueryClient()
   const documentVisible = useDocumentVisible()
 
-  const [activeTab, setActiveTab] = useState('3rd Year')
+  const [activeTab, setActiveTab] = useState<string>(DASHBOARD_DEFAULT_ACADEMIC_YEAR)
 
   const { data, isPending, isError, isFetching, dataUpdatedAt, refetch } = useQuery({
 
-    queryKey: [...DASHBOARD_QUERY_KEY, activeTab],
+    queryKey: dashboardOverviewQueryKey(activeTab),
 
-    queryFn: () => fetchDashboardOverview(undefined, activeTab),
+    queryFn: async () => {
+      const key = dashboardOverviewQueryKey(activeTab)
+      const interval =
+        queryClient.getQueryData<Awaited<ReturnType<typeof fetchDashboardOverview>>>(key)?.summary
+          .election?.current_phase === 'VOTING_OPEN'
+          ? LIVE_POLL_INTERVAL_MS
+          : SUMMARY_POLL_INTERVAL_MS
+      if (!shouldOwnPoll(key, interval - 1_000)) {
+        const cached = queryClient.getQueryData<Awaited<ReturnType<typeof fetchDashboardOverview>>>(key)
+        if (cached !== undefined) return cached
+      }
+      return fetchDashboardOverview(undefined, activeTab)
+    },
 
     staleTime: DASHBOARD_STALE_MS,
     placeholderData: (previous) => previous,

@@ -21,12 +21,17 @@ import { useAuth } from '@/context/AuthContext'
 
 const passwordSchema = z
   .object({
+    current_password: z.string().min(1, 'Current password is required.'),
     new_password: z.string().min(6, 'Password must be at least 6 characters.'),
     confirm_password: z.string(),
   })
   .refine((data) => data.new_password === data.confirm_password, {
     message: "Passwords don't match.",
     path: ['confirm_password'],
+  })
+  .refine((data) => data.new_password !== data.current_password, {
+    message: 'New password must be different from your current password.',
+    path: ['new_password'],
   })
 
 type PasswordForm = z.infer<typeof passwordSchema>
@@ -82,6 +87,22 @@ export function ForcePasswordChangeModal({ open, onSuccess }: ForcePasswordChang
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-4 pt-2" noValidate>
+          <FormField
+            label="Current Password"
+            htmlFor="current_password"
+            error={errors.current_password?.message}
+            valid={Boolean(touchedFields.current_password && !errors.current_password)}
+            hint="Use your MC Number if you have not changed your password yet."
+            required
+          >
+            <Input
+              id="current_password"
+              type="password"
+              autoComplete="current-password"
+              {...register('current_password')}
+            />
+          </FormField>
+
           <FormField
             label="New Password"
             htmlFor="new_password"

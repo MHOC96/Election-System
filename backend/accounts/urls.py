@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.urls import path
 
 from accounts.views import (
@@ -16,6 +17,10 @@ urlpatterns = [
     path("logout/", LogoutView.as_view(), name="auth-logout"),
     path("me/", MeView.as_view(), name="auth-me"),
     path("change-password/", ChangePasswordView.as_view(), name="auth-change-password"),
-    path("probe/admin/", AdminOnlyProbeView.as_view(), name="auth-probe-admin"),
-    path("probe/member/", MemberOnlyProbeView.as_view(), name="auth-probe-member"),
 ]
+
+if settings.DEBUG:
+    urlpatterns += [
+        path("probe/admin/", AdminOnlyProbeView.as_view(), name="auth-probe-admin"),
+        path("probe/member/", MemberOnlyProbeView.as_view(), name="auth-probe-member"),
+    ]

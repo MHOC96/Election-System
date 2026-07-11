@@ -52,6 +52,12 @@ class AuthenticationAPITestCase(TestCase):
         response = self.client.get(reverse("auth-me"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["cpm_number"], "CPM001")
+        self.assertNotIn("mc_number", response.data["data"])
+
+    def test_login_response_omits_mc_number(self):
+        response = self._login("CPM001", "member-secret")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotIn("mc_number", response.data["data"]["user"])
 
     def test_admin_probe_denied_for_member(self):
         login_response = self._login("CPM001", "member-secret")
@@ -95,6 +101,82 @@ class AuthenticationAPITestCase(TestCase):
             format="json",
         )
         self.assertEqual(refresh_response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class ChangePasswordAPITestCase(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.member = User.objects.create_user(
+            cpm_number="CPM010",
+            mc_number="member-secret",
+            role=UserRole.MEMBER,
+        )
+
+    def _auth(self):
+        login = self.client.post(
+            reverse("auth-login"),
+            {"cpm_number": "CPM010", "mc_number": "member-secret"},
+            format="json",
+        )
+        access = login.data["data"]["access"]
+        refresh = login.data["data"]["refresh"]
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
+        return refresh
+
+    def test_change_password_requires_current_password(self):
+        self._auth()
+        response = self.client.post(
+            reverse("auth-change-password"),
+            {"new_password": "new-secret-1", "confirm_password": "new-secret-1"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_change_password_rejects_wrong_current_password(self):
+        self._auth()
+        response = self.client.post(
+            reverse("auth-change-password"),
+            {
+                "current_password": "wrong-secret",
+                "new_password": "new-secret-1",
+                "confirm_password": "new-secret-1",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_change_password_success_rotates_tokens(self):
+        old_refresh = self._auth()
+        response = self.client.post(
+            reverse("auth-change-password"),
+            {
+                "current_password": "member-secret",
+                "new_password": "new-secret-1",
+                "confirm_password": "new-secret-1",
+                "refresh": old_refresh,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", response.data["data"])
+        self.assertIn("refresh", response.data["data"])
+        self.assertTrue(response.data["data"]["user"]["has_changed_password"])
+
+        self.member.refresh_from_db()
+        self.assertTrue(self.member.check_password("new-secret-1"))
+        self.assertTrue(self.member.has_changed_password)
+
+        old_refresh_response = self.client.post(
+            reverse("auth-refresh"),
+            {"refresh": old_refresh},
+            format="json",
+        )
+        self.assertEqual(old_refresh_response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        new_access = response.data["data"]["access"]
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {new_access}")
+        me_response = self.client.get(reverse("auth-me"))
+        self.assertEqual(me_response.status_code, status.HTTP_200_OK)
 
 
 class UserModelTestCase(TestCase):

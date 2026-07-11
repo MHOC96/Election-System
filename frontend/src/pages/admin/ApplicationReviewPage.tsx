@@ -37,6 +37,7 @@ export function ApplicationReviewPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeStatusTab, setActiveStatusTab] = useState<string>('PENDING_REVIEW')
   const [activeYearTab, setActiveYearTab] = useState<string>('3rd Year')
+  const [page, setPage] = useState(1)
   
   const { data: ongoingElection, isLoading: loadingElection } = useQuery({
     queryKey: ['elections', 'ongoing'],
@@ -47,34 +48,49 @@ export function ApplicationReviewPage() {
     ongoingElection?.current_phase === 'REVIEWING' ||
     ongoingElection?.current_phase === 'READY_FOR_VOTING'
 
-  const { data: applications, isLoading: loadingApplications } = useQuery({
-    queryKey: ['applications', 'all', ongoingElection?.id, activeStatusTab],
-    queryFn: () => fetchAllApplications({ status: activeStatusTab }),
-    enabled: !!ongoingElection && reviewOpen,
-  })
-
   const { data: positions } = useQuery({
     queryKey: ['positions'],
     queryFn: fetchPositions,
   })
 
-  const filteredApplications = applications?.filter((app) => {
-    const matchesPosition = selectedPosition === 'all' || app.position_name === selectedPosition
-    const searchLower = searchQuery.toLowerCase()
-    const matchesSearch = 
-      app.full_name.toLowerCase().includes(searchLower) ||
-      app.cpm_number.toLowerCase().includes(searchLower) ||
-      app.mc_number.toLowerCase().includes(searchLower) ||
-      app.position_name.toLowerCase().includes(searchLower)
-    const matchesYear = app.member_academic_year === activeYearTab
-    return matchesPosition && matchesSearch && matchesYear
+  const positionFilterId =
+    selectedPosition === 'all'
+      ? undefined
+      : positions?.find((position) => position.name === selectedPosition)?.id
+
+  const { data: applicationsPage, isLoading: loadingApplications } = useQuery({
+    queryKey: [
+      'applications',
+      'all',
+      ongoingElection?.id,
+      activeStatusTab,
+      activeYearTab,
+      selectedPosition,
+      searchQuery,
+      page,
+    ],
+    queryFn: () =>
+      fetchAllApplications({
+        status: activeStatusTab,
+        election: ongoingElection?.id,
+        academic_year: activeYearTab,
+        position: positionFilterId,
+        search: searchQuery.trim() || undefined,
+        page,
+      }),
+    enabled: !!ongoingElection && reviewOpen,
   })
 
-  const groupedApplications = filteredApplications?.reduce((acc, app) => {
+  const applications = applicationsPage?.results ?? []
+  const totalCount = applicationsPage?.count ?? 0
+  const pageSize = 20
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
+
+  const groupedApplications = applications.reduce((acc, app) => {
     if (!acc[app.position_name]) acc[app.position_name] = []
     acc[app.position_name].push(app)
     return acc
-  }, {} as Record<string, CandidateApplication[]>) || {}
+  }, {} as Record<string, CandidateApplication[]>)
 
   const {
     register,
@@ -156,17 +172,23 @@ export function ApplicationReviewPage() {
             title="Application Review"
             description={`Review pending applications for: ${ongoingElection.name}`}
           />
-          {applications && applications.length > 0 && (
+          {totalCount > 0 && (
             <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
               <Input 
                 placeholder="Search applications..." 
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setPage(1)
+                }}
                 className="w-full sm:w-64"
               />
               {positions && positions.length > 0 && (
                 <div className="w-full sm:w-64">
-                  <Select value={selectedPosition} onValueChange={setSelectedPosition}>
+                  <Select value={selectedPosition} onValueChange={(value) => {
+                    setSelectedPosition(value)
+                    setPage(1)
+                  }}>
                     <SelectTrigger>
                       <SelectValue placeholder="Filter by position" />
                     </SelectTrigger>
@@ -188,14 +210,20 @@ export function ApplicationReviewPage() {
 
       <Stagger delayMs={sectionDelays.secondary}>
         <div className="flex flex-col sm:flex-row gap-4 mb-6 w-full justify-between">
-          <Tabs value={activeStatusTab} onValueChange={setActiveStatusTab} className="w-full sm:w-auto">
+          <Tabs value={activeStatusTab} onValueChange={(value) => {
+            setActiveStatusTab(value)
+            setPage(1)
+          }} className="w-full sm:w-auto">
             <TabsList className="grid w-full sm:w-[400px] grid-cols-3">
               <TabsTrigger value="PENDING_REVIEW">Pending</TabsTrigger>
               <TabsTrigger value="APPROVED">Approved</TabsTrigger>
               <TabsTrigger value="REJECTED">Rejected</TabsTrigger>
             </TabsList>
           </Tabs>
-          <Tabs value={activeYearTab} onValueChange={setActiveYearTab} className="w-full sm:w-auto">
+          <Tabs value={activeYearTab} onValueChange={(value) => {
+            setActiveYearTab(value)
+            setPage(1)
+          }} className="w-full sm:w-auto">
             <TabsList className="grid w-full sm:w-48 grid-cols-2">
               <TabsTrigger value="3rd Year">3rd Year</TabsTrigger>
               <TabsTrigger value="2nd Year">2nd Year</TabsTrigger>
@@ -207,17 +235,11 @@ export function ApplicationReviewPage() {
       <Stagger delayMs={sectionDelays.tertiary}>
         <Card>
           <CardContent className="p-4 sm:p-6">
-            {!applications?.length ? (
+            {!applications.length ? (
               <EmptyState
                 icon={CheckCircle2}
                 title={activeStatusTab === 'PENDING_REVIEW' ? "All caught up!" : "No applications"}
                 description={`There are no ${activeStatusTab.toLowerCase().replace('_', ' ')} applications right now.`}
-              />
-            ) : !filteredApplications?.length ? (
-              <EmptyState
-                icon={CheckCircle2}
-                title="No matching applications"
-                description={`There are no pending applications matching your search or selected position.`}
               />
             ) : (
               <div className="space-y-8">
@@ -236,7 +258,7 @@ export function ApplicationReviewPage() {
                           <TableHeader>
                             <TableRow>
                               <TableHead>Candidate Name</TableHead>
-                              <TableHead>MC / CPM Number</TableHead>
+                              <TableHead>CPM Number</TableHead>
                               <TableHead>Declaration</TableHead>
                               {activeStatusTab === 'PENDING_REVIEW' && (
                                 <TableHead className="w-32 text-right">Actions</TableHead>
@@ -258,6 +280,7 @@ export function ApplicationReviewPage() {
                                       <img 
                                         src={app.photo_url} 
                                         alt={app.full_name} 
+                                        loading="lazy"
                                         className="h-10 w-10 rounded-full object-cover border"
                                       />
                                     )}
@@ -265,9 +288,8 @@ export function ApplicationReviewPage() {
                                   </div>
                                 </TableCell>
                                 <TableCell>
-                                  <div className="text-sm">
-                                    <div>MC: {app.mc_number}</div>
-                                    <div className="text-muted-foreground">CPM: {app.cpm_number}</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    CPM: {app.cpm_number}
                                   </div>
                                 </TableCell>
                                 <TableCell>
@@ -318,6 +340,31 @@ export function ApplicationReviewPage() {
                 )})}
               </div>
             )}
+            {totalPages > 1 ? (
+              <div className="mt-6 flex items-center justify-between gap-3 border-t pt-4">
+                <p className="text-sm text-muted-foreground">
+                  Page {page} of {totalPages} · {totalCount} applications
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page <= 1}
+                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page >= totalPages}
+                    onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       </Stagger>

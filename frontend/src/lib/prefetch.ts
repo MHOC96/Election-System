@@ -1,11 +1,14 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { fetchDashboardOverview } from '@/api/dashboard'
+import { consumeFreshLogin } from '@/lib/auth-storage'
 import {
   BALLOT_QUERY_KEY,
   BALLOT_STALE_MS,
-  DASHBOARD_QUERY_KEY,
+  DASHBOARD_DEFAULT_ACADEMIC_YEAR,
   DASHBOARD_STALE_MS,
+  dashboardOverviewQueryKey,
   MEMBERS_STALE_MS,
+  ONGOING_ELECTION_QUERY_KEY,
 } from '@/lib/query-sync'
 import { scheduleIdle } from '@/lib/schedule-idle'
 import {
@@ -15,12 +18,22 @@ import {
   PositionsPage,
   preloadAdminPageModules,
   ReportsPage,
+  ApplicationReviewPage,
 } from '@/routes/adminPages'
 import { AdminDashboardPage, preloadAdminShell, preloadMemberShell } from '@/routes/corePages'
 
 export { scheduleIdle } from '@/lib/schedule-idle'
 
 const prefetchedNavRoutes = new Set<string>()
+
+let adminConsoleWarmed = false
+let memberConsoleWarmed = false
+
+export function resetConsoleWarmupState() {
+  adminConsoleWarmed = false
+  memberConsoleWarmed = false
+  prefetchedNavRoutes.clear()
+}
 
 function markPrefetched(routeKey: string) {
   if (prefetchedNavRoutes.has(routeKey)) {
@@ -30,13 +43,32 @@ function markPrefetched(routeKey: string) {
   return true
 }
 
+function shouldPrefetchBallot(phase: string | undefined): boolean {
+  return phase === 'VOTING_OPEN'
+}
+
+function shouldPrefetchApplications(phase: string | undefined): boolean {
+  return phase === 'VOTING_OPEN' || phase === 'APPLICATIONS_OPEN' || phase === 'SCHEDULED'
+}
+
+function prefetchApplicationPageData(queryClient: QueryClient) {
+  prefetchPositions(queryClient)
+  void import('@/api/applications').then(({ fetchMyApplications }) => {
+    void queryClient.prefetchQuery({
+      queryKey: ['applications', 'me'],
+      queryFn: fetchMyApplications,
+      staleTime: 30_000,
+    })
+  })
+}
+
 /** Load admin shell, page chunk, and dashboard API before first paint. */
 export async function prepareAdminEntry(queryClient: QueryClient) {
   await Promise.all([
     preloadAdminShell(),
     queryClient.ensureQueryData({
-      queryKey: DASHBOARD_QUERY_KEY,
-      queryFn: () => fetchDashboardOverview(),
+      queryKey: dashboardOverviewQueryKey(),
+      queryFn: () => fetchDashboardOverview(undefined, DASHBOARD_DEFAULT_ACADEMIC_YEAR),
       staleTime: DASHBOARD_STALE_MS,
     }),
   ])
@@ -48,26 +80,39 @@ export async function prepareMemberEntry(queryClient: QueryClient) {
     import('@/api/votes'),
     import('@/api/elections'),
   ])
-  await Promise.all([
-    preloadMemberShell(),
-    queryClient.ensureQueryData({
-      queryKey: ['elections', 'ongoing'],
-      queryFn: fetchOngoingElection,
-    }),
-    queryClient.ensureQueryData({
-      queryKey: BALLOT_QUERY_KEY,
-      queryFn: fetchBallot,
-      staleTime: BALLOT_STALE_MS,
-    }),
-  ])
+
+  const election = await queryClient.ensureQueryData({
+    queryKey: ONGOING_ELECTION_QUERY_KEY,
+    queryFn: fetchOngoingElection,
+  })
+
+  const tasks: Promise<unknown>[] = [preloadMemberShell()]
+
+  if (shouldPrefetchBallot(election?.current_phase)) {
+    tasks.push(
+      queryClient.ensureQueryData({
+        queryKey: BALLOT_QUERY_KEY,
+        queryFn: fetchBallot,
+        staleTime: BALLOT_STALE_MS,
+      }),
+    )
+  }
+
+  if (shouldPrefetchApplications(election?.current_phase)) {
+    prefetchApplicationPageData(queryClient)
+  }
+
+  await Promise.all(tasks)
 }
 
 export function prefetchAdminLanding(queryClient: QueryClient) {
-  void queryClient.prefetchQuery({
-    queryKey: DASHBOARD_QUERY_KEY,
-    queryFn: () => fetchDashboardOverview(),
-    staleTime: DASHBOARD_STALE_MS,
-  })
+  for (const year of ['3rd Year', '2nd Year'] as const) {
+    void queryClient.prefetchQuery({
+      queryKey: dashboardOverviewQueryKey(year),
+      queryFn: () => fetchDashboardOverview(undefined, year),
+      staleTime: DASHBOARD_STALE_MS,
+    })
+  }
 }
 
 export function prefetchPositions(queryClient: QueryClient) {
@@ -135,9 +180,15 @@ function prefetchSecondaryAdminData(queryClient: QueryClient) {
 
 /** Warm admin console after login or when the admin shell mounts. */
 export function warmAdminConsole(queryClient: QueryClient) {
-  void prepareAdminEntry(queryClient).catch(() => {
-    prefetchAdminLanding(queryClient)
-  })
+  if (adminConsoleWarmed) return
+  adminConsoleWarmed = true
+
+  const freshFromLogin = consumeFreshLogin()
+  if (!freshFromLogin) {
+    void prepareAdminEntry(queryClient).catch(() => {
+      prefetchAdminLanding(queryClient)
+    })
+  }
 
   scheduleIdle(() => {
     void preloadAdminPageModules()
@@ -151,9 +202,15 @@ export function warmAdminConsole(queryClient: QueryClient) {
 
 /** Warm member console after login or when the member shell mounts. */
 export function warmMemberConsole(queryClient: QueryClient) {
-  void prepareMemberEntry(queryClient).catch(() => {
-    prefetchMemberLanding(queryClient)
-  })
+  if (memberConsoleWarmed) return
+  memberConsoleWarmed = true
+
+  const freshFromLogin = consumeFreshLogin()
+  if (!freshFromLogin) {
+    void prepareMemberEntry(queryClient).catch(() => {
+      prefetchMemberLanding(queryClient)
+    })
+  }
 }
 
 export function prefetchAdminNavRoute(to: string, queryClient: QueryClient) {
@@ -178,6 +235,16 @@ export function prefetchAdminNavRoute(to: string, queryClient: QueryClient) {
     case '/admin/candidates':
       void CandidatesPage.preload()
       prefetchCandidatesData(queryClient)
+      break
+    case '/admin/applications':
+      void ApplicationReviewPage.preload()
+      void import('@/api/applications').then(({ fetchAllApplications }) => {
+        void queryClient.prefetchQuery({
+          queryKey: ['applications', 'all', 'PENDING_REVIEW', '3rd Year', 1],
+          queryFn: () =>
+            fetchAllApplications({ status: 'PENDING_REVIEW', academic_year: '3rd Year', page: 1 }),
+        })
+      })
       break
     case '/admin/elections':
       void ElectionsPage.preload()
@@ -209,17 +276,25 @@ export function prefetchMemberNavRoute(to: string, queryClient: QueryClient) {
 
 export function prefetchMemberLanding(queryClient: QueryClient) {
   void import('@/api/elections').then(({ fetchOngoingElection }) => {
-    void queryClient.prefetchQuery({
-      queryKey: ['elections', 'ongoing'],
-      queryFn: fetchOngoingElection,
-    })
-  })
-  void import('@/api/votes').then(({ fetchBallot }) => {
-    void queryClient.prefetchQuery({
-      queryKey: BALLOT_QUERY_KEY,
-      queryFn: fetchBallot,
-      staleTime: BALLOT_STALE_MS,
-    })
+    void queryClient
+      .fetchQuery({
+        queryKey: ONGOING_ELECTION_QUERY_KEY,
+        queryFn: fetchOngoingElection,
+      })
+      .then((election) => {
+        if (shouldPrefetchBallot(election?.current_phase)) {
+          void import('@/api/votes').then(({ fetchBallot }) => {
+            void queryClient.prefetchQuery({
+              queryKey: BALLOT_QUERY_KEY,
+              queryFn: fetchBallot,
+              staleTime: BALLOT_STALE_MS,
+            })
+          })
+        }
+        if (shouldPrefetchApplications(election?.current_phase)) {
+          prefetchApplicationPageData(queryClient)
+        }
+      })
   })
 }
 
@@ -228,6 +303,7 @@ const ADMIN_NAV_PATHS = [
   '/admin/members',
   '/admin/positions',
   '/admin/candidates',
+  '/admin/applications',
   '/admin/elections',
   '/admin/reports',
 ] as const

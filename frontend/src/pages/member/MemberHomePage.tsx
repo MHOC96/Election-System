@@ -1,15 +1,28 @@
-import { useQuery } from '@tanstack/react-query'
+import { Suspense, useEffect } from 'react'
 import { Clock } from 'lucide-react'
-import { fetchOngoingElection } from '@/api/elections'
-import { BallotPage } from '@/pages/member/BallotPage'
-import { CandidateApplicationPage } from '@/pages/member/CandidateApplicationPage'
-import { MemberApplicationStatusPage } from '@/pages/member/MemberApplicationStatusPage'
-import { PublishedResultsPage } from '@/pages/member/PublishedResultsPage'
+import { useOngoingElection } from '@/hooks/useOngoingElection'
+import {
+  BallotPage,
+  CandidateApplicationPage,
+  MemberApplicationStatusPage,
+  preloadMemberPhasePage,
+  PublishedResultsPage,
+} from '@/routes/memberPages'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { Skeleton } from '@/components/ui/skeleton'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import type { Election } from '@/types/api'
+
+function PhasePageSkeleton() {
+  return (
+    <div className={pageLayoutClass}>
+      <Skeleton className="h-44 w-full rounded-3xl" />
+      <Skeleton className="h-64 w-full" />
+    </div>
+  )
+}
 
 function MemberHomeWaiting({ election }: { election: Election | null | undefined }) {
   return (
@@ -28,37 +41,57 @@ function MemberHomeWaiting({ election }: { election: Election | null | undefined
 }
 
 export function MemberHomePage() {
-  const { data: ongoingElection, isLoading } = useQuery({
-    queryKey: ['elections', 'ongoing'],
-    queryFn: fetchOngoingElection,
-    refetchInterval: 15_000,
-  })
+  const { data: ongoingElection, isLoading, isError, isFetching, refetch } = useOngoingElection()
+  const phase = ongoingElection?.current_phase
+
+  useEffect(() => {
+    if (phase) {
+      void preloadMemberPhasePage(phase)
+    }
+  }, [phase])
 
   if (isLoading) {
+    return <PhasePageSkeleton />
+  }
+
+  if (isError) {
     return (
       <div className={pageLayoutClass}>
-        <Skeleton className="h-44 w-full rounded-3xl" />
-        <Skeleton className="h-64 w-full" />
+        <QueryErrorState onRetry={() => void refetch()} isRetrying={isFetching} />
       </div>
     )
   }
 
-  const phase = ongoingElection?.current_phase
-
   if (phase === 'SCHEDULED' || phase === 'APPLICATIONS_OPEN') {
-    return <CandidateApplicationPage />
+    return (
+      <Suspense fallback={<PhasePageSkeleton />}>
+        <CandidateApplicationPage />
+      </Suspense>
+    )
   }
 
   if (phase === 'VOTING_OPEN') {
-    return <BallotPage />
+    return (
+      <Suspense fallback={<PhasePageSkeleton />}>
+        <BallotPage />
+      </Suspense>
+    )
   }
 
   if (phase === 'RESULTS_PUBLISHED') {
-    return <PublishedResultsPage />
+    return (
+      <Suspense fallback={<PhasePageSkeleton />}>
+        <PublishedResultsPage />
+      </Suspense>
+    )
   }
 
   if (phase === 'REVIEWING' || phase === 'READY_FOR_VOTING' || phase === 'VOTING_CLOSED') {
-    return <MemberApplicationStatusPage />
+    return (
+      <Suspense fallback={<PhasePageSkeleton />}>
+        <MemberApplicationStatusPage />
+      </Suspense>
+    )
   }
 
   return <MemberHomeWaiting election={ongoingElection} />

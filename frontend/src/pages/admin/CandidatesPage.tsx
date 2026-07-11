@@ -34,6 +34,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { sectionDelays, Stagger } from '@/components/motion/Stagger'
 import { FormField } from '@/components/design-system/FormField'
 import { restoreBodyPointerEvents } from '@/lib/pointer-events'
@@ -55,12 +56,12 @@ export function CandidatesPage() {
   const [uploading, setUploading] = useState(false)
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
 
-  const { data: candidates, isLoading: candidatesLoading, isFetching } = useQuery({
+  const { data: candidates, isLoading: candidatesLoading, isFetching, isError: candidatesError, refetch: refetchCandidates } = useQuery({
     queryKey: ['candidates'],
     queryFn: () => fetchCandidates(),
   })
 
-  const { data: positions, isLoading: positionsLoading } = useQuery({
+  const { data: positions, isLoading: positionsLoading, isError: positionsError, refetch: refetchPositions } = useQuery({
     queryKey: ['positions'],
     queryFn: fetchPositions,
   })
@@ -257,6 +258,26 @@ export function CandidatesPage() {
     !deleteMutation.isPending &&
     !clearAllMutation.isPending
   const hasPositions = (positions?.length ?? 0) > 0
+  const queryError = candidatesError || positionsError
+
+  if (queryError && !candidates && !positions) {
+    return (
+      <div className={pageLayoutClass}>
+        <Stagger delayMs={sectionDelays.header}>
+          <PageHeader title="Candidates" description="Candidates grouped by executive position" />
+        </Stagger>
+        <Stagger delayMs={sectionDelays.primary}>
+          <QueryErrorState
+            onRetry={() => {
+              if (candidatesError) void refetchCandidates()
+              if (positionsError) void refetchPositions()
+            }}
+            isRetrying={isFetching}
+          />
+        </Stagger>
+      </div>
+    )
+  }
 
   return (
     <div className={pageLayoutClass}>

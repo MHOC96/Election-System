@@ -3,7 +3,6 @@ export type UserRole = 'ADMIN' | 'MEMBER'
 export interface User {
   id: number
   cpm_number: string
-  mc_number: string
   role: UserRole
   academic_year?: AcademicYear | null
   is_active: boolean
@@ -40,7 +39,6 @@ export interface Paginated<T> {
 export interface Member {
   id: number
   cpm_number: string
-  mc_number: string
   academic_year?: AcademicYear
   is_active: boolean
   created_at: string
@@ -51,6 +49,24 @@ export interface MemberImportResult {
   successful: number
   failed_rows: { row: number; cpm_number: string; reason: string }[]
   duplicates: { row: number; cpm_number: string; reason: string }[]
+}
+
+export type MemberImportJobStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED'
+
+export interface MemberImportAsyncStart {
+  async: true
+  job_id: number
+  status: MemberImportJobStatus
+  total_rows: number
+}
+
+export interface MemberImportJobState {
+  job_id: number
+  status: MemberImportJobStatus
+  total_rows: number | null
+  async: true
+  result: MemberImportResult | null
+  error_message: string | null
 }
 
 export interface Position {

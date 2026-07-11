@@ -11,7 +11,6 @@ export interface CandidateApplication {
   position: number
   position_name: string
   full_name: string
-  mc_number: string
   cpm_number: string
   contact_number: string
   photo_url: string
@@ -21,24 +20,43 @@ export interface CandidateApplication {
   submitted_at: string
 }
 
-export async function fetchMyApplications() {
-  const data = await apiGet<Paginated<CandidateApplication> | CandidateApplication[]>('/candidates/applications/me/')
+export interface ApplicationListFilters {
+  status?: string
+  position?: number
+  election?: number
+  academic_year?: string
+  search?: string
+  page?: number
+  page_size?: number
+}
+
+function unwrapList<T>(data: Paginated<T> | T[]): T[] {
   return Array.isArray(data) ? data : data.results
 }
 
-export async function fetchAllApplications(filters?: { status?: string, position?: number }) {
-  const params = new URLSearchParams()
-  if (filters?.status) params.append('status', filters.status)
-  if (filters?.position) params.append('position', filters.position.toString())
-  
-  const data = await apiGet<Paginated<CandidateApplication> | CandidateApplication[]>(`/candidates/applications/all/?${params.toString()}`)
-  return Array.isArray(data) ? data : data.results
+export async function fetchMyApplications() {
+  const data = await apiGet<Paginated<CandidateApplication> | CandidateApplication[]>(
+    '/candidates/applications/me/',
+  )
+  return unwrapList(data)
+}
+
+export async function fetchAllApplications(filters: ApplicationListFilters = {}) {
+  const params: Record<string, string | number> = {}
+  if (filters.status) params.status = filters.status
+  if (filters.position) params.position = filters.position
+  if (filters.election) params.election = filters.election
+  if (filters.academic_year) params.academic_year = filters.academic_year
+  if (filters.search) params.search = filters.search
+  if (filters.page) params.page = filters.page
+  if (filters.page_size) params.page_size = filters.page_size
+
+  return apiGet<Paginated<CandidateApplication>>('/candidates/applications/all/', params)
 }
 
 export async function submitApplication(data: {
   position: number
   full_name: string
-  mc_number: string
   cpm_number: string
   contact_number: string
   photo_url: string
@@ -59,6 +77,9 @@ export async function uploadApplicationPhoto(file: File) {
   return apiUpload<{ photo_url: string }>('/candidates/applications/upload-photo/', formData)
 }
 
-export async function reviewApplication(id: number, data: { action: 'APPROVE' | 'REJECT', rejection_reason?: string }) {
+export async function reviewApplication(
+  id: number,
+  data: { action: 'APPROVE' | 'REJECT'; rejection_reason?: string },
+) {
   return apiPost<CandidateApplication>(`/candidates/applications/${id}/review/`, data)
 }

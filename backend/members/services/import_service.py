@@ -14,6 +14,7 @@ from accounts.models import User, UserRole
 ALLOWED_EXTENSIONS = {".csv", ".xlsx"}
 MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024
 MAX_IMPORT_ROWS = 10_000
+ASYNC_IMPORT_ROW_THRESHOLD = 500
 CPM_MAX_LENGTH = 50
 MC_MAX_LENGTH = 100
 EXISTING_LOOKUP_CHUNK = 2_000
@@ -66,6 +67,29 @@ class ImportResult:
     successful: int = 0
     failed_rows: list[RowError] = field(default_factory=list)
     duplicates: list[DuplicateEntry] = field(default_factory=list)
+
+
+def import_result_to_dict(result: ImportResult) -> dict:
+    return {
+        "total_rows": result.total_rows,
+        "successful": result.successful,
+        "failed_rows": [
+            {
+                "row": item.row,
+                "cpm_number": item.cpm_number,
+                "reason": item.reason,
+            }
+            for item in result.failed_rows
+        ],
+        "duplicates": [
+            {
+                "row": item.row,
+                "cpm_number": item.cpm_number,
+                "reason": item.reason,
+            }
+            for item in result.duplicates
+        ],
+    }
 
 
 def _normalize_header(value) -> str:

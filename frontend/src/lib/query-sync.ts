@@ -3,14 +3,27 @@ import type { QueryClient, QueryKey } from '@tanstack/react-query'
 export const DASHBOARD_QUERY_KEY = ['dashboard-overview'] as const
 export const BALLOT_QUERY_KEY = ['ballot'] as const
 
+/** Default academic-year tab on the admin dashboard (must match AdminDashboardPage). */
+export const DASHBOARD_DEFAULT_ACADEMIC_YEAR = '3rd Year' as const
+
+export function dashboardOverviewQueryKey(
+  academicYear: string = DASHBOARD_DEFAULT_ACADEMIC_YEAR,
+  electionId?: number,
+) {
+  if (electionId != null) {
+    return [...DASHBOARD_QUERY_KEY, electionId, academicYear] as const
+  }
+  return [...DASHBOARD_QUERY_KEY, academicYear] as const
+}
+
 /** Poll active dashboard every 10s (matches backend overview cache). */
 export const DASHBOARD_POLL_MS = 10_000
 
 /** Poll dashboard summary when election is not live. */
 export const DASHBOARD_SUMMARY_POLL_MS = 15_000
 
-/** Must stay below poll interval so interval refetches are not skipped. */
-export const DASHBOARD_STALE_MS = 0
+/** Align with backend overview TTL (10s); keep below poll interval. */
+export const DASHBOARD_STALE_MS = 9_000
 
 /** Ballot cache TTL — stable while the member reviews candidates. */
 export const BALLOT_STALE_MS = 30_000
@@ -19,6 +32,14 @@ export const BALLOT_STALE_MS = 30_000
 export const MEMBERS_STALE_MS = 30_000
 
 export const MEMBERS_QUERY_KEY = ['members'] as const
+
+export const ONGOING_ELECTION_QUERY_KEY = ['elections', 'ongoing'] as const
+
+/** Poll ongoing election for member phase routing (15s). */
+export const ONGOING_ELECTION_POLL_MS = 15_000
+
+/** Keep below poll interval to avoid redundant refetches across member surfaces. */
+export const ONGOING_ELECTION_STALE_MS = 12_000
 
 /** Fetch fresh data and write it directly into the query cache (bypasses staleTime). */
 export async function fetchAndSetQueryData<T>(

@@ -1,13 +1,31 @@
 from rest_framework import status
 from rest_framework.exceptions import APIException
 from rest_framework.views import exception_handler
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
 
     if response is None:
+        logger.error(
+            "Unhandled API exception: %s",
+            exc,
+            exc_info=True,
+            extra={"view": repr(context.get("view"))},
+        )
         return response
+
+    if response.status_code >= status.HTTP_500_INTERNAL_SERVER_ERROR:
+        logger.error(
+            "API error %s: %s",
+            response.status_code,
+            exc,
+            exc_info=True,
+            extra={"view": repr(context.get("view"))},
+        )
 
     error_code = "api_error"
     if hasattr(exc, "default_code"):

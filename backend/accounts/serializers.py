@@ -68,15 +68,35 @@ class LogoutSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("id", "cpm_number", "mc_number", "role", "is_active", "created_at", "has_changed_password", "academic_year")
+        fields = (
+            "id",
+            "cpm_number",
+            "role",
+            "is_active",
+            "created_at",
+            "has_changed_password",
+            "academic_year",
+        )
         read_only_fields = fields
 
 
 class ChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField(write_only=True)
     new_password = serializers.CharField(write_only=True, min_length=6)
     confirm_password = serializers.CharField(write_only=True, min_length=6)
+    refresh = serializers.CharField(write_only=True, required=False, allow_blank=True)
+
+    def validate_current_password(self, value):
+        user = self.context["request"].user
+        if not user.check_password(value):
+            raise serializers.ValidationError("Current password is incorrect.")
+        return value
 
     def validate(self, attrs):
         if attrs["new_password"] != attrs["confirm_password"]:
             raise serializers.ValidationError({"confirm_password": "Passwords do not match."})
+        if attrs["new_password"] == attrs["current_password"]:
+            raise serializers.ValidationError(
+                {"new_password": "New password must be different from your current password."}
+            )
         return attrs

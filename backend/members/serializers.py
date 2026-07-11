@@ -6,11 +6,13 @@ from accounts.models import User
 class MemberSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("id", "cpm_number", "mc_number", "academic_year", "is_active", "created_at")
+        fields = ("id", "cpm_number", "academic_year", "is_active", "created_at")
         read_only_fields = fields
 
 
 class MemberUpdateSerializer(serializers.ModelSerializer):
+    mc_number = serializers.CharField(required=False, allow_blank=True, write_only=True)
+
     class Meta:
         model = User
         fields = ("cpm_number", "mc_number", "academic_year", "is_active")
@@ -28,7 +30,7 @@ class MemberUpdateSerializer(serializers.ModelSerializer):
         mc_number = validated_data.pop("mc_number", None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-        if mc_number is not None and instance.mc_number != mc_number:
+        if mc_number and instance.mc_number != mc_number:
             instance.set_password(mc_number)
             instance.mc_number = mc_number
             instance.has_changed_password = False

@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarCheck, CheckCircle2, Vote } from 'lucide-react'
 import { fetchBallot, submitVote } from '@/api/votes'
 import { getApiErrorMessage } from '@/api/client'
 import { ElectionCountdownHero } from '@/components/elections/ElectionCountdownHero'
+import { CountdownExpiryWatcher } from '@/components/shared/CountdownDisplay'
 import { ElectionProgressCard } from '@/components/voting/ElectionProgressCard'
 import { CandidateCard } from '@/components/voting/CandidateCard'
 import { MemberSelectionItem } from '@/components/voting/MemberSelectionItem'
@@ -13,10 +14,11 @@ import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { sectionDelays, Stagger, StaggerChildren } from '@/components/motion/Stagger'
 import { pageLayoutClass } from '@/lib/design-tokens'
-import { BALLOT_QUERY_KEY, BALLOT_STALE_MS } from '@/lib/query-sync'
-import { useCountdown } from '@/lib/use-countdown'
+import { BALLOT_QUERY_KEY, BALLOT_STALE_MS, ONGOING_ELECTION_QUERY_KEY } from '@/lib/query-sync'
+import { isVotingStartPending } from '@/lib/election-lifecycle-ui'
 import { handleRadioGroupKeyDown } from '@/lib/a11y'
 import { cn } from '@/lib/utils'
 import type { BallotItem, Candidate } from '@/types/api'
@@ -42,17 +44,17 @@ export function BallotPage() {
     retry: false,
   })
 
+  const votingStartAt = ballotQuery.data?.election?.voting_start_at ?? null
   const votingEndAt = ballotQuery.data?.election?.voting_end_at ?? null
-  const votingCountdownMs = useCountdown(
-    ballotQuery.data?.can_vote ? votingEndAt : null,
-  )
+  const isVotingUpcoming =
+    !!ballotQuery.data?.election && isVotingStartPending(ballotQuery.data.election)
+  
+  const countdownTarget = isVotingUpcoming ? votingStartAt : (ballotQuery.data?.can_vote ? votingEndAt : null)
 
-  useEffect(() => {
-    if (votingCountdownMs === 0 && votingEndAt) {
-      void queryClient.invalidateQueries({ queryKey: BALLOT_QUERY_KEY })
-      void queryClient.invalidateQueries({ queryKey: ['elections', 'ongoing'] })
-    }
-  }, [votingCountdownMs, votingEndAt, queryClient])
+  const handleCountdownExpire = () => {
+    void queryClient.invalidateQueries({ queryKey: BALLOT_QUERY_KEY })
+    void queryClient.invalidateQueries({ queryKey: ONGOING_ELECTION_QUERY_KEY })
+  }
 
   const voteMutation = useMutation({
     mutationFn: ({ positionId, candidateId }: { positionId: number; candidateId: number }) =>
@@ -73,6 +75,18 @@ export function BallotPage() {
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-36 w-full" />
         <Skeleton className="h-64 w-full" />
+      </div>
+    )
+  }
+
+  if (ballotQuery.isError) {
+    return (
+      <div className={cn(pageLayoutClass, 'mx-auto max-w-3xl')}>
+        <PageHeader title="Executive Election" description="Member voting portal" />
+        <QueryErrorState
+          onRetry={() => void ballotQuery.refetch()}
+          isRetrying={ballotQuery.isFetching}
+        />
       </div>
     )
   }
@@ -135,13 +149,13 @@ export function BallotPage() {
         />
       </Stagger>
 
-      {canVote && ballot.election ? (
+      {ballot.election && (canVote || isVotingUpcoming) ? (
         <Stagger delayMs={sectionDelays.primary}>
+          <CountdownExpiryWatcher targetAt={countdownTarget} onExpire={handleCountdownExpire} />
           <ElectionCountdownHero
-            variant="voting-open"
+            variant={isVotingUpcoming ? 'voting-upcoming' : 'voting-open'}
             electionName={ballot.election.name}
-            targetAt={ballot.election.voting_end_at}
-            countdownMs={votingCountdownMs}
+            targetAt={countdownTarget}
             className="mb-2 sm:mb-0"
           />
         </Stagger>

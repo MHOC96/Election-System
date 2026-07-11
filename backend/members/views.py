@@ -22,7 +22,16 @@ from members.services.deletion_service import (
     delete_member,
     member_deletion_allowed,
 )
-from members.services.import_service import import_members
+from members.models import MemberImportJob
+from members.services.import_job_service import (
+    create_import_job,
+    job_status_payload,
+    should_import_async,
+    start_import_job_async,
+)
+from members.services.import_service import import_members, import_result_to_dict
+from audit.constants import AuditAction
+from audit.services.audit_service import log_action
 
 
 class MemberDeletionStatusView(APIView):
@@ -38,6 +47,13 @@ class MemberDeletionStatusView(APIView):
         )
 
 
+def _import_result_response(result, *, async_job: bool = False) -> dict:
+    payload = import_result_to_dict(result)
+    if async_job:
+        payload["async"] = False
+    return payload
+
+
 class MemberImportView(APIView):
     permission_classes = [IsAdmin]
     parser_classes = [MultiPartParser, FormParser]
@@ -49,6 +65,32 @@ class MemberImportView(APIView):
         academic_year = serializer.validated_data["academic_year"]
 
         try:
+            if hasattr(uploaded_file, "seek"):
+                uploaded_file.seek(0)
+
+            from members.services.import_service import parse_member_file, validate_import_file
+
+            validate_import_file(uploaded_file)
+            _, preview_rows = parse_member_file(uploaded_file)
+            if hasattr(uploaded_file, "seek"):
+                uploaded_file.seek(0)
+
+            if should_import_async(len(preview_rows)):
+                job = create_import_job(uploaded_file, academic_year, created_by=request.user)
+                start_import_job_async(job.id)
+                return Response(
+                    {
+                        "success": True,
+                        "data": {
+                            "async": True,
+                            "job_id": job.id,
+                            "status": job.status,
+                            "total_rows": job.total_rows,
+                        },
+                    },
+                    status=status.HTTP_202_ACCEPTED,
+                )
+
             result = import_members(uploaded_file, academic_year)
         except ValueError as exc:
             return Response(
@@ -65,31 +107,49 @@ class MemberImportView(APIView):
 
         if result.successful:
             invalidate_dashboard_cache()
+            log_action(
+                action=AuditAction.MEMBER_IMPORTED,
+                request=request,
+                actor=request.user,
+                metadata={
+                    "academic_year": academic_year,
+                    "total_rows": result.total_rows,
+                    "successful": result.successful,
+                    "failed_count": len(result.failed_rows),
+                    "duplicate_count": len(result.duplicates),
+                },
+            )
 
         return Response(
             {
                 "success": True,
-                "data": {
-                    "total_rows": result.total_rows,
-                    "successful": result.successful,
-                    "failed_rows": [
-                        {
-                            "row": item.row,
-                            "cpm_number": item.cpm_number,
-                            "reason": item.reason,
-                        }
-                        for item in result.failed_rows
-                    ],
-                    "duplicates": [
-                        {
-                            "row": item.row,
-                            "cpm_number": item.cpm_number,
-                            "reason": item.reason,
-                        }
-                        for item in result.duplicates
-                    ],
-                },
+                "data": _import_result_response(result),
             },
+            status=status.HTTP_200_OK,
+        )
+
+
+class MemberImportStatusView(APIView):
+    permission_classes = [IsAdmin]
+
+    def get(self, request, job_id: int):
+        try:
+            job = MemberImportJob.objects.get(pk=job_id)
+        except MemberImportJob.DoesNotExist:
+            return Response(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "not_found",
+                        "message": "Import job not found.",
+                        "details": None,
+                    },
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response(
+            {"success": True, "data": job_status_payload(job)},
             status=status.HTTP_200_OK,
         )
 
@@ -108,6 +168,12 @@ class MemberClearAllView(APIView):
             raise ValidationError(str(exc)) from exc
 
         invalidate_dashboard_cache()
+        log_action(
+            action=AuditAction.MEMBERS_CLEARED,
+            request=request,
+            actor=request.user,
+            metadata={"academic_year": academic_year, "deleted": result.deleted},
+        )
 
         return Response(
             {
@@ -131,6 +197,19 @@ class MemberBulkDeleteView(APIView):
             result = bulk_delete_members(member_ids)
         except MemberDeletionNotAllowedError as exc:
             raise ValidationError(str(exc)) from exc
+
+        if result.deleted:
+            invalidate_dashboard_cache()
+            log_action(
+                action=AuditAction.MEMBERS_BULK_DELETED,
+                request=request,
+                actor=request.user,
+                metadata={
+                    "requested": result.requested,
+                    "deleted": len(result.deleted),
+                    "failed_count": len(result.failed),
+                },
+            )
 
         return Response(
             {
@@ -158,7 +237,7 @@ class MemberListView(generics.ListAPIView):
             queryset = queryset.filter(academic_year=academic_year)
         
         return (
-            queryset.only("id", "cpm_number", "mc_number", "academic_year", "is_active", "created_at")
+            queryset.only("id", "cpm_number", "academic_year", "is_active", "created_at")
             .order_by("cpm_number")
         )
 
@@ -190,6 +269,12 @@ class MemberDetailView(generics.RetrieveUpdateDestroyAPIView):
         serializer.is_valid(raise_exception=True)
         member = serializer.save()
         invalidate_dashboard_cache()
+        log_action(
+            action=AuditAction.MEMBER_UPDATED,
+            request=request,
+            actor=request.user,
+            metadata={"member_id": member.id, "cpm_number": member.cpm_number},
+        )
         return Response(
             {"success": True, "data": MemberSerializer(member).data},
             status=status.HTTP_200_OK,
@@ -197,6 +282,8 @@ class MemberDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
+        member_id = instance.id
+        cpm_number = instance.cpm_number
 
         try:
             delete_member(instance)
@@ -204,6 +291,12 @@ class MemberDetailView(generics.RetrieveUpdateDestroyAPIView):
             raise ValidationError(str(exc)) from exc
 
         invalidate_dashboard_cache()
+        log_action(
+            action=AuditAction.MEMBER_DELETED,
+            request=request,
+            actor=request.user,
+            metadata={"member_id": member_id, "cpm_number": cpm_number},
+        )
 
         return Response(
             {"success": True, "message": "Member deleted successfully."},

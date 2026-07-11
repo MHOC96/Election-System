@@ -1,12 +1,8 @@
 import { apiGet, apiPost } from '@/api/client'
-import type { Ballot, VoteStatus } from '@/types/api'
+import type { Ballot } from '@/types/api'
 
 export async function fetchBallot() {
   return apiGet<Ballot>('/votes/ballot/')
-}
-
-export async function fetchVoteStatus() {
-  return apiGet<VoteStatus>('/votes/my-status/')
 }
 
 export async function submitVote(positionId: number, candidateId: number) {

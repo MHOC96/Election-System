@@ -1,15 +1,18 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ClipboardList } from 'lucide-react'
 import { fetchMyApplications } from '@/api/applications'
-import { fetchOngoingElection } from '@/api/elections'
+import { useOngoingElection } from '@/hooks/useOngoingElection'
 import { ApplicationStatusBadge } from '@/components/applications/ApplicationStatusBadge'
+import { ElectionCountdownHero } from '@/components/elections/ElectionCountdownHero'
+import { CountdownExpiryWatcher } from '@/components/shared/CountdownDisplay'
 import { EmptyState } from '@/components/shared/EmptyState'
-import { Countdown } from '@/components/shared/Countdown'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { sectionDelays, Stagger } from '@/components/motion/Stagger'
 import { pageLayoutClass } from '@/lib/design-tokens'
+import { isVotingStartPending } from '@/lib/election-lifecycle-ui'
+import { ONGOING_ELECTION_QUERY_KEY } from '@/lib/query-sync'
 import { optimizeCloudinaryUrl } from '@/lib/cloudinary'
 import { formatDate } from '@/lib/utils'
 import type { ElectionPhase } from '@/types/api'
@@ -41,11 +44,8 @@ function getPhaseCopy(phase: ElectionPhase | undefined) {
 }
 
 export function MemberApplicationStatusPage() {
-  const { data: election, isLoading: loadingElection } = useQuery({
-    queryKey: ['elections', 'ongoing'],
-    queryFn: fetchOngoingElection,
-    refetchInterval: 15_000,
-  })
+  const queryClient = useQueryClient()
+  const { data: election, isLoading: loadingElection } = useOngoingElection()
 
   const { data: myApplications, isLoading: loadingApplications } = useQuery({
     queryKey: ['applications', 'me'],
@@ -88,9 +88,17 @@ export function MemberApplicationStatusPage() {
     <div className={pageLayoutClass}>
       <Stagger delayMs={sectionDelays.header}>
         <PageHeader title={phaseCopy.title} description={phaseCopy.description} />
-        {election.current_phase === 'READY_FOR_VOTING' && election.voting_start_at ? (
-          <div className="mt-6 mb-2 max-w-3xl">
-            <Countdown targetDate={election.voting_start_at} label="Voting opens in" />
+        {election && isVotingStartPending(election) && election.voting_start_at ? (
+          <div className="mt-6 max-w-3xl">
+            <CountdownExpiryWatcher
+              targetAt={election.voting_start_at}
+              onExpire={() => void queryClient.invalidateQueries({ queryKey: ONGOING_ELECTION_QUERY_KEY })}
+            />
+            <ElectionCountdownHero
+              variant="voting-upcoming"
+              electionName={election.name}
+              targetAt={election.voting_start_at}
+            />
           </div>
         ) : null}
       </Stagger>

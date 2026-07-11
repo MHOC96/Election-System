@@ -8,6 +8,7 @@ from candidates.models import AcademicYear, Candidate
 from positions.models import Position
 from voting.models import Election, ElectionStatus, Vote
 from voting.services.vote_service import submit_vote
+from voting.test_helpers import create_voting_open_election
 
 
 class DashboardAPITestCase(TestCase):
@@ -23,40 +24,49 @@ class DashboardAPITestCase(TestCase):
             cpm_number="CPM401",
             mc_number="member-pass1",
             role=UserRole.MEMBER,
+            academic_year=AcademicYear.SECOND_YEAR,
         )
         self.member2 = User.objects.create_user(
             cpm_number="CPM402",
             mc_number="member-pass2",
             role=UserRole.MEMBER,
+            academic_year=AcademicYear.SECOND_YEAR,
         )
         self.member3 = User.objects.create_user(
             cpm_number="CPM403",
             mc_number="member-pass3",
             role=UserRole.MEMBER,
+            academic_year=AcademicYear.SECOND_YEAR,
         )
-        self.position1 = Position.objects.create(name="President")
-        self.position2 = Position.objects.create(name="Secretary")
+        self.position1 = Position.objects.create(
+            name="President",
+            academic_year=AcademicYear.SECOND_YEAR,
+        )
+        self.position2 = Position.objects.create(
+            name="Secretary",
+            academic_year=AcademicYear.SECOND_YEAR,
+        )
+        self.election = create_voting_open_election(name="2026 Election")
         self.candidate1 = Candidate.objects.create(
             full_name="Alice",
             academic_year=AcademicYear.SECOND_YEAR,
             photo_url="https://res.cloudinary.com/demo/image/upload/v1/a.jpg",
             position=self.position1,
+            election=self.election,
         )
         self.candidate2 = Candidate.objects.create(
             full_name="Bob",
             academic_year=AcademicYear.THIRD_YEAR,
             photo_url="https://res.cloudinary.com/demo/image/upload/v1/b.jpg",
             position=self.position1,
+            election=self.election,
         )
         self.candidate3 = Candidate.objects.create(
             full_name="Carol",
             academic_year=AcademicYear.SECOND_YEAR,
             photo_url="https://res.cloudinary.com/demo/image/upload/v1/c.jpg",
             position=self.position2,
-        )
-        self.election = Election.objects.create(
-            name="2026 Election",
-            status=ElectionStatus.ACTIVE,
+            election=self.election,
         )
 
         submit_vote(
@@ -93,21 +103,21 @@ class DashboardAPITestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_dashboard_summary(self):
-        response = self.client.get(reverse("dashboard-summary"))
+        response = self.client.get(reverse("dashboard-summary"), {"academic_year": "2nd Year"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.data["data"]
         self.assertEqual(data["total_members"], 3)
         self.assertEqual(data["total_candidates"], 3)
         self.assertEqual(data["total_positions"], 2)
         self.assertEqual(data["votes_cast"], 3)
-        self.assertEqual(data["election"]["status"], ElectionStatus.ACTIVE)
+        self.assertEqual(data["election"]["status"], ElectionStatus.SCHEDULED)
         self.assertEqual(len(data["position_turnout"]), 2)
         self.assertEqual(data["members_completed_ballot"], 1)
         self.assertEqual(data["members_partial_ballot"], 1)
         self.assertEqual(data["members_no_votes"], 1)
 
     def test_dashboard_overview(self):
-        response = self.client.get(reverse("dashboard-overview"))
+        response = self.client.get(reverse("dashboard-overview"), {"academic_year": "2nd Year"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.data["data"]
         self.assertIn("summary", data)
@@ -115,8 +125,31 @@ class DashboardAPITestCase(TestCase):
         self.assertEqual(data["summary"]["votes_cast"], 3)
         self.assertEqual(len(data["live"]["positions"]), 2)
 
+    def test_live_stats_uses_materialized_view_when_available(self):
+        from dashboard.services.materialized_stats import (
+            fetch_candidate_vote_counts,
+            materialized_view_available,
+            refresh_live_stats_view,
+        )
+        from dashboard.services.stats_service import get_live_stats
+
+        if not materialized_view_available():
+            self.skipTest("Materialized view is only available on PostgreSQL.")
+
+        refresh_live_stats_view()
+        mv_counts = fetch_candidate_vote_counts(self.election.id, "2nd Year")
+        live = get_live_stats(
+            self.election.id,
+            use_cache=False,
+            election=self.election,
+            academic_year="2nd Year",
+        )
+        for candidate in live["candidates"]:
+            if candidate["full_name"] in {"Alice", "Carol"}:
+                self.assertEqual(candidate["vote_count"], mv_counts.get(candidate["candidate_id"], 0))
+
     def test_per_position_turnout(self):
-        response = self.client.get(reverse("dashboard-summary"))
+        response = self.client.get(reverse("dashboard-summary"), {"academic_year": "2nd Year"})
         turnout = {
             item["position_name"]: item for item in response.data["data"]["position_turnout"]
         }
@@ -126,7 +159,7 @@ class DashboardAPITestCase(TestCase):
         self.assertEqual(turnout["Secretary"]["remaining_voters"], 2)
 
     def test_live_stats(self):
-        response = self.client.get(reverse("dashboard-live-stats"))
+        response = self.client.get(reverse("dashboard-live-stats"), {"academic_year": "2nd Year"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.data["data"]
         self.assertEqual(data["total_votes"], 3)
@@ -134,7 +167,7 @@ class DashboardAPITestCase(TestCase):
         president = next(
             item for item in data["positions"] if item["position_name"] == "President"
         )
-        self.assertEqual(president["highest_voted_candidate"]["full_name"], "Alice")
+        self.assertEqual(president["rankings"][0]["full_name"], "Alice")
         self.assertEqual(president["rankings"][0]["vote_count"], 2)
         self.assertEqual(data["highest_voted_overall"]["full_name"], "Alice")
 
@@ -158,18 +191,18 @@ class DashboardAPITestCase(TestCase):
         self.client.credentials(
             HTTP_AUTHORIZATION=f"Bearer {response.data['data']['access']}"
         )
-        response = self.client.get(reverse("dashboard-live-stats"))
+        response = self.client.get(reverse("dashboard-live-stats"), {"academic_year": "2nd Year"})
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_live_stats_cache(self):
-        first = self.client.get(reverse("dashboard-live-stats"))
+        first = self.client.get(reverse("dashboard-live-stats"), {"academic_year": "2nd Year"})
         Vote.objects.create(
             member=self.member3,
             position=self.position2,
             candidate=self.candidate3,
             election=self.election,
         )
-        second = self.client.get(reverse("dashboard-live-stats"))
+        second = self.client.get(reverse("dashboard-live-stats"), {"academic_year": "2nd Year"})
         self.assertEqual(
             first.data["data"]["total_votes"],
             second.data["data"]["total_votes"],
@@ -177,7 +210,7 @@ class DashboardAPITestCase(TestCase):
 
     def test_empty_position_excluded_from_dashboard(self):
         Position.objects.create(name="Treasurer")
-        response = self.client.get(reverse("dashboard-overview"))
+        response = self.client.get(reverse("dashboard-overview"), {"academic_year": "2nd Year"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.data["data"]
         live_names = [item["position_name"] for item in data["live"]["positions"]]
@@ -186,3 +219,62 @@ class DashboardAPITestCase(TestCase):
         self.assertNotIn("Treasurer", turnout_names)
         self.assertEqual(len(live_names), 2)
         self.assertEqual(len(turnout_names), 2)
+
+
+class DashboardCandidateElectionScopeTestCase(TestCase):
+    def setUp(self):
+        self.position = Position.objects.create(
+            name="President",
+            academic_year=AcademicYear.SECOND_YEAR,
+        )
+        self.old_election = Election.objects.create(
+            name="2025 Election",
+            status=ElectionStatus.ARCHIVED,
+        )
+        self.current_election = Election.objects.create(
+            name="2026 Election",
+            status=ElectionStatus.SCHEDULED,
+        )
+        Candidate.objects.create(
+            full_name="Old Alice",
+            academic_year=AcademicYear.SECOND_YEAR,
+            photo_url="https://res.cloudinary.com/demo/image/upload/v1/old-a.jpg",
+            position=self.position,
+            election=self.old_election,
+        )
+        Candidate.objects.create(
+            full_name="Old Bob",
+            academic_year=AcademicYear.SECOND_YEAR,
+            photo_url="https://res.cloudinary.com/demo/image/upload/v1/old-b.jpg",
+            position=self.position,
+            election=self.old_election,
+        )
+        self.current_candidate = Candidate.objects.create(
+            full_name="Current Carol",
+            academic_year=AcademicYear.SECOND_YEAR,
+            photo_url="https://res.cloudinary.com/demo/image/upload/v1/current.jpg",
+            position=self.position,
+            election=self.current_election,
+        )
+
+    def test_summary_counts_only_current_election_candidates(self):
+        from dashboard.services.stats_service import get_dashboard_summary
+
+        summary = get_dashboard_summary(
+            self.current_election.id,
+            use_cache=False,
+            election=self.current_election,
+        )
+        self.assertEqual(summary["total_candidates"], 1)
+
+    def test_live_stats_excludes_other_election_candidates(self):
+        from dashboard.services.stats_service import get_live_stats
+
+        live = get_live_stats(
+            self.current_election.id,
+            use_cache=False,
+            election=self.current_election,
+        )
+        names = {candidate["full_name"] for candidate in live["candidates"]}
+        self.assertEqual(names, {self.current_candidate.full_name})
+        self.assertEqual(len(live["positions"]), 1)

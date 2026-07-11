@@ -1,13 +1,22 @@
 from collections import defaultdict
+import logging
+import sys
 
 from django.core.cache import cache
+from django.db import transaction
 from django.db.models import Count, Q
 
 from accounts.models import User, UserRole
 from candidates.models import Candidate
+from dashboard.services.materialized_stats import (
+    fetch_candidate_vote_counts,
+    materialized_view_available,
+)
 from positions.models import Position
 from voting.models import Election, ElectionStatus, Vote
 from voting.services.vote_service import count_votable_positions
+
+logger = logging.getLogger(__name__)
 
 LIVE_STATS_CACHE_SECONDS = 10
 SUMMARY_CACHE_SECONDS = 10
@@ -104,6 +113,8 @@ def get_dashboard_summary(
     candidates_filter = Q()
     if academic_year:
         candidates_filter = Q(position__academic_year__isnull=True) | Q(position__academic_year=academic_year)
+    if election:
+        candidates_filter &= Q(election_id=election.id)
     total_candidates = Candidate.objects.filter(candidates_filter).count()
 
     position_turnout = []
@@ -111,7 +122,10 @@ def get_dashboard_summary(
     members_partial_ballot = 0
     members_no_votes = total_members
     votes_cast = 0
-    votable_positions_count = count_votable_positions(academic_year=academic_year)
+    votable_positions_count = count_votable_positions(
+        academic_year=academic_year,
+        election_id=election.id if election else None,
+    )
 
     if election and votable_positions_count > 0 and total_members > 0:
         vote_filter = Q(votes__election_id=election.id)
@@ -221,26 +235,40 @@ def get_live_stats(
     if academic_year:
         vote_filter &= Q(votes__member__academic_year=academic_year)
         
-    candidates_qs = Candidate.objects.select_related("position")
+    candidates_qs = Candidate.objects.select_related("position").filter(election_id=election.id)
     if academic_year:
         candidates_qs = candidates_qs.filter(Q(position__academic_year__isnull=True) | Q(position__academic_year=academic_year))
 
-    candidates = (
-        candidates_qs.annotate(vote_count=Count("votes", filter=vote_filter))
-        .order_by("position__name", "-vote_count", "full_name")
-    )
+    mv_vote_counts = None
+    if materialized_view_available():
+        counts = fetch_candidate_vote_counts(election.id, academic_year)
+        if counts:
+            mv_vote_counts = counts
+
+    if mv_vote_counts is not None:
+        candidates = candidates_qs.order_by("position__name", "full_name")
+    else:
+        candidates = (
+            candidates_qs.annotate(vote_count=Count("votes", filter=vote_filter))
+            .order_by("position__name", "-vote_count", "full_name")
+        )
 
     total_votes = 0
     candidate_stats = []
     for candidate in candidates:
-        total_votes += candidate.vote_count
+        vote_count = (
+            mv_vote_counts.get(candidate.id, 0)
+            if mv_vote_counts is not None
+            else candidate.vote_count
+        )
+        total_votes += vote_count
         candidate_stats.append(
             {
                 "candidate_id": candidate.id,
                 "full_name": candidate.full_name,
                 "position_id": candidate.position_id,
                 "position_name": candidate.position.name,
-                "vote_count": candidate.vote_count,
+                "vote_count": vote_count,
                 "vote_percentage": 0.0,
             }
         )
@@ -359,3 +387,20 @@ def invalidate_dashboard_cache(election_id: int | None = None) -> None:
     _bump_cache_version("default")
     if election_id is not None:
         _bump_cache_version(election_id)
+
+    def _refresh_materialized_view() -> None:
+        try:
+            from dashboard.services.materialized_stats import refresh_live_stats_view
+
+            refresh_live_stats_view()
+        except Exception:
+            logger.debug("Materialized live-stats view refresh skipped.", exc_info=True)
+
+    if "test" in sys.argv:
+        transaction.on_commit(_refresh_materialized_view)
+    else:
+        _refresh_materialized_view()
+
+    from voting.services.ongoing_election_cache import invalidate_ongoing_election_cache
+
+    invalidate_ongoing_election_cache()

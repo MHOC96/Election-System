@@ -27,9 +27,16 @@ export const electionSchema = z.object({
 
 export type ElectionForm = z.infer<typeof electionSchema>
 
+export const startVotingSchema = z.object({
+  voting_start_at: z.string().optional(),
+  voting_end_at: z.string().trim().min(1, 'Voting end time is required'),
+})
+
+export type StartVotingForm = z.infer<typeof startVotingSchema>
+
 export const memberEditSchema = z.object({
   cpm_number: z.string().trim().min(1, 'CPM Number is required'),
-  mc_number: z.string().trim().min(1, 'MC Number is required'),
+  mc_number: z.string().trim().optional(),
   is_active: z.boolean(),
 })
 

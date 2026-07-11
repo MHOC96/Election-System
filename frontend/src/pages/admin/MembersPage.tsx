@@ -28,6 +28,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { DataTable } from '@/components/shared/DataTable'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { sectionDelays, Stagger } from '@/components/motion/Stagger'
 import { FormField } from '@/components/design-system/FormField'
 import { restoreBodyPointerEvents } from '@/lib/pointer-events'
@@ -72,7 +73,7 @@ export function MembersPage() {
   const mcNumber = watch('mc_number')
   const isActive = watch('is_active')
 
-  const { data, isPending, isFetching } = useQuery({
+  const { data, isPending, isFetching, isError, refetch } = useQuery({
     queryKey: ['members', activeTab, page],
     queryFn: () => fetchMembers(activeTab, page),
     staleTime: MEMBERS_STALE_MS,
@@ -133,7 +134,7 @@ export function MembersPage() {
     mutationFn: ({ id, values }: { id: number; values: MemberEditForm }) =>
       updateMember(id, {
         cpm_number: values.cpm_number.trim().toUpperCase(),
-        mc_number: values.mc_number,
+        ...(values.mc_number?.trim() ? { mc_number: values.mc_number.trim() } : {}),
         is_active: values.is_active,
       }),
     onSuccess: () => {
@@ -147,11 +148,24 @@ export function MembersPage() {
   const tableRefreshing =
     isFetching && !!data && !importMutation.isPending && !clearAllMutation.isPending
 
+  if (isError && !data) {
+    return (
+      <div className={pageLayoutClass}>
+        <Stagger delayMs={sectionDelays.header}>
+          <PageHeader title="Members" description="Import and manage voting members" />
+        </Stagger>
+        <Stagger delayMs={sectionDelays.primary}>
+          <QueryErrorState onRetry={() => void refetch()} isRetrying={isFetching} />
+        </Stagger>
+      </div>
+    )
+  }
+
   const openEdit = (member: Member) => {
     setEditing(member)
     reset({
       cpm_number: member.cpm_number,
-      mc_number: member.mc_number,
+      mc_number: '',
       is_active: member.is_active,
     })
   }
@@ -268,7 +282,7 @@ export function MembersPage() {
             {data?.results.map((member) => (
               <TableRow key={member.id}>
                 <TableCell className="font-medium">{member.cpm_number}</TableCell>
-                <TableCell>{member.mc_number ? '*'.repeat(member.mc_number.length) : '—'}</TableCell>
+                <TableCell>••••••••</TableCell>
                 <TableCell className="text-right">
                   <Button
                     variant="ghost"
@@ -313,12 +327,12 @@ export function MembersPage() {
               htmlFor="mc_number"
               error={errors.mc_number?.message}
               valid={Boolean(touchedFields.mc_number && mcNumber && !errors.mc_number)}
-              hint="Updating the MC number also updates the member's login password."
-              required
+              hint="Leave blank to keep the current MC number. Enter a new value to reset the member's login password."
             >
               <Input
                 id="mc_number"
                 type="password"
+                placeholder="Leave blank to keep unchanged"
                 autoComplete="new-password"
                 autoCapitalize="off"
                 autoCorrect="off"

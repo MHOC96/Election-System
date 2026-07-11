@@ -21,6 +21,7 @@ import {
   type MemberImportPreviewResult,
 } from '@/lib/member-csv'
 import { PANEL_AUTO_DISMISS_MS } from '@/lib/toast-config'
+import { ASYNC_IMPORT_ROW_THRESHOLD } from '@/api/members'
 import { cn } from '@/lib/utils'
 import type { MemberImportResult } from '@/types/api'
 
@@ -198,6 +199,7 @@ export function MemberImportPanel({
     selectedFile && filePreview && !filePreview.error && !isImporting && !result && !isParsingPreview
 
   const dropZoneBusy = isImporting || isParsingPreview
+  const isLargeImport = (filePreview?.total_rows ?? 0) > ASYNC_IMPORT_ROW_THRESHOLD
 
   return (
     <div className={cn('space-y-4', className)}>
@@ -279,7 +281,9 @@ export function MemberImportPanel({
             <div className="space-y-1">
               <p className="text-sm font-semibold">
                 {isImporting
-                  ? 'Importing members…'
+                  ? isLargeImport
+                    ? 'Processing large import in the background…'
+                    : 'Importing members…'
                   : isParsingPreview
                     ? 'Reading file…'
                     : dragOver
@@ -398,6 +402,13 @@ export function MemberImportPanel({
             {filePreview.total_rows > filePreview.preview.length ? (
               <p className="text-xs text-muted-foreground">
                 Showing first {filePreview.preview.length} of {filePreview.total_rows} rows.
+                {filePreview.total_rows > ASYNC_IMPORT_ROW_THRESHOLD
+                  ? ' Large imports run in the background and may take a minute.'
+                  : null}
+              </p>
+            ) : filePreview.total_rows > ASYNC_IMPORT_ROW_THRESHOLD ? (
+              <p className="text-xs text-muted-foreground">
+                Large imports run in the background and may take a minute.
               </p>
             ) : null}
 

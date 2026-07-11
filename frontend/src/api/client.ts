@@ -6,6 +6,7 @@ import {
   setAuthTokens,
   getStoredUser,
 } from '@/lib/auth-storage'
+import { dispatchAuthSessionExpired } from '@/lib/auth-events'
 import type { ApiFailure, ApiResponse } from '@/types/api'
 
 const API_URL = import.meta.env.VITE_API_URL ?? '/api'
@@ -88,7 +89,7 @@ api.interceptors.response.use(
     const newToken = await refreshPromise
     if (!newToken) {
       clearAuth()
-      window.location.href = '/login'
+      dispatchAuthSessionExpired()
       return Promise.reject(error)
     }
 

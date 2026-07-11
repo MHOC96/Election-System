@@ -51,9 +51,6 @@ export default defineConfig({
           if (id.includes('recharts') || id.includes('d3-') || id.includes('victory-vendor')) {
             return 'charts'
           }
-          if (id.includes('framer-motion')) {
-            return 'motion'
-          }
           if (id.includes('@radix-ui')) {
             return 'radix'
           }

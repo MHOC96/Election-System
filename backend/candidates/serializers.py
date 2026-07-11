@@ -81,7 +81,6 @@ class CandidateApplicationSerializer(serializers.ModelSerializer):
             "position",
             "position_name",
             "full_name",
-            "mc_number",
             "cpm_number",
             "contact_number",
             "photo_url",

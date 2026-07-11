@@ -15,6 +15,10 @@ import {
 } from '@/api/elections'
 import { getApiErrorMessage } from '@/api/client'
 import { ElectionResultsSheet } from '@/components/elections/ElectionResultsSheet'
+import { ElectionCountdownHero } from '@/components/elections/ElectionCountdownHero'
+import { ElectionLifecycleRail } from '@/components/elections/ElectionLifecycleRail'
+import { ElectionNextStepBanner } from '@/components/elections/ElectionNextStepBanner'
+import { CountdownExpiryWatcher } from '@/components/shared/CountdownDisplay'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -30,16 +34,30 @@ import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { ElectionStatusBadge } from '@/components/shared/StatusBadge'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { sectionDelays, Stagger, StaggerChildren } from '@/components/motion/Stagger'
 import { FormField } from '@/components/design-system/FormField'
 import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass } from '@/lib/design-tokens'
-import { canScheduleElection, getElectionScheduleBlockReason } from '@/lib/election-readiness'
-import { refreshDashboard, markQueriesStale } from '@/lib/query-sync'
-import { electionSchema, type ElectionForm } from '@/lib/form-schemas'
+import { fetchMembers } from '@/api/members'
+import { fetchPositions } from '@/api/positions'
+import {
+  canCreateElection,
+  canScheduleElection,
+  getCreateElectionBlockReason,
+  getElectionScheduleBlockReason,
+} from '@/lib/election-readiness'
+import { MEMBERS_STALE_MS, refreshDashboard, markQueriesStale } from '@/lib/query-sync'
+import { electionSchema, startVotingSchema, type ElectionForm, type StartVotingForm } from '@/lib/form-schemas'
 import type { Election } from '@/types/api'
 import { cn, formatDate } from '@/lib/utils'
 import { isoToLocalInput, localInputToIso } from '@/lib/datetime'
+import {
+  electionNeedsPhaseRefresh,
+  getElectionCountdown,
+  getElectionNextStep,
+  isVotingStartPending,
+} from '@/lib/election-lifecycle-ui'
 import { notifyError } from '@/lib/notify'
 
 export function ElectionsPage() {
@@ -68,26 +86,46 @@ export function ElectionsPage() {
     handleSubmit: handleStartVotingSubmit,
     reset: resetStartVoting,
     formState: { errors: startVotingErrors, isSubmitting: isStartVotingSubmitting },
-  } = useForm<{
-    voting_start_at: string
-    voting_end_at: string
-  }>({
+  } = useForm<StartVotingForm>({
+    resolver: zodResolver(startVotingSchema),
     defaultValues: { voting_start_at: '', voting_end_at: '' },
   })
 
   // State to hold editing election
   const [editingElection, setEditingElection] = useState<Election | null>(null)
 
-  const { data: elections, isLoading } = useQuery({
+  const { data: elections, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ['elections'],
     queryFn: fetchElections,
+    refetchInterval: (query) => {
+      const list = query.state.data
+      if (!list?.some(electionNeedsPhaseRefresh)) return false
+      return 10_000
+    },
   })
 
-  const readinessLoading = isLoading
-  const canCreate = true
-  const createElectionHint = null
-  const electionScheduleReady = canScheduleElection()
-  const electionScheduleBlockReason = getElectionScheduleBlockReason()
+  const { data: positions, isLoading: positionsLoading } = useQuery({
+    queryKey: ['positions'],
+    queryFn: fetchPositions,
+  })
+
+  const { data: membersPage, isLoading: membersLoading } = useQuery({
+    queryKey: ['members', 'readiness'],
+    queryFn: () => fetchMembers(undefined, 1, 1),
+    staleTime: MEMBERS_STALE_MS,
+  })
+
+  const readinessInput = {
+    elections,
+    positionCount: positions?.length ?? 0,
+    memberCount: membersPage?.count ?? 0,
+  }
+
+  const readinessLoading = isLoading || positionsLoading || membersLoading
+  const canCreate = canCreateElection(readinessInput)
+  const createElectionHint = getCreateElectionBlockReason(readinessInput)
+  const electionScheduleReady = canScheduleElection(readinessInput)
+  const electionScheduleBlockReason = getElectionScheduleBlockReason(readinessInput)
 
   const createMutation = useMutation({
     mutationFn: (values: ElectionForm) => createElection(values),
@@ -137,20 +175,6 @@ export function ElectionsPage() {
     },
   })
 
-  const openApplicationsMutation = useMutation({
-    mutationFn: scheduleElection,
-    onSuccess: (updated) => {
-      queryClient.setQueryData<Election[]>(['elections'], (old) =>
-        (old ?? []).map((election) =>
-          election.id === updated.id ? updated : election,
-        ),
-      )
-      refreshDashboard(queryClient)
-      markQueriesStale(queryClient, ['members-deletion-status'])
-    },
-    onError: (error) => notifyError(getApiErrorMessage(error)),
-  })
-
   const startVotingMutation = useMutation({
     mutationFn: async ({ id, voting_start_at, voting_end_at }: { id: number; voting_start_at?: string; voting_end_at?: string }) =>
       startVotingElection(id, voting_start_at, voting_end_at),
@@ -192,7 +216,7 @@ export function ElectionsPage() {
 
   const openCreateDialog = () => {
     if (!canCreate) {
-      notifyError(createElectionHint ?? 'Add candidates first.')
+      notifyError(createElectionHint ?? 'Cannot create a new election right now.')
       return
     }
     reset({ name: '' })
@@ -271,7 +295,7 @@ export function ElectionsPage() {
     setDeleteTarget(editingElection)
   }
 
-  const onStartVotingSubmit = (values: { voting_start_at: string; voting_end_at: string }) => {
+  const onStartVotingSubmit = (values: StartVotingForm) => {
     if (!startVotingTarget) return
     startVotingMutation.mutate({
       id: startVotingTarget.id,
@@ -350,11 +374,11 @@ export function ElectionsPage() {
         <Button
           key="open-apps"
           size="sm"
-          disabled={openApplicationsMutation.isPending || !hasAppDates}
+          disabled={actionMutation.isPending || !hasAppDates}
           title={!hasAppDates ? 'Set application start and end dates first' : undefined}
           onClick={(event) => {
             event.stopPropagation()
-            openApplicationsMutation.mutate(election.id)
+            actionMutation.mutate({ id: election.id, action: 'schedule' })
           }}
         >
           <Play className="h-4 w-4 mr-1" />
@@ -363,7 +387,7 @@ export function ElectionsPage() {
       )
     }
 
-    if (election.current_phase === 'READY_FOR_VOTING') {
+    if (election.current_phase === 'READY_FOR_VOTING' && !isVotingStartPending(election)) {
       actions.push(
         <Button
           key="start-voting"
@@ -439,6 +463,19 @@ export function ElectionsPage() {
     return actions.length ? <div className="flex flex-wrap gap-2">{actions}</div> : null
   }
 
+  if (isError && !elections) {
+    return (
+      <div className={pageLayoutClass}>
+        <Stagger delayMs={sectionDelays.header}>
+          <PageHeader title="Elections" description="Create and manage election lifecycle" />
+        </Stagger>
+        <Stagger delayMs={sectionDelays.primary}>
+          <QueryErrorState onRetry={() => void refetch()} isRetrying={isFetching} />
+        </Stagger>
+      </div>
+    )
+  }
+
   return (
     <div className={pageLayoutClass}>
       <Stagger delayMs={sectionDelays.header}>
@@ -476,7 +513,7 @@ export function ElectionsPage() {
           description={
               canCreate
                 ? 'Create an election to begin the process.'
-                : 'Add candidates first, then create an election.'
+                : (createElectionHint ?? 'Finish the current election before creating a new one.')
           }
         />
       ) : (
@@ -487,6 +524,8 @@ export function ElectionsPage() {
               election.status === 'DRAFT' &&
               !electionScheduleReady &&
               electionScheduleBlockReason
+            const countdown = getElectionCountdown(election)
+            const nextStep = isClosed ? null : getElectionNextStep(election)
 
             return (
               <Card
@@ -505,25 +544,50 @@ export function ElectionsPage() {
                 role={isClosed ? 'button' : undefined}
                 aria-label={isClosed ? `View results for ${election.name}` : undefined}
               >
-                <CardHeader className="flex flex-col sm:flex-row items-start justify-between gap-4">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-lg">{election.name}</CardTitle>
-                      <ElectionStatusBadge status={election.current_phase} />
+                <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex-1 space-y-4">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <CardTitle className="text-lg">{election.name}</CardTitle>
+                        <ElectionStatusBadge status={election.current_phase} />
+                      </div>
+                      <CardDescription className="mt-1">
+                        Created {formatDate(election.created_at)}
+                        {election.application_start_at && ` · Apps ${formatDate(election.application_start_at)} – ${election.application_end_at ? formatDate(election.application_end_at) : '…'}`}
+                        {election.voting_start_at && ` · Voting ${formatDate(election.voting_start_at)} – ${election.voting_end_at ? formatDate(election.voting_end_at) : '…'}`}
+                      </CardDescription>
+                      {isClosed ? (
+                        <p className="mt-2 flex items-center gap-1 text-sm text-primary">
+                          View full results
+                          <ChevronRight className="h-4 w-4" aria-hidden />
+                        </p>
+                      ) : null}
+                      {showStartHint ? (
+                        <p className="mt-2 text-sm text-muted-foreground">{electionScheduleBlockReason}</p>
+                      ) : null}
                     </div>
-                    <CardDescription className="mt-1">
-                      Created {formatDate(election.created_at)}
-                      {election.application_start_at && ` · Apps ${formatDate(election.application_start_at)} – ${election.application_end_at ? formatDate(election.application_end_at) : '…'}`}
-                      {election.voting_start_at && ` · Voting ${formatDate(election.voting_start_at)} – ${election.voting_end_at ? formatDate(election.voting_end_at) : '…'}`}
-                    </CardDescription>
-                    {isClosed ? (
-                      <p className="mt-2 flex items-center gap-1 text-sm text-primary">
-                        View full results
-                        <ChevronRight className="h-4 w-4" aria-hidden />
-                      </p>
+
+                    {!isClosed ? (
+                      <ElectionLifecycleRail phase={election.current_phase} />
                     ) : null}
-                    {showStartHint ? (
-                      <p className="mt-2 text-sm text-muted-foreground">{electionScheduleBlockReason}</p>
+
+                    {!isClosed && nextStep ? <ElectionNextStepBanner step={nextStep} /> : null}
+
+                    {!isClosed && countdown ? (
+                      <>
+                        <CountdownExpiryWatcher
+                          targetAt={countdown.targetAt}
+                          onExpire={() => {
+                            void queryClient.invalidateQueries({ queryKey: ['elections'] })
+                            refreshDashboard(queryClient)
+                          }}
+                        />
+                        <ElectionCountdownHero
+                          variant={countdown.variant}
+                          electionName={election.name}
+                          targetAt={countdown.targetAt}
+                        />
+                      </>
                     ) : null}
                   </div>
                   <div onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
@@ -635,7 +699,8 @@ export function ElectionsPage() {
           </DialogHeader>
           <form onSubmit={(e) => void handleStartVotingSubmit(onStartVotingSubmit)(e)} className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Set when voting will start and end. If the start time is empty or in the past, voting begins immediately.
+              Set when voting will start and end. If the start time is in the future, a live countdown
+              appears on this page and on the member ballot until voting opens.
             </p>
 
             <FormField label="Voting Start (Optional)" htmlFor="start_voting_start_at" error={startVotingErrors.voting_start_at?.message as string}>

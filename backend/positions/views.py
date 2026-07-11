@@ -4,8 +4,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from accounts.permissions import IsAdminOrReadOnly
+from dashboard.services.stats_service import invalidate_dashboard_cache
 from positions.models import Position
 from positions.serializers import PositionSerializer
+from audit.constants import AuditAction
+from audit.services.audit_service import log_action
 
 
 class PositionListCreateView(generics.ListCreateAPIView):
@@ -29,7 +32,14 @@ class PositionListCreateView(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        position = serializer.save()
+        invalidate_dashboard_cache()
+        log_action(
+            action=AuditAction.POSITION_CREATED,
+            request=request,
+            actor=request.user,
+            metadata={"position_id": position.id, "name": position.name},
+        )
         return Response(
             {"success": True, "data": serializer.data},
             status=status.HTTP_201_CREATED,
@@ -56,6 +66,13 @@ class PositionDetailView(generics.RetrieveUpdateDestroyAPIView):
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        invalidate_dashboard_cache()
+        log_action(
+            action=AuditAction.POSITION_UPDATED,
+            request=request,
+            actor=request.user,
+            metadata={"position_id": instance.id, "name": instance.name},
+        )
         return Response({"success": True, "data": serializer.data})
 
     def destroy(self, request, *args, **kwargs):
@@ -64,7 +81,16 @@ class PositionDetailView(generics.RetrieveUpdateDestroyAPIView):
             raise ValidationError(
                 "Cannot delete this position because it has linked candidates or votes."
             )
+        position_id = instance.id
+        name = instance.name
         instance.delete()
+        invalidate_dashboard_cache()
+        log_action(
+            action=AuditAction.POSITION_DELETED,
+            request=request,
+            actor=request.user,
+            metadata={"position_id": position_id, "name": name},
+        )
         return Response(
             {"success": True, "message": "Position deleted successfully."},
             status=status.HTTP_200_OK,

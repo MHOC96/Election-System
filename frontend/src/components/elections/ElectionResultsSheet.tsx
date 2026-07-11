@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Trophy } from 'lucide-react'
-import { fetchDashboardSummary, fetchLiveStats } from '@/api/dashboard'
+import { fetchDashboardOverview } from '@/api/dashboard'
+import { dashboardOverviewQueryKey, DASHBOARD_STALE_MS } from '@/lib/query-sync'
 import { ElectionStatusBadge } from '@/components/shared/StatusBadge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -27,19 +28,15 @@ export function ElectionResultsSheet({ election, open, onOpenChange }: ElectionR
   const electionId = election?.id
   const [activeTab, setActiveTab] = useState('3rd Year')
 
-  const { data: summary, isLoading: summaryLoading } = useQuery({
-    queryKey: ['election-summary', electionId, activeTab],
-    queryFn: () => fetchDashboardSummary(electionId!, activeTab),
+  const { data: overview, isLoading } = useQuery({
+    queryKey: dashboardOverviewQueryKey(activeTab, electionId),
+    queryFn: () => fetchDashboardOverview(electionId!, activeTab),
     enabled: open && electionId != null,
+    staleTime: DASHBOARD_STALE_MS,
   })
 
-  const { data: liveStats, isLoading: liveLoading } = useQuery({
-    queryKey: ['election-live-stats', electionId, activeTab],
-    queryFn: () => fetchLiveStats(electionId!, activeTab),
-    enabled: open && electionId != null,
-  })
-
-  const isLoading = summaryLoading || liveLoading
+  const summary = overview?.summary
+  const liveStats = overview?.live
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

@@ -15,9 +15,10 @@ import { getApiErrorMessage } from '@/api/client'
 import { MAIN_CONTENT_ID } from '@/lib/a11y'
 import { loginSchema, type LoginForm } from '@/lib/login-schema'
 import { notifyError } from '@/lib/notify'
+import { PageLoader } from '@/components/shared/PageLoader'
 
 export function LoginPage() {
-  const { login, isAuthenticated, user } = useAuth()
+  const { login, isAuthenticated, user, isLoading } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
@@ -34,6 +35,10 @@ export function LoginPage() {
   const cpmNumber = watch('cpm_number')
   const mcNumber = watch('mc_number')
 
+  if (isLoading) {
+    return <PageLoader className="min-h-[100dvh]" />
+  }
+
   if (isAuthenticated && user) {
     const target = user.role === 'ADMIN' ? '/admin' : '/'
     return <Navigate to={target} replace />
@@ -41,6 +46,7 @@ export function LoginPage() {
 
   const onSubmit = async (data: LoginForm) => {
     try {
+      queryClient.clear()
       const loggedIn = await login({
         cpm_number: data.cpm_number.trim().toUpperCase(),
         mc_number: data.mc_number,

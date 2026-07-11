@@ -12,7 +12,7 @@ class Candidate(models.Model):
     full_name = models.CharField(max_length=200)
     academic_year = models.CharField(max_length=10, choices=AcademicYear.choices)
     photo_url = models.URLField(max_length=500)
-    election = models.ForeignKey("voting.Election", on_delete=models.CASCADE, related_name="candidates", null=True, blank=True)
+    election = models.ForeignKey("voting.Election", on_delete=models.CASCADE, related_name="candidates")
     position = models.ForeignKey(
         Position,
         on_delete=models.PROTECT,
@@ -25,6 +25,7 @@ class Candidate(models.Model):
         ordering = ["full_name"]
         indexes = [
             models.Index(fields=["position", "academic_year"]),
+            models.Index(fields=["election", "position"], name="cand_election_position_idx"),
         ]
 
     def __str__(self):
@@ -52,7 +53,6 @@ class CandidateApplication(models.Model):
     position = models.ForeignKey("positions.Position", on_delete=models.PROTECT, related_name="applications")
     
     full_name = models.CharField(max_length=200)
-    mc_number = models.CharField(max_length=100)
     cpm_number = models.CharField(max_length=50)
     contact_number = models.CharField(max_length=20)
     photo_url = models.URLField(max_length=500)
@@ -70,6 +70,9 @@ class CandidateApplication(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["election", "status"], name="candapp_elect_status_idx"),
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=["election", "member"],
