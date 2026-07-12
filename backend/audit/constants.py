@@ -19,6 +19,7 @@ class AuditAction(models.TextChoices):
 
     MEMBER_IMPORTED = "MEMBER_IMPORTED", "Members imported"
     MEMBER_UPDATED = "MEMBER_UPDATED", "Member updated"
+    MEMBER_PASSWORD_RESET = "MEMBER_PASSWORD_RESET", "Member password reset"
     MEMBER_DELETED = "MEMBER_DELETED", "Member deleted"
     MEMBERS_BULK_DELETED = "MEMBERS_BULK_DELETED", "Members bulk deleted"
     MEMBERS_CLEARED = "MEMBERS_CLEARED", "Members cleared"

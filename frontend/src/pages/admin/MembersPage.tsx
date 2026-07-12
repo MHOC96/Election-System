@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
-import { AlertTriangle, Pencil, Trash2, Users } from 'lucide-react'
+import { AlertTriangle, KeyRound, Pencil, Trash2, Users } from 'lucide-react'
 import {
   clearAllMembers,
   fetchMemberDeletionStatus,
   fetchMembers,
   importMembers,
+  resetMemberPassword,
   updateMember,
 } from '@/api/members'
 import { getApiErrorMessage } from '@/api/client'
@@ -41,7 +42,7 @@ import {
   refreshDashboard,
 } from '@/lib/query-sync'
 import type { AcademicYear, Member, MemberImportResult } from '@/types/api'
-import { notifyError, notifyInfo, notifyWarning } from '@/lib/notify'
+import { notifyError, notifyInfo, notifySuccess, notifyWarning } from '@/lib/notify'
 
 
 async function refreshMembersPage(queryClient: QueryClient, academicYear: AcademicYear, page = 1) {
@@ -54,6 +55,7 @@ export function MembersPage() {
   const [page, setPage] = useState(1)
   const [clearAllOpen, setClearAllOpen] = useState(false)
   const [editing, setEditing] = useState<Member | null>(null)
+  const [resetTarget, setResetTarget] = useState<Member | null>(null)
   const [importResult, setImportResult] = useState<MemberImportResult | null>(null)
 
   const {
@@ -65,12 +67,11 @@ export function MembersPage() {
     formState: { errors, isSubmitting, touchedFields },
   } = useForm<MemberEditForm>({
     resolver: zodResolver(memberEditSchema),
-    defaultValues: { cpm_number: '', mc_number: '', is_active: true },
+    defaultValues: { cpm_number: '', is_active: true },
     mode: 'onBlur',
   })
 
   const cpmNumber = watch('cpm_number')
-  const mcNumber = watch('mc_number')
   const isActive = watch('is_active')
 
   const { data, isPending, isFetching, isError, refetch } = useQuery({
@@ -134,12 +135,20 @@ export function MembersPage() {
     mutationFn: ({ id, values }: { id: number; values: MemberEditForm }) =>
       updateMember(id, {
         cpm_number: values.cpm_number.trim().toUpperCase(),
-        ...(values.mc_number?.trim() ? { mc_number: values.mc_number.trim() } : {}),
         is_active: values.is_active,
       }),
     onSuccess: () => {
       closeEditDialog()
       void refreshMembersPage(queryClient, activeTab, page)
+    },
+    onError: (error) => notifyError(getApiErrorMessage(error)),
+  })
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: (id: number) => resetMemberPassword(id),
+    onSuccess: (result) => {
+      setResetTarget(null)
+      notifySuccess(result.message)
     },
     onError: (error) => notifyError(getApiErrorMessage(error)),
   })
@@ -165,14 +174,13 @@ export function MembersPage() {
     setEditing(member)
     reset({
       cpm_number: member.cpm_number,
-      mc_number: '',
       is_active: member.is_active,
     })
   }
 
   const closeEditDialog = () => {
     setEditing(null)
-    reset({ cpm_number: '', mc_number: '', is_active: true })
+    reset({ cpm_number: '', is_active: true })
     requestAnimationFrame(() => restoreBodyPointerEvents())
   }
 
@@ -265,15 +273,26 @@ export function MembersPage() {
                     <p className="truncate font-semibold text-sm">{member.cpm_number}</p>
                     <p className="text-xs text-muted-foreground">MC: ••••••••</p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 shrink-0"
-                    onClick={() => openEdit(member)}
-                    aria-label={`Edit ${member.cpm_number}`}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setResetTarget(member)}
+                      aria-label={`Reset password for ${member.cpm_number}`}
+                    >
+                      <KeyRound className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => openEdit(member)}
+                      aria-label={`Edit ${member.cpm_number}`}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -307,14 +326,26 @@ export function MembersPage() {
                 <TableCell className="font-medium">{member.cpm_number}</TableCell>
                 <TableCell>••••••••</TableCell>
                 <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => openEdit(member)}
-                    aria-label={`Edit ${member.cpm_number}`}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center justify-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setResetTarget(member)}
+                      aria-label={`Reset password for ${member.cpm_number}`}
+                      title="Reset password"
+                    >
+                      <KeyRound className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openEdit(member)}
+                      aria-label={`Edit ${member.cpm_number}`}
+                      title="Edit member"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -343,24 +374,6 @@ export function MembersPage() {
                 autoCorrect="off"
                 spellCheck={false}
                 {...register('cpm_number')}
-              />
-            </FormField>
-            <FormField
-              label="MC Number"
-              htmlFor="mc_number"
-              error={errors.mc_number?.message}
-              valid={Boolean(touchedFields.mc_number && mcNumber && !errors.mc_number)}
-              hint="Leave blank to keep the current MC number. Enter a new value to reset the member's login password."
-            >
-              <Input
-                id="mc_number"
-                type="password"
-                placeholder="Leave blank to keep unchanged"
-                autoComplete="new-password"
-                autoCapitalize="off"
-                autoCorrect="off"
-                spellCheck={false}
-                {...register('mc_number')}
               />
             </FormField>
             <FormField label="Status" htmlFor="member_status" hint="Inactive members cannot sign in or vote.">
@@ -396,6 +409,18 @@ export function MembersPage() {
         loading={clearAllMutation.isPending}
         onCancel={() => setClearAllOpen(false)}
         onConfirm={() => clearAllMutation.mutate()}
+      />
+
+      <ConfirmDialog
+        open={!!resetTarget}
+        title={`Reset password for ${resetTarget?.cpm_number ?? 'member'}?`}
+        description="Their login password will be restored to their original imported MC number. The member must change it again after signing in. Share the MC number with them outside the system."
+        confirmLabel="Reset password"
+        loading={resetPasswordMutation.isPending}
+        onCancel={() => setResetTarget(null)}
+        onConfirm={() => {
+          if (resetTarget) resetPasswordMutation.mutate(resetTarget.id)
+        }}
       />
     </div>
   )

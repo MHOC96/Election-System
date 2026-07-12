@@ -217,7 +217,6 @@ class MemberAPITestCase(TestCase):
             reverse("members-detail", kwargs={"pk": self.member.pk}),
             {
                 "cpm_number": "CPM901",
-                "mc_number": "new-member-pass",
                 "is_active": False,
             },
             format="json",
@@ -226,9 +225,47 @@ class MemberAPITestCase(TestCase):
         self.assertTrue(response.data["success"])
         self.member.refresh_from_db()
         self.assertEqual(self.member.cpm_number, "CPM901")
-        self.assertEqual(self.member.mc_number, "new-member-pass")
+        self.assertEqual(self.member.mc_number, "member-pass")
         self.assertFalse(self.member.is_active)
-        self.assertTrue(self.member.check_password("new-member-pass"))
+
+    def test_admin_can_reset_member_password_to_import_mc(self):
+        from audit.models import AuditLog
+        from audit.constants import AuditAction
+
+        self.member.set_password("changed-by-member")
+        self.member.has_changed_password = True
+        self.member.save(update_fields=["password", "has_changed_password", "updated_at"])
+
+        self._auth_as_admin()
+        response = self.client.post(
+            reverse("members-reset-password", kwargs={"pk": self.member.pk}),
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["success"])
+
+        self.member.refresh_from_db()
+        self.assertEqual(self.member.mc_number, "member-pass")
+        self.assertFalse(self.member.has_changed_password)
+        self.assertTrue(self.member.check_password("member-pass"))
+
+        login_response = self.client.post(
+            reverse("auth-login"),
+            {"cpm_number": "CPM900", "mc_number": "member-pass"},
+            format="json",
+        )
+        self.assertEqual(login_response.status_code, status.HTTP_200_OK)
+
+        audit = AuditLog.objects.filter(action=AuditAction.MEMBER_PASSWORD_RESET).first()
+        self.assertIsNotNone(audit)
+        self.assertEqual(audit.metadata["cpm_number"], "CPM900")
+
+    def test_reset_password_requires_admin(self):
+        response = self.client.post(
+            reverse("members-reset-password", kwargs={"pk": self.member.pk}),
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_admin_can_delete_member(self):
         self._auth_as_admin()

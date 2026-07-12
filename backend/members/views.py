@@ -30,6 +30,7 @@ from members.services.import_job_service import (
     start_import_job_async,
 )
 from members.services.import_service import import_members, import_result_to_dict
+from members.services.password_reset_service import MemberPasswordResetError, reset_member_password
 from audit.constants import AuditAction
 from audit.services.audit_service import log_action
 
@@ -300,5 +301,48 @@ class MemberDetailView(generics.RetrieveUpdateDestroyAPIView):
 
         return Response(
             {"success": True, "message": "Member deleted successfully."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class MemberResetPasswordView(APIView):
+    permission_classes = [IsAdmin]
+
+    def post(self, request, pk):
+        try:
+            member = User.objects.get(pk=pk, role=UserRole.MEMBER)
+        except User.DoesNotExist:
+            return Response(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "NOT_FOUND",
+                        "message": "Member not found.",
+                        "details": None,
+                    },
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        try:
+            reset_member_password(member)
+        except MemberPasswordResetError as exc:
+            raise ValidationError(str(exc)) from exc
+
+        invalidate_dashboard_cache()
+        log_action(
+            action=AuditAction.MEMBER_PASSWORD_RESET,
+            request=request,
+            actor=request.user,
+            metadata={"member_id": member.id, "cpm_number": member.cpm_number},
+        )
+
+        return Response(
+            {
+                "success": True,
+                "data": {
+                    "message": "Member password reset to their imported MC number. They must change it after signing in.",
+                },
+            },
             status=status.HTTP_200_OK,
         )

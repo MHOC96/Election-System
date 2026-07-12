@@ -11,11 +11,9 @@ class MemberSerializer(serializers.ModelSerializer):
 
 
 class MemberUpdateSerializer(serializers.ModelSerializer):
-    mc_number = serializers.CharField(required=False, allow_blank=True, write_only=True)
-
     class Meta:
         model = User
-        fields = ("cpm_number", "mc_number", "academic_year", "is_active")
+        fields = ("cpm_number", "academic_year", "is_active")
 
     def validate_cpm_number(self, value):
         normalized = value.strip().upper()
@@ -25,17 +23,6 @@ class MemberUpdateSerializer(serializers.ModelSerializer):
         if queryset.exists():
             raise serializers.ValidationError("A user with this CPM number already exists.")
         return normalized
-
-    def update(self, instance, validated_data):
-        mc_number = validated_data.pop("mc_number", None)
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        if mc_number and instance.mc_number != mc_number:
-            instance.set_password(mc_number)
-            instance.mc_number = mc_number
-            instance.has_changed_password = False
-        instance.save()
-        return instance
 
 
 class MemberImportSerializer(serializers.Serializer):

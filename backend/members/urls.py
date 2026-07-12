@@ -8,6 +8,7 @@ from members.views import (
     MemberImportStatusView,
     MemberImportView,
     MemberListView,
+    MemberResetPasswordView,
 )
 
 urlpatterns = [
@@ -17,5 +18,6 @@ urlpatterns = [
     path("clear-all/", MemberClearAllView.as_view(), name="members-clear-all"),
     path("bulk-delete/", MemberBulkDeleteView.as_view(), name="members-bulk-delete"),
     path("", MemberListView.as_view(), name="members-list"),
+    path("<int:pk>/reset-password/", MemberResetPasswordView.as_view(), name="members-reset-password"),
     path("<int:pk>/", MemberDetailView.as_view(), name="members-detail"),
 ]

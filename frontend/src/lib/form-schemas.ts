@@ -36,7 +36,6 @@ export type StartVotingForm = z.infer<typeof startVotingSchema>
 
 export const memberEditSchema = z.object({
   cpm_number: z.string().trim().min(1, 'CPM Number is required'),
-  mc_number: z.string().trim().optional(),
   is_active: z.boolean(),
 })
 

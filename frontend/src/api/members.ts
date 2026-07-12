@@ -100,7 +100,11 @@ export async function deleteMember(id: number) {
 
 export async function updateMember(
   id: number,
-  payload: { cpm_number?: string; mc_number?: string; is_active?: boolean },
+  payload: { cpm_number?: string; is_active?: boolean },
 ) {
   return apiPatch<Member>(`/members/${id}/`, payload)
+}
+
+export async function resetMemberPassword(id: number) {
+  return apiPost<{ message: string }>(`/members/${id}/reset-password/`, {})
 }
