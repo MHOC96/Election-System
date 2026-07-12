@@ -258,4 +258,3 @@ Readiness checks (positions and members must exist) are enforced in the UI via `
 ## Related documentation
 
 - Backend API and deployment: [`../backend/README.md`](../backend/README.md)
-- Project rules and milestones: [`../AGENTS.md`](../AGENTS.md)
