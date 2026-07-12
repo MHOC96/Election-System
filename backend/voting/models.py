@@ -160,6 +160,13 @@ class Election(models.Model):
     def is_voting_open(self):
         return self.get_current_phase() == ElectionPhase.VOTING_OPEN
 
+    def save(self, *args, **kwargs):
+        if hasattr(self, "_cached_current_phase"):
+            delattr(self, "_cached_current_phase")
+        if hasattr(self, "_cached_has_pending_applications"):
+            delattr(self, "_cached_has_pending_applications")
+        super().save(*args, **kwargs)
+
     @property
     def applications_locked(self) -> bool:
         if not self.application_end_at:

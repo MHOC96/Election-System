@@ -321,7 +321,7 @@ export function CandidateApplicationPage() {
       </Stagger>
 
       <Dialog open={!!selectedPosition} onOpenChange={(open) => !open && !isSubmittingApplication && closeDialog()}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-h-[90dvh] w-[calc(100vw-2rem)] max-w-lg overflow-y-auto rounded-xl sm:w-full">
           <DialogHeader>
             <DialogTitle>Apply for Position</DialogTitle>
             <DialogDescription>
@@ -385,14 +385,14 @@ export function CandidateApplicationPage() {
                   }}
                 />
                 {croppedPreview ? (
-                  <div className="flex items-center gap-3 rounded-md border bg-muted/20 p-2">
-                    <img src={croppedPreview} alt="Cropped preview" className="h-12 w-12 rounded-full border object-cover" />
-                    <span className="text-sm font-medium">Photo cropped and ready</span>
+                  <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/20 p-2">
+                    <img src={croppedPreview} alt="Cropped preview" className="h-10 w-10 shrink-0 rounded-full border object-cover" />
+                    <span className="min-w-0 flex-1 text-sm font-medium">Photo cropped and ready</span>
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="ml-auto text-xs"
+                      className="shrink-0 text-xs"
                       disabled={isSubmittingApplication}
                       onClick={() => document.getElementById('photo_file')?.click()}
                     >
@@ -418,7 +418,7 @@ export function CandidateApplicationPage() {
               />
             </FormField>
 
-            <div className="flex items-center space-x-2 pt-2">
+            <div className="flex items-start space-x-2.5 pt-2">
               <Controller
                 control={control}
                 name="declaration_agreed"
@@ -427,13 +427,13 @@ export function CandidateApplicationPage() {
                     type="checkbox"
                     id="declaration_agreed"
                     disabled={isSubmittingApplication}
-                    className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-brand focus:ring-brand"
                     checked={field.value || false}
                     onChange={(e) => field.onChange(e.target.checked)}
                   />
                 )}
               />
-              <Label htmlFor="declaration_agreed" className="text-sm font-normal">
+              <Label htmlFor="declaration_agreed" className="text-sm font-normal leading-snug">
                 I declare that the information provided is true and accurate.
               </Label>
             </div>
@@ -441,11 +441,11 @@ export function CandidateApplicationPage() {
               <p className="text-sm text-destructive">{errors.declaration_agreed.message as string}</p>
             ) : null}
 
-            <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={closeDialog} disabled={isSubmittingApplication}>
+            <DialogFooter className="flex-col-reverse gap-2 pt-4 sm:flex-row">
+              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={closeDialog} disabled={isSubmittingApplication}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmittingApplication} aria-busy={isSubmittingApplication}>
+              <Button type="submit" className="w-full sm:w-auto" disabled={isSubmittingApplication} aria-busy={isSubmittingApplication}>
                 {isSubmittingApplication ? 'Submitting…' : 'Submit Application'}
               </Button>
             </DialogFooter>

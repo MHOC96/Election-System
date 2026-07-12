@@ -27,7 +27,7 @@ const reports: { type: ReportType; title: string; description: string }[] = [
 
 export function ReportsPage() {
   const [format, setFormat] = useState<ExportFormat>('pdf')
-  const [activeTab, setActiveTab] = useState('3rd Year')
+  const [activeTab, setActiveTab] = useState('2nd Year')
   const [loading, setLoading] = useState<ReportType | null>(null)
 
   const handleExport = async (type: ReportType) => {
@@ -68,8 +68,8 @@ export function ReportsPage() {
         <div className="mb-4 sm:mb-6 w-full max-w-xs">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="3rd Year">3rd Year</TabsTrigger>
               <TabsTrigger value="2nd Year">2nd Year</TabsTrigger>
+              <TabsTrigger value="3rd Year">3rd Year</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>

@@ -21,7 +21,7 @@ export const StatCard = memo(function StatCard({
   return (
     <Card
       className={cn(
-        'group relative overflow-hidden transition-all duration-200 ease-out-expo hover:-translate-y-0.5 hover:shadow-md',
+        'group relative flex h-full flex-col overflow-hidden transition-all duration-200 ease-out-expo hover:-translate-y-0.5 hover:shadow-md',
         className,
       )}
     >

@@ -26,7 +26,7 @@ interface ElectionResultsSheetProps {
 
 export function ElectionResultsSheet({ election, open, onOpenChange }: ElectionResultsSheetProps) {
   const electionId = election?.id
-  const [activeTab, setActiveTab] = useState('3rd Year')
+  const [activeTab, setActiveTab] = useState('2nd Year')
 
   const { data: overview, isLoading } = useQuery({
     queryKey: dashboardOverviewQueryKey(activeTab, electionId),
@@ -60,8 +60,8 @@ export function ElectionResultsSheet({ election, open, onOpenChange }: ElectionR
         <div className="mt-4">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
-              <TabsTrigger value="3rd Year">3rd Year</TabsTrigger>
               <TabsTrigger value="2nd Year">2nd Year</TabsTrigger>
+              <TabsTrigger value="3rd Year">3rd Year</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>

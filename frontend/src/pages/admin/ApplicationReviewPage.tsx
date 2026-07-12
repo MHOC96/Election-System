@@ -33,10 +33,11 @@ type RejectForm = z.infer<typeof rejectSchema>
 export function ApplicationReviewPage() {
   const queryClient = useQueryClient()
   const [rejectingApp, setRejectingApp] = useState<CandidateApplication | null>(null)
+  const [pendingId, setPendingId] = useState<number | null>(null)
   const [selectedPosition, setSelectedPosition] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [activeStatusTab, setActiveStatusTab] = useState<string>('PENDING_REVIEW')
-  const [activeYearTab, setActiveYearTab] = useState<string>('3rd Year')
+  const [activeYearTab, setActiveYearTab] = useState<string>('2nd Year')
   const [page, setPage] = useState(1)
   
   const { data: ongoingElection, isLoading: loadingElection } = useQuery({
@@ -102,8 +103,11 @@ export function ApplicationReviewPage() {
   })
 
   const reviewMutation = useMutation({
-    mutationFn: (data: { id: number, action: 'APPROVE' | 'REJECT', rejection_reason?: string }) => 
+    mutationFn: (data: { id: number, action: 'APPROVE' | 'REJECT', rejection_reason?: string }) =>
       reviewApplication(data.id, { action: data.action, rejection_reason: data.rejection_reason }),
+    onMutate: (variables) => {
+      setPendingId(variables.id)
+    },
     onSuccess: (_, variables) => {
       notifySuccess(`Application ${variables.action.toLowerCase()}d successfully`)
       void queryClient.invalidateQueries({ queryKey: ['applications', 'all'] })
@@ -113,6 +117,9 @@ export function ApplicationReviewPage() {
       }
     },
     onError: (error) => notifyError(getApiErrorMessage(error)),
+    onSettled: () => {
+      setPendingId(null)
+    },
   })
 
   const handleApprove = (id: number) => {
@@ -225,8 +232,8 @@ export function ApplicationReviewPage() {
             setPage(1)
           }} className="w-full sm:w-auto">
             <TabsList className="grid w-full sm:w-48 grid-cols-2">
-              <TabsTrigger value="3rd Year">3rd Year</TabsTrigger>
               <TabsTrigger value="2nd Year">2nd Year</TabsTrigger>
+              <TabsTrigger value="3rd Year">3rd Year</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -288,7 +295,7 @@ export function ApplicationReviewPage() {
                                         size="sm"
                                         className="h-8 text-green-600 border-green-200 hover:bg-green-50"
                                         onClick={() => handleApprove(app.id)}
-                                        disabled={reviewMutation.isPending}
+                                        disabled={pendingId === app.id}
                                       >
                                         <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Approve
                                       </Button>
@@ -297,7 +304,7 @@ export function ApplicationReviewPage() {
                                         size="sm"
                                         className="h-8 text-destructive border-destructive/30 hover:bg-destructive/10"
                                         onClick={() => openReject(app)}
-                                        disabled={reviewMutation.isPending}
+                                        disabled={pendingId === app.id}
                                       >
                                         <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
                                       </Button>
@@ -370,7 +377,7 @@ export function ApplicationReviewPage() {
                                         size="sm"
                                         className="text-green-600 hover:text-green-700 hover:bg-green-50"
                                         onClick={() => handleApprove(app.id)}
-                                        disabled={reviewMutation.isPending}
+                                        disabled={pendingId === app.id}
                                       >
                                         <CheckCircle2 className="h-4 w-4 mr-1" /> Approve
                                       </Button>
@@ -379,7 +386,7 @@ export function ApplicationReviewPage() {
                                         size="sm"
                                         className="text-destructive hover:bg-destructive/10"
                                         onClick={() => openReject(app)}
-                                        disabled={reviewMutation.isPending}
+                                        disabled={pendingId === app.id}
                                       >
                                         <XCircle className="h-4 w-4 mr-1" /> Reject
                                       </Button>

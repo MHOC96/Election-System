@@ -39,7 +39,7 @@ export const CandidateCard = memo(function CandidateCard({
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
         <img
-          src={optimizeCloudinaryUrl(candidate.photo_url, 480)}
+          src={optimizeCloudinaryUrl(candidate.photo_url, 480, '4:3')}
           alt=""
           width={480}
           height={360}

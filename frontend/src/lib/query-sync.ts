@@ -4,7 +4,7 @@ export const DASHBOARD_QUERY_KEY = ['dashboard-overview'] as const
 export const BALLOT_QUERY_KEY = ['ballot'] as const
 
 /** Default academic-year tab on the admin dashboard (must match AdminDashboardPage). */
-export const DASHBOARD_DEFAULT_ACADEMIC_YEAR = '3rd Year' as const
+export const DASHBOARD_DEFAULT_ACADEMIC_YEAR = '2nd Year' as const
 
 export function dashboardOverviewQueryKey(
   academicYear: string = DASHBOARD_DEFAULT_ACADEMIC_YEAR,

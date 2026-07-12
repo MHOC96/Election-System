@@ -48,23 +48,73 @@ export function MemberLayout() {
     <div className="flex min-h-screen flex-col bg-muted/30">
       <SkipToContent />
       <header className="glass sticky top-0 z-40 w-full border-b">
-        <div className="flex h-14 w-full items-center justify-between gap-2 px-3 sm:gap-4 sm:px-4">
-          <Link to="/" className="flex min-w-0 items-center gap-2.5 mr-6">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-brand text-white shadow-sm">
-              <Vote className="h-[18px] w-[18px]" aria-hidden="true" />
+        <div className="flex h-14 w-full items-center gap-2 px-3 sm:px-4">
+          {/* Logo — shrinks gracefully */}
+          <Link to="/" className="flex shrink-0 items-center gap-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-brand text-white shadow-sm sm:h-9 sm:w-9">
+              <Vote className="h-4 w-4 sm:h-[18px] sm:w-[18px]" aria-hidden="true" />
             </div>
-            <div className="min-w-0">
+            <div className="hidden min-w-0 sm:block">
               <p className="truncate text-sm font-semibold leading-tight">Member Portal</p>
-              <p className="hidden truncate text-xs text-muted-foreground sm:block">
+              <p className="truncate text-xs text-muted-foreground">
                 Executive Committee Election
               </p>
             </div>
+            {/* xs-only: show just the title, no subtitle */}
+            <p className="truncate text-sm font-semibold leading-tight sm:hidden">
+              Member Portal
+            </p>
           </Link>
-          
-          <div className="flex flex-1 items-center justify-end gap-3 overflow-x-auto">
-            {phase ? <ElectionStatusBadge status={phase} /> : null}
+
+          {/* Spacer — badge visible on all screen sizes */}
+          <div className="flex min-w-0 flex-1 items-center justify-center px-1">
+            {phase ? (
+              <>
+                {/* Full badge on sm+ */}
+                <span className="hidden sm:inline">
+                  <ElectionStatusBadge status={phase} />
+                </span>
+                {/* Compact pill on xs */}
+                <span
+                  className={`inline-flex sm:hidden items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                    phase === 'VOTING_OPEN'
+                      ? 'border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400'
+                      : phase === 'APPLICATIONS_OPEN' || phase === 'REVIEWING'
+                        ? 'border-yellow-500/30 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'
+                        : 'border-border bg-muted text-muted-foreground'
+                  }`}
+                  aria-label={`Election phase: ${phase.replace(/_/g, ' ')}`}
+                >
+                  <span
+                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                      phase === 'VOTING_OPEN'
+                        ? 'bg-green-500'
+                        : phase === 'APPLICATIONS_OPEN' || phase === 'REVIEWING'
+                          ? 'bg-yellow-500'
+                          : 'bg-muted-foreground/50'
+                    }`}
+                  />
+                  {phase === 'VOTING_OPEN'
+                    ? 'Voting'
+                    : phase === 'APPLICATIONS_OPEN'
+                      ? 'Applications'
+                      : phase === 'REVIEWING'
+                        ? 'Reviewing'
+                        : phase === 'READY_FOR_VOTING'
+                          ? 'Ready'
+                          : phase === 'RESULTS_PUBLISHED'
+                            ? 'Results'
+                            : phase === 'VOTING_CLOSED'
+                              ? 'Closed'
+                              : phase === 'SCHEDULED'
+                                ? 'Scheduled'
+                                : 'Inactive'}
+                </span>
+              </>
+            ) : null}
           </div>
 
+          {/* Actions — always on the right */}
           <ShellActions
             cpmNumber={user?.cpm_number}
             onLogout={() => void handleLogout()}
@@ -73,7 +123,7 @@ export function MemberLayout() {
         </div>
       </header>
 
-      <main id={MAIN_CONTENT_ID} className="flex-1 px-4 py-6" tabIndex={-1}>
+      <main id={MAIN_CONTENT_ID} className="flex-1 px-3 py-5 sm:px-4 sm:py-6" tabIndex={-1}>
         <div className={`${shellContentClass} mx-auto max-w-5xl`}>
           <Outlet />
         </div>

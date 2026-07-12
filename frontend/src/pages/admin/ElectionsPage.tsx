@@ -286,10 +286,7 @@ export function ElectionsPage() {
     return true
   }
 
-  const isApplicationPeriodEnded = (election: Election) => {
-    if (!election.application_end_at) return false
-    return new Date() >= new Date(election.application_end_at)
-  }
+
 
   const canOpenEditDialog = (election: Election) => {
     if (election.status === 'ARCHIVED') return false
@@ -299,11 +296,21 @@ export function ElectionsPage() {
     )
   }
 
+  // Show application date fields only when voting has NOT yet started
+  // (DRAFT = both dates, SCHEDULED/APPLICATIONS_OPEN = only end date via disabled start)
   const showApplicationFieldsInEdit =
-    !editingElection || canEditApplicationDates(editingElection)
+    !editingElection ||
+    (canEditApplicationDates(editingElection) &&
+      !['VOTING_OPEN', 'VOTING_CLOSED', 'RESULTS_PUBLISHED', 'ARCHIVED'].includes(
+        editingElection.current_phase,
+      ))
 
+  // Show voting fields when:
+  // - READY_FOR_VOTING: both dates editable + require toggle (pre-voting setup)
+  // - VOTING_OPEN: start locked, only end editable (voting in progress)
   const showVotingFieldsInEdit =
-    !!editingElection && isApplicationPeriodEnded(editingElection) && canEditVotingDates(editingElection)
+    !!editingElection &&
+    ['READY_FOR_VOTING', 'VOTING_OPEN'].includes(editingElection.current_phase)
 
   const openResults = (election: Election) => {
     setResultsElection(election)
@@ -578,7 +585,12 @@ export function ElectionsPage() {
             {showApplicationFieldsInEdit ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField label="Applications Start" htmlFor="application_start_at" error={errors.application_start_at?.message}>
-                  <Input id="application_start_at" type="datetime-local" {...register('application_start_at')} />
+                  <Input
+                    id="application_start_at"
+                    type="datetime-local"
+                    disabled={!!editingElection && editingElection.status !== 'DRAFT'}
+                    {...register('application_start_at')}
+                  />
                 </FormField>
 
                 <FormField label="Applications End" htmlFor="application_end_at" error={errors.application_end_at?.message}>
@@ -589,34 +601,57 @@ export function ElectionsPage() {
 
             {showVotingFieldsInEdit ? (
               <div className="grid grid-cols-1 gap-4 border-t pt-4">
-                <FormField label="Voting Start" htmlFor="edit_voting_start_at" error={errors.voting_start_at?.message}>
-                  <Input
-                    id="edit_voting_start_at"
-                    type="datetime-local"
-                    disabled={editingElection ? (!canEditVotingDates(editingElection) || editingElection.voting_started) : false}
-                    {...register('voting_start_at')}
-                  />
-                </FormField>
-
-                <FormField label="Voting End" htmlFor="edit_voting_end_at" error={errors.voting_end_at?.message}>
-                  <Input
-                    id="edit_voting_end_at"
-                    type="datetime-local"
-                    disabled={editingElection ? !canEditVotingDates(editingElection) : false}
-                    {...register('voting_end_at')}
-                  />
-                </FormField>
-                <div className="flex items-center gap-2 pt-2">
-                  <input
-                    id="require-positions-filled"
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                    {...register('require_all_positions_filled')}
-                  />
-                  <label htmlFor="require-positions-filled" className="text-sm font-medium leading-none">
-                    Require candidates for all positions to start voting
-                  </label>
-                </div>
+                {editingElection?.current_phase === 'READY_FOR_VOTING' ? (
+                  // Pre-voting: both fields editable + require toggle
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField label="Voting Start" htmlFor="edit_voting_start_at" error={errors.voting_start_at?.message} required>
+                        <Input
+                          id="edit_voting_start_at"
+                          type="datetime-local"
+                          {...register('voting_start_at')}
+                        />
+                      </FormField>
+                      <FormField label="Voting End" htmlFor="edit_voting_end_at" error={errors.voting_end_at?.message} required>
+                        <Input
+                          id="edit_voting_end_at"
+                          type="datetime-local"
+                          {...register('voting_end_at')}
+                        />
+                      </FormField>
+                    </div>
+                    <div className="flex items-center gap-2 pt-1">
+                      <input
+                        id="require-positions-filled"
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        {...register('require_all_positions_filled')}
+                      />
+                      <label htmlFor="require-positions-filled" className="text-sm font-medium leading-none">
+                        Require candidates for all positions to start voting
+                      </label>
+                    </div>
+                  </>
+                ) : (
+                  // Voting in progress: start locked, only end editable
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField label="Voting Start" htmlFor="edit_voting_start_at" error={errors.voting_start_at?.message}>
+                      <Input
+                        id="edit_voting_start_at"
+                        type="datetime-local"
+                        disabled
+                        {...register('voting_start_at')}
+                      />
+                    </FormField>
+                    <FormField label="Voting End" htmlFor="edit_voting_end_at" error={errors.voting_end_at?.message}>
+                      <Input
+                        id="edit_voting_end_at"
+                        type="datetime-local"
+                        {...register('voting_end_at')}
+                      />
+                    </FormField>
+                  </div>
+                )}
               </div>
             ) : null}
             

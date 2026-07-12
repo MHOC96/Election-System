@@ -41,7 +41,6 @@ export function hasVotingSchedule(election: Election): boolean {
 export function canShowStartVotingAction(election: Election): boolean {
   return (
     election.current_phase === 'READY_FOR_VOTING' &&
-    hasVotingSchedule(election) &&
     !election.voting_started
   )
 }
