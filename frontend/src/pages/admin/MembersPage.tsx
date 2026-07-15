@@ -209,7 +209,8 @@ export function MembersPage() {
                 }
               >
                 <Trash2 className="h-4 w-4" />
-                Clear all {activeTab} members
+                <span className="sm:hidden">Clear all</span>
+                <span className="hidden sm:inline">Clear all {activeTab} members</span>
               </Button>
             )
           }

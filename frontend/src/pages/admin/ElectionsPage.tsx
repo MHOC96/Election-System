@@ -350,8 +350,8 @@ export function ElectionsPage() {
             actionMutation.mutate({ id: election.id, action: 'schedule' })
           }}
         >
-          <Play className="h-4 w-4 mr-1" />
-          Open Applications
+          <Play className="h-4 w-4 sm:mr-1" />
+          <span className="hidden sm:inline">Open Applications</span>
         </Button>,
       )
     }
@@ -367,8 +367,8 @@ export function ElectionsPage() {
             startVotingMutation.mutate({ id: election.id })
           }}
         >
-          <Play className="h-4 w-4 mr-1" />
-          Start Voting
+          <Play className="h-4 w-4 sm:mr-1" />
+          <span className="hidden sm:inline">Start Voting</span>
         </Button>,
       )
     }
@@ -402,8 +402,8 @@ export function ElectionsPage() {
             setCloseTarget(election)
           }}
         >
-          <Lock className="h-4 w-4 mr-1" />
-          Archive
+          <Lock className="h-4 w-4 sm:mr-1" />
+          <span className="hidden sm:inline">Archive</span>
         </Button>,
       )
     }
@@ -420,8 +420,8 @@ export function ElectionsPage() {
           setDeleteTarget(election)
         }}
       >
-        <Trash2 className="h-4 w-4 mr-1" />
-        Delete
+        <Trash2 className="h-4 w-4 sm:mr-1" />
+        <span className="hidden sm:inline">Delete</span>
       </Button>,
     )
     

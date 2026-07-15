@@ -223,7 +223,7 @@ export function ApplicationReviewPage() {
             setActiveStatusTab(value)
             setPage(1)
           }} className="w-full sm:w-auto">
-            <TabsList className="grid w-full sm:w-[400px] grid-cols-3">
+            <TabsList className="grid w-full sm:w-[360px] grid-cols-3">
               <TabsTrigger value="PENDING_REVIEW">Pending</TabsTrigger>
               <TabsTrigger value="APPROVED">Approved</TabsTrigger>
               <TabsTrigger value="REJECTED">Rejected</TabsTrigger>
@@ -414,7 +414,7 @@ export function ApplicationReviewPage() {
               </div>
             )}
             {totalPages > 1 ? (
-              <div className="mt-6 flex items-center justify-between gap-3 border-t pt-4">
+              <div className="mt-6 flex flex-col items-center gap-3 border-t pt-4 sm:flex-row sm:justify-between">
                 <p className="text-sm text-muted-foreground">
                   Page {page} of {totalPages} · {totalCount} applications
                 </p>

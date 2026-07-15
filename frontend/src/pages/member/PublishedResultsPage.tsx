@@ -94,12 +94,12 @@ export function PublishedResultsPage() {
                       {position.candidates.map((candidate) => (
                         <li
                           key={candidate.candidate_id}
-                          className="flex justify-between gap-2 rounded-md px-2 py-1 hover:bg-muted/40"
+                          className="flex items-center justify-between gap-2 rounded-md px-2 py-1 hover:bg-muted/40"
                         >
-                          <span>
+                          <span className="min-w-0 truncate">
                             #{candidate.rank} {candidate.full_name}
                           </span>
-                          <span className="text-muted-foreground">
+                          <span className="shrink-0 text-muted-foreground">
                             {candidate.vote_count} ({candidate.vote_percentage}%)
                           </span>
                         </li>

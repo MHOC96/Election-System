@@ -287,7 +287,7 @@ export function CandidatesPage() {
           title="Candidates"
           description="Candidates grouped by executive position"
           action={
-            <>
+            <div className="flex flex-col gap-2 w-full sm:w-auto sm:flex-row">
               {canModifyCandidates && totalCandidates > 0 ? (
                 <Button
                   variant="outline"
@@ -296,14 +296,15 @@ export function CandidatesPage() {
                   disabled={clearAllMutation.isPending}
                 >
                   <Trash2 className="h-4 w-4" />
-                  Clear all candidates
+                  <span className="sm:hidden">Clear all</span>
+                  <span className="hidden sm:inline">Clear all candidates</span>
                 </Button>
               ) : null}
               <Button onClick={() => openCreate()} disabled={!hasPositions || !canModifyCandidates}>
                 <Plus className="h-4 w-4" />
                 Add candidate
               </Button>
-            </>
+            </div>
           }
         />
       </Stagger>
