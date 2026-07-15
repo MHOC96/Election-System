@@ -6,8 +6,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2, XCircle, ExternalLink, Clock, FileText } from 'lucide-react'
 import { getApiErrorMessage } from '@/api/client'
 import { fetchOngoingElection } from '@/api/elections'
-import { fetchAllApplications, reviewApplication, type CandidateApplication } from '@/api/applications'
 import { fetchPositions } from '@/api/positions'
+import { fetchAllApplications, reviewApplication, type CandidateApplication } from '@/api/applications'
+import { POSITIONS_QUERY_KEY, POSITIONS_STALE_MS } from '@/lib/query-sync'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
@@ -50,8 +51,9 @@ export function ApplicationReviewPage() {
     ongoingElection?.current_phase === 'READY_FOR_VOTING'
 
   const { data: positions } = useQuery({
-    queryKey: ['positions'],
+    queryKey: POSITIONS_QUERY_KEY,
     queryFn: fetchPositions,
+    staleTime: POSITIONS_STALE_MS,
   })
 
   const positionFilterId =

@@ -49,6 +49,12 @@ def _run_mv_refresh(*, from_worker: bool = False) -> None:
         logger.debug("Debounced materialized view refresh failed.", exc_info=True)
 
 
+def invalidate_live_stats_mv() -> None:
+    """Mark vote-count MV stale and schedule a debounced refresh."""
+    mark_mv_stale()
+    schedule_debounced_mv_refresh()
+
+
 def schedule_debounced_mv_refresh() -> None:
     """Refresh live-stats MV at most once per debounce window (async in production)."""
     if not materialized_view_available():

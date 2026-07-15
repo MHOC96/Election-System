@@ -1,3 +1,4 @@
+from django.db import connection
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
@@ -255,27 +256,82 @@ class DashboardAPITestCase(TestCase):
 
 
 class DashboardCacheInvalidationTestCase(TestCase):
-    def test_invalidate_without_refresh_mv_skips_mv_scheduler(self):
+    def test_invalidate_dashboard_cache_only_bumps_versions(self):
         from unittest.mock import patch
 
         from dashboard.services.stats_service import invalidate_dashboard_cache
 
-        with patch(
-            "dashboard.services.stats_service.schedule_debounced_mv_refresh"
-        ) as schedule_mock:
-            invalidate_dashboard_cache(1, refresh_mv=False)
+        with (
+            patch(
+                "dashboard.services.stats_service.bump_dashboard_cache_versions"
+            ) as bump_mock,
+            patch(
+                "dashboard.services.mv_refresh.schedule_debounced_mv_refresh"
+            ) as schedule_mock,
+            patch(
+                "voting.services.ongoing_election_cache.invalidate_ongoing_election_cache"
+            ) as ongoing_mock,
+        ):
+            invalidate_dashboard_cache(1)
+        bump_mock.assert_called_once_with(1)
         schedule_mock.assert_not_called()
+        ongoing_mock.assert_not_called()
 
-    def test_invalidate_with_refresh_mv_schedules_mv_refresh(self):
+    def test_invalidate_election_dashboard_caches_also_clears_ongoing(self):
         from unittest.mock import patch
 
-        from dashboard.services.stats_service import invalidate_dashboard_cache
+        from dashboard.services.stats_service import invalidate_election_dashboard_caches
 
-        with patch(
-            "dashboard.services.stats_service.schedule_debounced_mv_refresh"
-        ) as schedule_mock:
-            invalidate_dashboard_cache(1, refresh_mv=True)
+        with (
+            patch(
+                "dashboard.services.stats_service.bump_dashboard_cache_versions"
+            ) as bump_mock,
+            patch(
+                "voting.services.ongoing_election_cache.invalidate_ongoing_election_cache"
+            ) as ongoing_mock,
+        ):
+            invalidate_election_dashboard_caches(1)
+        bump_mock.assert_called_once_with(1)
+        ongoing_mock.assert_called_once()
+
+    def test_invalidate_live_stats_mv_schedules_refresh(self):
+        from unittest.mock import patch
+
+        from dashboard.services.mv_refresh import invalidate_live_stats_mv
+
+        with (
+            patch("dashboard.services.mv_refresh.mark_mv_stale") as stale_mock,
+            patch(
+                "dashboard.services.mv_refresh.schedule_debounced_mv_refresh"
+            ) as schedule_mock,
+        ):
+            invalidate_live_stats_mv()
+        stale_mock.assert_called_once()
         schedule_mock.assert_called_once()
+
+    def test_materialized_view_available_is_cached_per_process(self):
+        from unittest.mock import MagicMock, patch
+
+        from dashboard.services.materialized_stats import (
+            clear_materialized_view_available_cache,
+            materialized_view_available,
+        )
+
+        if connection.vendor != "postgresql":
+            self.skipTest("Materialized view is only available on PostgreSQL.")
+
+        clear_materialized_view_available_cache()
+        with patch(
+            "dashboard.services.materialized_stats.connection"
+        ) as connection_mock:
+            cursor = MagicMock()
+            cursor.fetchone.return_value = (1,)
+            connection_mock.cursor.return_value.__enter__.return_value = cursor
+            connection_mock.vendor = "postgresql"
+
+            self.assertTrue(materialized_view_available())
+            self.assertTrue(materialized_view_available())
+            cursor.execute.assert_called_once()
 
     def test_stale_mv_falls_back_to_orm_live_stats(self):
         from dashboard.services.materialized_stats import materialized_view_available

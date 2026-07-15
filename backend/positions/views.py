@@ -5,6 +5,11 @@ from rest_framework.response import Response
 
 from accounts.permissions import IsAdminOrReadOnly
 from dashboard.services.stats_service import invalidate_dashboard_cache
+from positions.cache import (
+    bump_positions_list_cache,
+    get_cached_positions_list,
+    set_cached_positions_list,
+)
 from positions.models import Position
 from positions.serializers import PositionSerializer
 from audit.constants import AuditAction
@@ -33,6 +38,7 @@ class PositionListCreateView(generics.ListCreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         position = serializer.save()
+        bump_positions_list_cache()
         invalidate_dashboard_cache()
         log_action(
             action=AuditAction.POSITION_CREATED,
@@ -46,7 +52,12 @@ class PositionListCreateView(generics.ListCreateAPIView):
         )
 
     def list(self, request, *args, **kwargs):
+        cached = get_cached_positions_list(request.user)
+        if cached is not None:
+            return Response({"success": True, "data": cached})
+
         response = super().list(request, *args, **kwargs)
+        set_cached_positions_list(request.user, response.data)
         return Response({"success": True, "data": response.data})
 
 
@@ -66,6 +77,7 @@ class PositionDetailView(generics.RetrieveUpdateDestroyAPIView):
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        bump_positions_list_cache()
         invalidate_dashboard_cache()
         log_action(
             action=AuditAction.POSITION_UPDATED,
@@ -84,6 +96,7 @@ class PositionDetailView(generics.RetrieveUpdateDestroyAPIView):
         position_id = instance.id
         name = instance.name
         instance.delete()
+        bump_positions_list_cache()
         invalidate_dashboard_cache()
         log_action(
             action=AuditAction.POSITION_DELETED,

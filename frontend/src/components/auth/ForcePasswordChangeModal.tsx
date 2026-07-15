@@ -1,13 +1,15 @@
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation } from '@tanstack/react-query'
+import { AlertCircle } from 'lucide-react'
 import { changePassword } from '@/api/auth'
 import { getApiErrorMessage } from '@/api/client'
 import { notifyError, notifySuccess } from '@/lib/notify'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { PasswordInput } from '@/components/ui/password-input'
 import {
   Dialog,
   DialogContent,
@@ -16,25 +18,99 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { FormField } from '@/components/design-system/FormField'
 import { useAuth } from '@/context/AuthContext'
+import { cn } from '@/lib/utils'
 
-const passwordSchema = z
-  .object({
-    current_password: z.string().min(1, 'Current password is required.'),
-    new_password: z.string().min(6, 'Password must be at least 6 characters.'),
-    confirm_password: z.string(),
-  })
-  .refine((data) => data.new_password === data.confirm_password, {
-    message: "Passwords don't match.",
-    path: ['confirm_password'],
-  })
-  .refine((data) => data.new_password !== data.current_password, {
-    message: 'New password must be different from your current password.',
-    path: ['new_password'],
-  })
+const passwordFieldSchema = z.object({
+  current_password: z.string().min(1, 'Current password is required.'),
+  new_password: z.string().min(6, 'Password must be at least 6 characters.'),
+  confirm_password: z.string().min(1, 'Please confirm your new password.'),
+})
 
-type PasswordForm = z.infer<typeof passwordSchema>
+type PasswordForm = z.infer<typeof passwordFieldSchema>
+
+function validatePasswordChange(values: PasswordForm): Partial<Record<keyof PasswordForm, string>> {
+  const errors: Partial<Record<keyof PasswordForm, string>> = {}
+
+  if (values.new_password === values.current_password) {
+    errors.new_password = 'New password must be different from your current password.'
+  }
+
+  if (values.new_password !== values.confirm_password) {
+    errors.confirm_password = "Passwords don't match."
+  }
+
+  return errors
+}
+
+interface PasswordFieldProps {
+  id: string
+  label: string
+  hint?: string
+  error?: string
+  required?: boolean
+  autoComplete?: string
+  value: string
+  onChange: (value: string) => void
+  onBlur: () => void
+  name: string
+}
+
+function PasswordField({
+  id,
+  label,
+  hint,
+  error,
+  required,
+  autoComplete,
+  value,
+  onChange,
+  onBlur,
+  name,
+}: PasswordFieldProps) {
+  const hintId = `${id}-hint`
+  const errorId = `${id}-error`
+  const describedBy = [error ? errorId : null, hint && !error ? hintId : null].filter(Boolean).join(' ') || undefined
+
+  return (
+    <div className="space-y-2" data-invalid={error ? true : undefined}>
+      <Label htmlFor={id} className="text-sm font-medium">
+        {label}
+        {required ? (
+          <span className="ml-0.5 text-destructive" aria-hidden="true">
+            *
+          </span>
+        ) : null}
+      </Label>
+      <PasswordInput
+        id={id}
+        name={name}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        onBlur={onBlur}
+        autoComplete={autoComplete}
+        autoCapitalize="off"
+        autoCorrect="off"
+        spellCheck={false}
+        aria-invalid={error ? true : undefined}
+        aria-required={required ? true : undefined}
+        aria-describedby={describedBy}
+        className={cn(error && 'border-destructive focus-visible:ring-destructive/30')}
+      />
+      {hint && !error ? (
+        <p id={hintId} className="text-xs text-muted-foreground">
+          {hint}
+        </p>
+      ) : null}
+      {error ? (
+        <p id={errorId} className="flex items-start gap-1.5 text-sm text-destructive" role="alert">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>{error}</span>
+        </p>
+      ) : null}
+    </div>
+  )
+}
 
 interface ForcePasswordChangeModalProps {
   open: boolean
@@ -44,12 +120,20 @@ interface ForcePasswordChangeModalProps {
 export function ForcePasswordChangeModal({ open, onSuccess }: ForcePasswordChangeModalProps) {
   const { logout } = useAuth()
   const {
-    register,
+    control,
     handleSubmit,
-    formState: { errors, touchedFields },
+    setError,
+    clearErrors,
+    formState: { errors },
   } = useForm<PasswordForm>({
-    resolver: zodResolver(passwordSchema),
+    resolver: zodResolver(passwordFieldSchema),
     mode: 'onBlur',
+    reValidateMode: 'onBlur',
+    defaultValues: {
+      current_password: '',
+      new_password: '',
+      confirm_password: '',
+    },
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -65,15 +149,24 @@ export function ForcePasswordChangeModal({ open, onSuccess }: ForcePasswordChang
   })
 
   const onSubmit = (values: PasswordForm) => {
+    clearErrors()
+    const crossFieldErrors = validatePasswordChange(values)
+    const errorEntries = Object.entries(crossFieldErrors) as Array<[keyof PasswordForm, string]>
+
+    if (errorEntries.length > 0) {
+      errorEntries.forEach(([field, message]) => {
+        setError(field, { type: 'manual', message })
+      })
+      return
+    }
+
     setIsSubmitting(true)
     mutation.mutate(values)
   }
 
-  // Intercept the openChange to prevent clicking outside to close
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
       // Intentionally do nothing to prevent closing
-      // The only way out is successfully changing password or logging out
     }
   }
 
@@ -87,56 +180,65 @@ export function ForcePasswordChangeModal({ open, onSuccess }: ForcePasswordChang
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-4 pt-2" noValidate>
-          <FormField
-            label="Current Password"
-            htmlFor="current_password"
-            error={errors.current_password?.message}
-            valid={Boolean(touchedFields.current_password && !errors.current_password)}
-            hint="Use your MC Number if you have not changed your password yet."
-            required
-          >
-            <Input
-              id="current_password"
-              type="password"
-              autoComplete="current-password"
-              {...register('current_password')}
-            />
-          </FormField>
+          <Controller
+            name="current_password"
+            control={control}
+            render={({ field }) => (
+              <PasswordField
+                id="current_password"
+                label="Current Password"
+                hint="Use your MC Number if you have not changed your password yet."
+                error={errors.current_password?.message}
+                required
+                autoComplete="current-password"
+                name={field.name}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+              />
+            )}
+          />
 
-          <FormField
-            label="New Password"
-            htmlFor="new_password"
-            error={errors.new_password?.message}
-            valid={Boolean(touchedFields.new_password && !errors.new_password)}
-            required
-          >
-            <Input
-              id="new_password"
-              type="password"
-              autoComplete="new-password"
-              {...register('new_password')}
-            />
-          </FormField>
-          
-          <FormField
-            label="Confirm Password"
-            htmlFor="confirm_password"
-            error={errors.confirm_password?.message}
-            valid={Boolean(touchedFields.confirm_password && !errors.confirm_password)}
-            required
-          >
-            <Input
-              id="confirm_password"
-              type="password"
-              autoComplete="new-password"
-              {...register('confirm_password')}
-            />
-          </FormField>
+          <Controller
+            name="new_password"
+            control={control}
+            render={({ field }) => (
+              <PasswordField
+                id="new_password"
+                label="New Password"
+                error={errors.new_password?.message}
+                required
+                autoComplete="new-password"
+                name={field.name}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+              />
+            )}
+          />
+
+          <Controller
+            name="confirm_password"
+            control={control}
+            render={({ field }) => (
+              <PasswordField
+                id="confirm_password"
+                label="Confirm Password"
+                error={errors.confirm_password?.message}
+                required
+                autoComplete="new-password"
+                name={field.name}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+              />
+            )}
+          />
 
           <DialogFooter className="gap-2 sm:gap-0 pt-2">
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => void logout()}
               disabled={isSubmitting}
             >

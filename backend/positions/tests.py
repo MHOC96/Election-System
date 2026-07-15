@@ -101,6 +101,46 @@ class PositionAPITestCase(TestCase):
         response = self.client.get(reverse("positions-list-create"))
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_list_reads_and_writes_positions_cache(self):
+        from unittest.mock import patch
+
+        cached_payload = {
+            "count": 1,
+            "next": None,
+            "previous": None,
+            "results": [{"id": self.position.id, "name": "President"}],
+        }
+        self._login("ADM100", "admin-pass")
+
+        with (
+            patch("positions.views.get_cached_positions_list", return_value=None),
+            patch("positions.views.set_cached_positions_list") as set_cache,
+        ):
+            response = self.client.get(reverse("positions-list-create"))
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            set_cache.assert_called_once()
+
+        with patch(
+            "positions.views.get_cached_positions_list",
+            return_value=cached_payload,
+        ):
+            response = self.client.get(reverse("positions-list-create"))
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(response.data["data"], cached_payload)
+
+    def test_create_bumps_positions_list_cache(self):
+        from unittest.mock import patch
+
+        self._login("ADM100", "admin-pass")
+        with patch("positions.views.bump_positions_list_cache") as bump_cache:
+            response = self.client.post(
+                reverse("positions-list-create"),
+                {"name": "Treasurer"},
+                format="json",
+            )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        bump_cache.assert_called_once()
+
 
 class PositionModelTestCase(TestCase):
     def test_name_stripped_on_save(self):

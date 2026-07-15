@@ -11,7 +11,7 @@ from rest_framework.views import APIView
 from accounts.permissions import IsAdmin, IsVoter
 from candidates.models import Candidate
 from candidates.serializers import CandidateSerializer
-from dashboard.services.stats_service import invalidate_dashboard_cache
+from dashboard.services.stats_service import invalidate_election_dashboard_caches
 from positions.models import Position
 from positions.serializers import PositionSerializer
 from voting.models import Election, ElectionPhase, ElectionStatus, Vote
@@ -45,7 +45,7 @@ class ElectionListCreateView(generics.ListCreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         election = serializer.save()
-        invalidate_dashboard_cache()
+        invalidate_election_dashboard_caches()
         log_action(
             action=AuditAction.ELECTION_CREATED,
             request=request,
@@ -119,7 +119,7 @@ class ElectionDetailView(generics.RetrieveUpdateDestroyAPIView):
         except ElectionLifecycleError as exc:
             raise ValidationError(str(exc)) from exc
 
-        invalidate_dashboard_cache(updated.id)
+        invalidate_election_dashboard_caches(updated.id)
         log_action(
             action=AuditAction.ELECTION_UPDATED,
             request=request,
@@ -140,7 +140,7 @@ class ElectionDetailView(generics.RetrieveUpdateDestroyAPIView):
             Candidate.objects.filter(election_id=election_id).delete()
             Election.objects.filter(pk=election_id).delete()
 
-        invalidate_dashboard_cache(election_id)
+        invalidate_election_dashboard_caches(election_id)
         log_action(
             action=AuditAction.ELECTION_DELETED,
             request=request,
@@ -166,7 +166,7 @@ class ElectionScheduleView(APIView):
             raise ValidationError(str(exc)) from exc
         except ValueError as exc:
             raise ValidationError(str(exc)) from exc
-        invalidate_dashboard_cache(election.id)
+        invalidate_election_dashboard_caches(election.id)
         log_action(
             action=AuditAction.ELECTION_SCHEDULED,
             request=request,
@@ -214,7 +214,7 @@ class ElectionStartVotingView(APIView):
             election.start_voting()
         except ElectionLifecycleError as exc:
             raise ValidationError(str(exc)) from exc
-        invalidate_dashboard_cache(election.id)
+        invalidate_election_dashboard_caches(election.id)
         log_action(
             action=AuditAction.ELECTION_VOTING_STARTED,
             request=request,
@@ -238,7 +238,7 @@ class ElectionPublishResultsView(APIView):
             raise ValidationError(str(exc)) from exc
         except ValueError as exc:
             raise ValidationError(str(exc)) from exc
-        invalidate_dashboard_cache(election.id)
+        invalidate_election_dashboard_caches(election.id)
         log_action(
             action=AuditAction.ELECTION_RESULTS_PUBLISHED,
             request=request,
@@ -262,7 +262,7 @@ class ElectionArchiveView(APIView):
             raise ValidationError(str(exc)) from exc
         except ValueError as exc:
             raise ValidationError(str(exc)) from exc
-        invalidate_dashboard_cache(election.id)
+        invalidate_election_dashboard_caches(election.id)
         log_action(
             action=AuditAction.ELECTION_ARCHIVED,
             request=request,

@@ -11,7 +11,7 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
   const { user, isAuthenticated, isLoading } = useAuth()
 
   if (isLoading) {
-    return <PageLoader className="min-h-screen" />
+    return <PageLoader fullScreen shell />
   }
 
   if (!isAuthenticated || !user) {

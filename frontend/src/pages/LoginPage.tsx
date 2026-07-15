@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, Vote } from 'lucide-react'
 import { useNavigate, Navigate } from 'react-router-dom'
@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { FormField } from '@/components/design-system/FormField'
 import { SkipToContent } from '@/components/shared/SkipToContent'
 import { CreatorFooter } from '@/components/layout/CreatorFooter'
@@ -17,26 +18,29 @@ import { loginSchema, type LoginForm } from '@/lib/login-schema'
 import { notifyError } from '@/lib/notify'
 import { PageLoader } from '@/components/shared/PageLoader'
 
+const loginDefaultValues: LoginForm = {
+  cpm_number: '',
+  mc_number: '',
+}
+
 export function LoginPage() {
   const { login, isAuthenticated, user, isLoading } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
   const {
-    register,
+    control,
     handleSubmit,
-    watch,
     formState: { errors, isSubmitting, touchedFields },
   } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     mode: 'onBlur',
+    reValidateMode: 'onBlur',
+    defaultValues: loginDefaultValues,
   })
 
-  const cpmNumber = watch('cpm_number')
-  const mcNumber = watch('mc_number')
-
   if (isLoading) {
-    return <PageLoader className="min-h-[100dvh]" />
+    return <PageLoader fullScreen shell />
   }
 
   if (isAuthenticated && user) {
@@ -103,41 +107,52 @@ export function LoginPage() {
                 label="CPM Number"
                 htmlFor="cpm_number"
                 error={errors.cpm_number?.message}
-                valid={Boolean(touchedFields.cpm_number && cpmNumber && !errors.cpm_number)}
+                valid={Boolean(touchedFields.cpm_number && !errors.cpm_number)}
                 required
               >
-                <Input
-                  id="cpm_number"
-                  placeholder="Enter CPM Number"
-                  autoComplete="username"
-                  autoCapitalize="off"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  inputMode="text"
-                  enterKeyHint="next"
-                  className="scroll-mt-24"
-                  {...register('cpm_number')}
+                <Controller
+                  name="cpm_number"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      id="cpm_number"
+                      placeholder="Enter CPM Number"
+                      autoComplete="username"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      inputMode="text"
+                      enterKeyHint="next"
+                      className="scroll-mt-24"
+                    />
+                  )}
                 />
               </FormField>
               <FormField
                 label="MC Number / Password"
                 htmlFor="mc_number"
                 error={errors.mc_number?.message}
-                valid={Boolean(touchedFields.mc_number && mcNumber && !errors.mc_number)}
+                valid={Boolean(touchedFields.mc_number && !errors.mc_number)}
                 required
               >
-                <Input
-                  id="mc_number"
-                  type="password"
-                  placeholder="Enter MC Number or Password"
-                  autoComplete="current-password"
-                  autoCapitalize="off"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  inputMode="text"
-                  enterKeyHint="done"
-                  className="scroll-mt-24"
-                  {...register('mc_number')}
+                <Controller
+                  name="mc_number"
+                  control={control}
+                  render={({ field }) => (
+                    <PasswordInput
+                      {...field}
+                      id="mc_number"
+                      placeholder="Enter MC Number or Password"
+                      autoComplete="current-password"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      inputMode="text"
+                      enterKeyHint="done"
+                      className="scroll-mt-24"
+                    />
+                  )}
                 />
               </FormField>
               <Button type="submit" className="w-full" disabled={isSubmitting} aria-busy={isSubmitting}>

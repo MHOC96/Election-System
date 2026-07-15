@@ -12,6 +12,13 @@ import { clearAuth, consumeFreshLogin, getAccessToken, getRefreshToken, getStore
 import type { User } from '@/types/api'
 import { ForcePasswordChangeModal } from '@/components/auth/ForcePasswordChangeModal'
 
+function getInitialAuthLoading(): boolean {
+  const token = getAccessToken()
+  if (!token) return false
+  // Cached profile is enough to render the shell; validate token in the background.
+  return !getStoredUser()
+}
+
 interface AuthContextValue {
   user: User | null
   isLoading: boolean
@@ -25,7 +32,7 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => getStoredUser())
-  const [isLoading, setIsLoading] = useState(() => Boolean(getAccessToken()))
+  const [isLoading, setIsLoading] = useState(getInitialAuthLoading)
 
   const refreshUser = useCallback(async () => {
     const token = getAccessToken()

@@ -8,12 +8,14 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { sectionDelays, Stagger } from '@/components/motion/Stagger'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import { optimizeCloudinaryUrl } from '@/lib/cloudinary'
+import { PUBLISHED_RESULTS_QUERY_KEY, PUBLISHED_RESULTS_STALE_MS } from '@/lib/query-sync'
 
 export function PublishedResultsPage() {
   const { data: results, isLoading } = useQuery({
-    queryKey: ['elections', 'published-results'],
+    queryKey: PUBLISHED_RESULTS_QUERY_KEY,
     queryFn: fetchPublishedResults,
-    refetchInterval: 30_000,
+    staleTime: PUBLISHED_RESULTS_STALE_MS,
+    refetchOnWindowFocus: false,
   })
 
   if (isLoading) {

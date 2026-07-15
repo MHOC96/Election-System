@@ -46,7 +46,6 @@ class Election(models.Model):
     class Meta:
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=["status"]),
             models.Index(
                 fields=["status", "results_published", "-updated_at"],
                 name="vote_elec_published_idx",

@@ -25,6 +25,7 @@ import { FormField } from '@/components/design-system/FormField'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass } from '@/lib/design-tokens'
+import { POSITIONS_QUERY_KEY, POSITIONS_STALE_MS } from '@/lib/query-sync'
 import { positionSchema, type PositionForm } from '@/lib/form-schemas'
 import type { Position } from '@/types/api'
 import { notifyError } from '@/lib/notify'
@@ -49,8 +50,9 @@ export function PositionsPage() {
   })
 
   const { data: positions, isLoading } = useQuery({
-    queryKey: ['positions'],
+    queryKey: POSITIONS_QUERY_KEY,
     queryFn: fetchPositions,
+    staleTime: POSITIONS_STALE_MS,
   })
 
   const filteredPositions = positions?.filter((position) =>
@@ -65,7 +67,7 @@ export function PositionsPage() {
       return createPosition(values.name, values.academic_year, undefined, values.max_winners)
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['positions'] })
+      void queryClient.invalidateQueries({ queryKey: POSITIONS_QUERY_KEY })
       closeDialog()
     },
     onError: (error) => notifyError(getApiErrorMessage(error)),
@@ -74,7 +76,7 @@ export function PositionsPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deletePosition(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['positions'] })
+      void queryClient.invalidateQueries({ queryKey: POSITIONS_QUERY_KEY })
       setDeleteTarget(null)
     },
     onError: (error) => notifyError(getApiErrorMessage(error)),

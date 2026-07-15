@@ -67,9 +67,11 @@ def submit_vote(*, member: User, position_id: int, candidate_id: int) -> Vote:
                 code="duplicate_vote",
             ) from exc
 
-    from dashboard.services.stats_service import invalidate_dashboard_cache
+    from dashboard.services.stats_service import bump_dashboard_cache_versions
+    from dashboard.services.mv_refresh import invalidate_live_stats_mv
 
-    invalidate_dashboard_cache(election.id, refresh_mv=True)
+    bump_dashboard_cache_versions(election.id)
+    invalidate_live_stats_mv()
 
     vote.position = position
     vote.candidate = candidate

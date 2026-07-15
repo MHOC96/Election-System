@@ -41,7 +41,7 @@ import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import { optimizeCloudinaryUrl } from '@/lib/cloudinary'
 import { candidateSchema, type CandidateForm } from '@/lib/form-schemas'
-import { markQueriesStale, refreshDashboard } from '@/lib/query-sync'
+import { markQueriesStale, refreshDashboard, POSITIONS_QUERY_KEY, POSITIONS_STALE_MS } from '@/lib/query-sync'
 import { readFileAsObjectUrl } from '@/lib/image-crop'
 import type { AcademicYear, Candidate } from '@/types/api'
 import { notifyError, notifyInfo, notifyWarning } from '@/lib/notify'
@@ -62,8 +62,9 @@ export function CandidatesPage() {
   })
 
   const { data: positions, isLoading: positionsLoading, isError: positionsError, refetch: refetchPositions } = useQuery({
-    queryKey: ['positions'],
+    queryKey: POSITIONS_QUERY_KEY,
     queryFn: fetchPositions,
+    staleTime: POSITIONS_STALE_MS,
   })
 
   const { data: modificationStatus, isLoading: modificationStatusLoading } = useQuery({

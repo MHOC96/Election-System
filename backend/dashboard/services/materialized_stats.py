@@ -7,10 +7,20 @@ logger = logging.getLogger(__name__)
 VIEW_NAME = "dashboard_live_vote_counts"
 INDEX_NAME = "dashboard_live_vote_counts_uidx"
 
+_mv_available_cache: bool | None = None
 
-def materialized_view_available() -> bool:
+
+def materialized_view_available(*, force_refresh: bool = False) -> bool:
+    """Return whether the live-stats materialized view exists (cached per process)."""
+    global _mv_available_cache
+
+    if not force_refresh and _mv_available_cache is not None:
+        return _mv_available_cache
+
     if connection.vendor != "postgresql":
+        _mv_available_cache = False
         return False
+
     with connection.cursor() as cursor:
         cursor.execute(
             """
@@ -22,7 +32,13 @@ def materialized_view_available() -> bool:
             """,
             [VIEW_NAME],
         )
-        return cursor.fetchone() is not None
+        _mv_available_cache = cursor.fetchone() is not None
+    return _mv_available_cache
+
+
+def clear_materialized_view_available_cache() -> None:
+    global _mv_available_cache
+    _mv_available_cache = None
 
 
 def refresh_live_stats_view() -> None:

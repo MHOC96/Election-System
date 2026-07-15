@@ -87,7 +87,7 @@ export function AdminDashboardPage() {
 
     staleTime: DASHBOARD_STALE_MS,
     placeholderData: (previous) => previous,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     refetchInterval: (query) => {
       if (!documentVisible) return false
       const phase = query.state.data?.summary.election?.current_phase

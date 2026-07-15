@@ -37,8 +37,8 @@ const queryClient = new QueryClient({
   },
 })
 
-const layoutFallback = <PageLoader className="min-h-screen" />
-const pageFallback = <PageLoader className="min-h-[50vh]" />
+const layoutFallback = <PageLoader fullScreen shell />
+const pageFallback = <PageLoader shell className="min-h-[50vh]" />
 const dashboardFallback = <DashboardSkeleton />
 const ballotFallback = (
   <div className="mx-auto max-w-3xl space-y-4 p-4">

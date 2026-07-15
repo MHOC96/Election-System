@@ -1,10 +1,23 @@
 import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export function PageLoader({ className }: { className?: string }) {
+interface PageLoaderProps {
+  className?: string
+  /** Match full app shell height and background (auth bootstrap, route guards). */
+  fullScreen?: boolean
+  /** Match layout chrome (`bg-muted/30`) instead of plain background. */
+  shell?: boolean
+}
+
+export function PageLoader({ className, fullScreen = false, shell = false }: PageLoaderProps) {
   return (
     <div
-      className={cn('flex min-h-[40vh] items-center justify-center', className)}
+      className={cn(
+        'flex w-full items-center justify-center',
+        shell ? 'bg-muted/30' : 'bg-background',
+        fullScreen ? 'min-h-[100dvh]' : 'min-h-[40vh]',
+        className,
+      )}
       role="status"
       aria-live="polite"
       aria-busy="true"

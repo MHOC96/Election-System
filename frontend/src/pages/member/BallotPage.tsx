@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useCallback, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarCheck, CheckCircle2, Vote } from 'lucide-react'
 import { fetchBallot, submitVote } from '@/api/votes'
@@ -51,10 +51,27 @@ export function BallotPage() {
   
   const countdownTarget = isVotingUpcoming ? votingStartAt : (ballotQuery.data?.can_vote ? votingEndAt : null)
 
-  const handleCountdownExpire = () => {
+  const handleCountdownExpire = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: BALLOT_QUERY_KEY })
     void queryClient.invalidateQueries({ queryKey: ONGOING_ELECTION_QUERY_KEY })
-  }
+  }, [queryClient])
+
+  const handleSelectCandidate = useCallback(
+    (
+      positionId: number,
+      positionName: string,
+      candidate: Candidate,
+    ) => {
+      setPendingVote({
+        positionId,
+        candidateId: candidate.id,
+        candidateName: candidate.full_name,
+        candidatePhoto: candidate.photo_url,
+        positionName,
+      })
+    },
+    [],
+  )
 
   const voteMutation = useMutation({
     mutationFn: ({ positionId, candidateId }: { positionId: number; candidateId: number }) =>
@@ -221,15 +238,7 @@ export function BallotPage() {
               item={item}
               index={index}
               canVote={canVote}
-              onSelect={(candidate) =>
-                setPendingVote({
-                  positionId: item.position.id,
-                  candidateId: candidate.id,
-                  candidateName: candidate.full_name,
-                  candidatePhoto: candidate.photo_url,
-                  positionName: item.position.name,
-                })
-              }
+              onSelectCandidate={handleSelectCandidate}
             />
           ))}
         </StaggerChildren>
@@ -256,19 +265,29 @@ export function BallotPage() {
   )
 }
 
-function PositionSection({
+const PositionSection = memo(function PositionSection({
   item,
   index,
   canVote,
-  onSelect,
+  onSelectCandidate,
 }: {
   item: BallotItem
   index: number
   canVote: boolean
-  onSelect: (candidate: Candidate) => void
+  onSelectCandidate: (
+    positionId: number,
+    positionName: string,
+    candidate: Candidate,
+  ) => void
 }) {
   const sectionId = `position-${item.position.id}-label`
   const votingDisabled = !canVote || item.has_voted
+  const handleSelect = useCallback(
+    (candidate: Candidate) => {
+      onSelectCandidate(item.position.id, item.position.name, candidate)
+    },
+    [item.position.id, item.position.name, onSelectCandidate],
+  )
 
   return (
     <Card
@@ -317,7 +336,7 @@ function PositionSection({
                 isRecorded={isRecorded}
                 disabled={votingDisabled}
                 priority={index === 0 && candidateIndex === 0}
-                onSelect={() => onSelect(candidate)}
+                onSelect={() => handleSelect(candidate)}
               />
             )
           })}
@@ -325,4 +344,4 @@ function PositionSection({
       </CardContent>
     </Card>
   )
-}
+})

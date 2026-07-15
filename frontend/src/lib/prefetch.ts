@@ -9,6 +9,8 @@ import {
   dashboardOverviewQueryKey,
   MEMBERS_STALE_MS,
   ONGOING_ELECTION_QUERY_KEY,
+  POSITIONS_QUERY_KEY,
+  POSITIONS_STALE_MS,
 } from '@/lib/query-sync'
 import { scheduleIdle } from '@/lib/schedule-idle'
 import {
@@ -118,8 +120,9 @@ export function prefetchAdminLanding(queryClient: QueryClient) {
 export function prefetchPositions(queryClient: QueryClient) {
   void import('@/api/positions').then(({ fetchPositions }) => {
     void queryClient.prefetchQuery({
-      queryKey: ['positions'],
+      queryKey: POSITIONS_QUERY_KEY,
       queryFn: fetchPositions,
+      staleTime: POSITIONS_STALE_MS,
     })
   })
 }
@@ -173,9 +176,6 @@ function prefetchElectionsData(queryClient: QueryClient) {
 
 function prefetchSecondaryAdminData(queryClient: QueryClient) {
   prefetchPositions(queryClient)
-  prefetchMembersData(queryClient)
-  prefetchCandidatesData(queryClient)
-  prefetchElectionsData(queryClient)
 }
 
 /** Warm admin console after login or when the admin shell mounts. */
@@ -186,17 +186,17 @@ export function warmAdminConsole(queryClient: QueryClient) {
   const freshFromLogin = consumeFreshLogin()
   if (!freshFromLogin) {
     void prepareAdminEntry(queryClient).catch(() => {
-      prefetchAdminLanding(queryClient)
+      void queryClient.prefetchQuery({
+        queryKey: dashboardOverviewQueryKey(),
+        queryFn: () => fetchDashboardOverview(undefined, DASHBOARD_DEFAULT_ACADEMIC_YEAR),
+        staleTime: DASHBOARD_STALE_MS,
+      })
     })
   }
 
   scheduleIdle(() => {
     void preloadAdminPageModules()
     prefetchSecondaryAdminData(queryClient)
-
-    for (const route of ADMIN_NAV_PATHS) {
-      prefetchedNavRoutes.add(`admin:${route}`)
-    }
   })
 }
 
@@ -297,16 +297,6 @@ export function prefetchMemberLanding(queryClient: QueryClient) {
       })
   })
 }
-
-const ADMIN_NAV_PATHS = [
-  '/admin',
-  '/admin/members',
-  '/admin/positions',
-  '/admin/candidates',
-  '/admin/applications',
-  '/admin/elections',
-  '/admin/reports',
-] as const
 
 export function handleNavPrefetch(
   to: string,

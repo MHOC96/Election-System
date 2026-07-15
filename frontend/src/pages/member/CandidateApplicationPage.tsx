@@ -21,7 +21,7 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { sectionDelays, Stagger } from '@/components/motion/Stagger'
 import { pageLayoutClass } from '@/lib/design-tokens'
-import { ONGOING_ELECTION_QUERY_KEY } from '@/lib/query-sync'
+import { ONGOING_ELECTION_QUERY_KEY, APPLICATIONS_STALE_MS, POSITIONS_QUERY_KEY, POSITIONS_STALE_MS } from '@/lib/query-sync'
 import { notifyError, notifySuccess } from '@/lib/notify'
 import { ApplicationStatusBadge } from '@/components/applications/ApplicationStatusBadge'
 import { PhotoCropDialog } from '@/components/shared/PhotoCropDialog'
@@ -38,9 +38,6 @@ const applicationSchema = z.object({
 })
 
 type ApplicationForm = z.infer<typeof applicationSchema>
-
-const POSITIONS_STALE_MS = 60_000
-const APPLICATIONS_STALE_MS = 30_000
 
 function buildDefaultFormValues(cpmNumber: string): Partial<ApplicationForm> {
   return {
@@ -64,7 +61,7 @@ export function CandidateApplicationPage() {
   const { data: ongoingElection, isLoading: loadingElection, isError: electionError, isFetching: fetchingElection, refetch: refetchElection } = useOngoingElection()
 
   const { data: positions, isLoading: loadingPositions, isError: positionsError, isFetching: fetchingPositions, refetch: refetchPositions } = useQuery({
-    queryKey: ['positions'],
+    queryKey: POSITIONS_QUERY_KEY,
     queryFn: fetchPositions,
     staleTime: POSITIONS_STALE_MS,
     enabled: Boolean(ongoingElection),

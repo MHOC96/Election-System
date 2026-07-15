@@ -245,6 +245,22 @@ Admin actions: **Schedule** → **Start Voting** → **Publish Results** → **A
 | `reports` | PDF / Excel / CSV exports |
 | `audit` | Immutable audit trail (internal; no public API) |
 
+## Live stats materialized view
+
+The `dashboard_live_vote_counts` materialized view pre-aggregates per-candidate vote totals for fast dashboard reads.
+
+**Refresh strategy**
+
+- Each successful vote calls `invalidate_live_stats_mv()`, which marks the view stale and schedules a debounced refresh (at most once every 10 seconds).
+- In production, refresh runs asynchronously in a background thread using `REFRESH MATERIALIZED VIEW CONCURRENTLY` (with a non-concurrent fallback when needed).
+- In tests, refresh runs synchronously so assertions see up-to-date counts.
+- While the view is stale, `get_live_stats()` falls back to ORM aggregation so API responses stay correct.
+
+**Shared cache**
+
+- Debounce keys and dashboard cache versions live in Django cache (`REDIS_URL` when `DEBUG=False`).
+- Use Redis in multi-worker deployments so debounce and cache invalidation are visible across processes.
+
 ## Common commands
 
 ```bash

@@ -1,4 +1,11 @@
-import { Children, cloneElement, isValidElement, useId, type ReactElement } from 'react'
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  useId,
+  type ReactElement,
+  type Ref,
+} from 'react'
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
@@ -20,13 +27,24 @@ function canEnhanceFieldChild(child: ReactElement): boolean {
 
   const props = child.props as Record<string, unknown>
   if ('onValueChange' in props) return false
+  if ('render' in props && typeof props.render === 'function') return false
 
   const typeName =
     (child.type as { displayName?: string; name?: string }).displayName ??
     (child.type as { name?: string }).name ??
     ''
 
-  return !['Root', 'Select'].includes(typeName)
+  return !['Root', 'Select', 'PasswordInput'].includes(typeName)
+}
+
+function mergeRefs<T>(...refs: Array<Ref<T> | undefined | null>) {
+  return (node: T) => {
+    for (const ref of refs) {
+      if (!ref) continue
+      if (typeof ref === 'function') ref(node)
+      else ref.current = node
+    }
+  }
 }
 
 export function FormField({
@@ -58,21 +76,24 @@ export function FormField({
         (child.type as { name?: string }).name ??
         ''
       const isSelectField = childTypeName === 'NativeSelect'
+      const isPasswordField = childTypeName === 'PasswordInput'
+      const childProps = child.props as Record<string, unknown>
 
       fieldContent = cloneElement(child as React.ReactElement<Record<string, unknown>>, {
-        id: (child.props as { id?: string }).id ?? fieldId,
+        id: (childProps.id as string | undefined) ?? fieldId,
         'aria-invalid': error ? true : undefined,
         'aria-required': required ? true : undefined,
         'aria-describedby': describedBy,
+        ref: mergeRefs(childProps.ref as Ref<HTMLElement> | undefined),
         className: cn(
-          (child.props as { className?: string }).className,
+          childProps.className as string | undefined,
           error && 'border-destructive focus-visible:ring-destructive/30',
-          error && !isSelectField && 'pr-10',
+          error && !isSelectField && !isPasswordField && 'pr-10',
           showSuccess && 'border-success/50 focus-visible:ring-success/20',
         ),
       })
 
-      if (error && !isSelectField) {
+      if (error && !isSelectField && !isPasswordField) {
         fieldContent = (
           <div className="relative">
             {fieldContent}

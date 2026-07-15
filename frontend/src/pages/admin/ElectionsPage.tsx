@@ -47,7 +47,7 @@ import {
   getCreateElectionBlockReason,
   getElectionScheduleBlockReason,
 } from '@/lib/election-readiness'
-import { MEMBERS_STALE_MS, refreshDashboard, markQueriesStale } from '@/lib/query-sync'
+import { MEMBERS_STALE_MS, POSITIONS_QUERY_KEY, POSITIONS_STALE_MS, refreshDashboard, markQueriesStale } from '@/lib/query-sync'
 import { electionSchema, type ElectionForm } from '@/lib/form-schemas'
 import type { Election } from '@/types/api'
 import { cn, formatDate } from '@/lib/utils'
@@ -92,8 +92,9 @@ export function ElectionsPage() {
   })
 
   const { data: positions, isLoading: positionsLoading } = useQuery({
-    queryKey: ['positions'],
+    queryKey: POSITIONS_QUERY_KEY,
     queryFn: fetchPositions,
+    staleTime: POSITIONS_STALE_MS,
   })
 
   const { data: membersPage, isLoading: membersLoading } = useQuery({

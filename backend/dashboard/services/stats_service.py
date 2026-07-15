@@ -14,7 +14,6 @@ from dashboard.services.materialized_stats import (
 from dashboard.services.mv_refresh import (
     mark_mv_stale,
     mv_counts_are_fresh,
-    schedule_debounced_mv_refresh,
 )
 from positions.models import Position
 from voting.models import Election, ElectionStatus, Vote
@@ -404,18 +403,21 @@ def _election_payload(election: Election | None) -> dict | None:
     }
 
 
-def invalidate_dashboard_cache(
-    election_id: int | None = None, *, refresh_mv: bool = False
-) -> None:
-    """Bump cache versions so readers miss stale entries without delete storms."""
+def bump_dashboard_cache_versions(election_id: int | None = None) -> None:
+    """Bump version keys so dashboard readers miss stale cached payloads."""
     _bump_cache_version("default")
     if election_id is not None:
         _bump_cache_version(election_id)
 
-    if refresh_mv:
-        mark_mv_stale()
-        schedule_debounced_mv_refresh()
 
+def invalidate_election_dashboard_caches(election_id: int | None = None) -> None:
+    """Bump dashboard caches and clear ongoing-election cache after lifecycle changes."""
+    bump_dashboard_cache_versions(election_id)
     from voting.services.ongoing_election_cache import invalidate_ongoing_election_cache
 
     invalidate_ongoing_election_cache()
+
+
+def invalidate_dashboard_cache(election_id: int | None = None) -> None:
+    """Bump dashboard cache versions only (no MV refresh, no election cache)."""
+    bump_dashboard_cache_versions(election_id)

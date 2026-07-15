@@ -33,6 +33,19 @@ export const MEMBERS_STALE_MS = 30_000
 
 export const MEMBERS_QUERY_KEY = ['members'] as const
 
+export const POSITIONS_QUERY_KEY = ['positions'] as const
+
+/** Positions change infrequently; align with backend list cache (60s). */
+export const POSITIONS_STALE_MS = 60_000
+
+export const PUBLISHED_RESULTS_QUERY_KEY = ['elections', 'published-results'] as const
+
+/** Published results are immutable until admin republishes. */
+export const PUBLISHED_RESULTS_STALE_MS = 5 * 60 * 1000
+
+/** Member application list while applications are open. */
+export const APPLICATIONS_STALE_MS = 30_000
+
 export const ONGOING_ELECTION_QUERY_KEY = ['elections', 'ongoing'] as const
 
 /** Poll ongoing election for member phase routing (15s). */
@@ -57,7 +70,13 @@ export function markQueriesStale(queryClient: QueryClient, queryKey: QueryKey) {
   void queryClient.invalidateQueries({ queryKey, refetchType: 'none' })
 }
 
-/** Refetch dashboard data immediately (active + inactive cache entries). */
-export function refreshDashboard(queryClient: QueryClient) {
-  void queryClient.refetchQueries({ queryKey: DASHBOARD_QUERY_KEY, type: 'all' })
+/** Refetch dashboard overview for one academic-year tab (avoids multi-tab refetch storms). */
+export function refreshDashboard(
+  queryClient: QueryClient,
+  academicYear: string = DASHBOARD_DEFAULT_ACADEMIC_YEAR,
+) {
+  void queryClient.refetchQueries({
+    queryKey: dashboardOverviewQueryKey(academicYear),
+    type: 'all',
+  })
 }
