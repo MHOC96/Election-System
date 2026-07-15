@@ -262,6 +262,18 @@
     --cd-digit-border: hsl(var(--primary) / 0.13);
   }
 
+  .election-countdown--centered {
+    padding-top: 1.5rem;
+    padding-bottom: 1.75rem;
+  }
+
+  @media (min-width: 768px) {
+    .election-countdown--centered {
+      padding-top: 2rem;
+      padding-bottom: 2.25rem;
+    }
+  }
+
   .election-countdown--voting-upcoming {
     --cd-chip-bg: hsl(var(--primary) / 0.1);
     --cd-chip-border: hsl(var(--primary) / 0.2);

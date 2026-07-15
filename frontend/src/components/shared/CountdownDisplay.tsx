@@ -32,7 +32,13 @@ function TimeUnit({
   )
 }
 
-const CountdownDigits = memo(function CountdownDigits({ targetAt }: { targetAt: string }) {
+const CountdownDigits = memo(function CountdownDigits({
+  targetAt,
+  centered,
+}: {
+  targetAt: string
+  centered?: boolean
+}) {
   const countdownMs = useCountdown(targetAt)
   const parts =
     countdownMs !== null ? splitCountdown(countdownMs) : { days: 0, hours: 0, minutes: 0, seconds: 0 }
@@ -44,6 +50,7 @@ const CountdownDigits = memo(function CountdownDigits({ targetAt }: { targetAt: 
     <div
       className={cn(
         'grid w-full gap-2 sm:gap-3',
+        centered && 'mx-auto max-w-xl',
         showDays ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3',
       )}
     >
@@ -88,18 +95,28 @@ export function CountdownExpiryWatcher({
 export function CountdownDisplay({
   targetAt,
   label,
+  centered = false,
 }: {
   targetAt: string | null
   label: string
+  centered?: boolean
 }) {
   if (!targetAt) return null
 
   return (
-    <div className="space-y-2.5 sm:space-y-3">
-      <p className="text-xs font-semibold tracking-wide sm:text-sm" style={{ color: 'var(--cd-digit-accent)' }}>
+    <div
+      className={cn(
+        'w-full space-y-2.5 sm:space-y-3',
+        centered && 'mx-auto max-w-xl text-center',
+      )}
+    >
+      <p
+        className="text-xs font-semibold uppercase tracking-[0.12em] sm:text-sm sm:tracking-[0.16em]"
+        style={{ color: 'var(--cd-digit-accent)' }}
+      >
         {label}
       </p>
-      <CountdownDigits targetAt={targetAt} />
+      <CountdownDigits targetAt={targetAt} centered={centered} />
     </div>
   )
 }
