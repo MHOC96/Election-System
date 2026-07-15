@@ -15,11 +15,12 @@ from candidates.throttling import ApplicationUploadRateThrottle
 from dashboard.services.stats_service import invalidate_dashboard_cache
 from audit.constants import AuditAction
 from audit.services.audit_service import log_action
-from voting.models import Election, ElectionPhase, ElectionStatus
+from voting.services.ongoing_election_cache import get_cached_ongoing_election
+from voting.models import ElectionPhase, ElectionStatus
 
 
 def ensure_application_upload_allowed(request):
-    election = Election.get_ongoing()
+    election = get_cached_ongoing_election()
     if not election:
         raise ValidationError("There is no scheduled election.")
 
@@ -39,7 +40,7 @@ class MemberApplicationListCreateView(generics.ListCreateAPIView):
         return Response({"success": True, "data": response.data})
 
     def create(self, request, *args, **kwargs):
-        election = Election.get_ongoing()
+        election = get_cached_ongoing_election()
         if not election:
             raise ValidationError("There is no scheduled election.")
             

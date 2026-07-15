@@ -4,8 +4,26 @@ from voting.models import Election
 from voting.serializers import ElectionSerializer
 
 ONGOING_ELECTION_CACHE_KEY = "elections:ongoing:payload"
+ONGOING_ELECTION_MODEL_CACHE_KEY = "elections:ongoing:instance"
 ONGOING_ELECTION_CACHE_SECONDS = 10
 _MISSING = "__none__"
+
+
+def get_cached_ongoing_election() -> Election | None:
+    """Return the ongoing election model, cached briefly to avoid repeated DB hits."""
+    cached = cache.get(ONGOING_ELECTION_MODEL_CACHE_KEY)
+    if cached == _MISSING:
+        return None
+    if cached is not None:
+        return cached
+
+    election = Election.get_ongoing()
+    if election is None:
+        cache.set(ONGOING_ELECTION_MODEL_CACHE_KEY, _MISSING, ONGOING_ELECTION_CACHE_SECONDS)
+        return None
+
+    cache.set(ONGOING_ELECTION_MODEL_CACHE_KEY, election, ONGOING_ELECTION_CACHE_SECONDS)
+    return election
 
 
 def get_ongoing_election_payload() -> dict | None:
@@ -15,7 +33,7 @@ def get_ongoing_election_payload() -> dict | None:
     if cached is not None:
         return cached
 
-    election = Election.get_ongoing()
+    election = get_cached_ongoing_election()
     if election is None:
         cache.set(ONGOING_ELECTION_CACHE_KEY, _MISSING, ONGOING_ELECTION_CACHE_SECONDS)
         return None
@@ -27,3 +45,4 @@ def get_ongoing_election_payload() -> dict | None:
 
 def invalidate_ongoing_election_cache() -> None:
     cache.delete(ONGOING_ELECTION_CACHE_KEY)
+    cache.delete(ONGOING_ELECTION_MODEL_CACHE_KEY)

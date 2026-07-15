@@ -7,13 +7,14 @@ from rest_framework.views import APIView
 
 from accounts.permissions import IsAdmin, IsAdminOrReadOnly
 from candidates.models import Candidate
+from candidates.pagination import CandidateListPagination
 from candidates.serializers import CandidatePhotoUploadSerializer, CandidateSerializer
 from candidates.services.cloudinary_service import upload_candidate_photo
 from candidates.services.deletion_service import clear_all_candidates
 from members.services.deletion_service import MemberDeletionNotAllowedError
 from positions.models import Position
 from dashboard.services.stats_service import invalidate_dashboard_cache
-from voting.models import Election
+from voting.services.ongoing_election_cache import get_cached_ongoing_election
 from voting.services.election_guard import ElectionGuardError, assert_candidate_changes_allowed
 from audit.constants import AuditAction
 from audit.services.audit_service import log_action
@@ -22,23 +23,28 @@ from audit.services.audit_service import log_action
 class CandidateListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
     serializer_class = CandidateSerializer
+    pagination_class = CandidateListPagination
 
     def get_queryset(self):
-        queryset = Candidate.objects.select_related("position").all()
-        position_id = self.request.query_params.get("position")
-        if position_id:
-            queryset = queryset.filter(position_id=position_id)
+        queryset = Candidate.objects.select_related("position")
         election_id = self.request.query_params.get("election")
         if election_id:
             queryset = queryset.filter(election_id=election_id)
-        return queryset
+        else:
+            election = get_cached_ongoing_election()
+            if election is not None:
+                queryset = queryset.filter(election_id=election.id)
+        position_id = self.request.query_params.get("position")
+        if position_id:
+            queryset = queryset.filter(position_id=position_id)
+        return queryset.order_by("position__name", "full_name")
 
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
         return Response({"success": True, "data": response.data})
 
     def create(self, request, *args, **kwargs):
-        election = Election.get_ongoing()
+        election = get_cached_ongoing_election()
         try:
             assert_candidate_changes_allowed(election)
         except ElectionGuardError as exc:
@@ -74,7 +80,7 @@ class CandidateModificationStatusView(APIView):
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
 
     def get(self, request):
-        election = Election.get_ongoing()
+        election = get_cached_ongoing_election()
         if election is None:
             return Response({"success": True, "data": {"allowed": False, "reason": "No active election"}})
         
@@ -88,14 +94,23 @@ class CandidateModificationStatusView(APIView):
 class PositionCandidateListCreateView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
     serializer_class = CandidateSerializer
+    pagination_class = CandidateListPagination
 
     def get_position(self):
         return generics.get_object_or_404(Position, pk=self.kwargs["position_id"])
 
     def get_queryset(self):
-        return Candidate.objects.select_related("position").filter(
+        queryset = Candidate.objects.select_related("position").filter(
             position_id=self.kwargs["position_id"]
         )
+        election_id = self.request.query_params.get("election")
+        if election_id:
+            queryset = queryset.filter(election_id=election_id)
+        else:
+            election = get_cached_ongoing_election()
+            if election is not None:
+                queryset = queryset.filter(election_id=election.id)
+        return queryset.order_by("full_name")
 
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)

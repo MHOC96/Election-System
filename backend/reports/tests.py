@@ -6,6 +6,7 @@ from rest_framework.test import APIClient
 from accounts.models import User, UserRole
 from candidates.models import AcademicYear, Candidate
 from positions.models import Position
+from voting.models import Election, ElectionStatus, Vote
 from voting.services.vote_service import submit_vote
 from voting.test_helpers import create_voting_open_election
 
@@ -82,6 +83,16 @@ class ReportsAPITestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn(b"Turnout", response.content)
 
+    def test_turnout_report_data_matches_summary(self):
+        from reports.services.report_data import get_turnout_report_data
+
+        data = get_turnout_report_data(self.election.id, academic_year="2nd Year")
+        self.assertEqual(data["summary"]["members_completed_ballot"], 1)
+        self.assertEqual(data["summary"]["members_partial_ballot"], 0)
+        self.assertEqual(len(data["rows"]), 1)
+        self.assertEqual(data["rows"][0]["position"], "President")
+        self.assertEqual(data["rows"][0]["votes_cast"], 1)
+
     def test_participation_export(self):
         response = self.client.get(
             reverse("reports-participation"),
@@ -90,6 +101,14 @@ class ReportsAPITestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn(b"CPM500", response.content)
         self.assertIn(b"Complete", response.content)
+
+    def test_participation_report_data_statuses(self):
+        from reports.services.report_data import get_participation_report_data
+
+        data = get_participation_report_data(self.election.id, academic_year="2nd Year")
+        row = next(item for item in data["rows"] if item["cpm_number"] == "CPM500")
+        self.assertEqual(row["participation_status"], "Complete")
+        self.assertEqual(row["positions_voted"], 1)
 
     def test_invalid_format_rejected(self):
         response = self.client.get(reverse("reports-results"), {"export_format": "doc"})

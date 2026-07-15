@@ -65,6 +65,11 @@ class User(AbstractBaseUser, PermissionsMixin):
         indexes = [
             models.Index(fields=["role", "is_active"]),
             models.Index(fields=["role", "cpm_number"], name="accounts_user_role_cpm_idx"),
+            models.Index(
+                fields=["role", "is_active", "academic_year"],
+                name="acc_user_member_year_idx",
+                condition=models.Q(role=UserRole.MEMBER),
+            ),
         ]
 
     def __str__(self):

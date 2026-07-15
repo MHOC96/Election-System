@@ -24,6 +24,13 @@ class Position(models.Model):
                 name="unique_position_name_year_ci",
             ),
         ]
+        indexes = [
+            models.Index(
+                fields=["academic_year"],
+                name="positions_academic_year_idx",
+                condition=models.Q(academic_year__isnull=False),
+            ),
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.academic_year})"

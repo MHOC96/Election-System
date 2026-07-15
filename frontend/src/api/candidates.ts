@@ -1,16 +1,41 @@
 import { apiDelete, apiGet, apiPatch, apiPost, apiUpload } from '@/api/client'
 import type { AcademicYear, Candidate, Paginated } from '@/types/api'
 
-function unwrapList<T>(data: Paginated<T> | T[]): T[] {
-  return Array.isArray(data) ? data : data.results
+const CANDIDATES_PAGE_SIZE = 100
+
+async function fetchAllCandidatePages(
+  params: Record<string, string | number>,
+): Promise<Candidate[]> {
+  const first = await apiGet<Paginated<Candidate> | Candidate[]>('/candidates/', {
+    ...params,
+    page_size: CANDIDATES_PAGE_SIZE,
+  })
+  if (Array.isArray(first)) {
+    return first
+  }
+
+  const all = [...first.results]
+  let page = 2
+  while (all.length < first.count) {
+    const next = await apiGet<Paginated<Candidate>>('/candidates/', {
+      ...params,
+      page,
+      page_size: CANDIDATES_PAGE_SIZE,
+    })
+    all.push(...next.results)
+    if (!next.next || next.results.length === 0) {
+      break
+    }
+    page += 1
+  }
+  return all
 }
 
-export async function fetchCandidates(positionId?: number) {
-  const data = await apiGet<Paginated<Candidate> | Candidate[]>(
-    '/candidates/',
-    positionId ? { position: positionId } : undefined,
-  )
-  return unwrapList(data)
+export async function fetchCandidates(positionId?: number, electionId?: number) {
+  const params: Record<string, string | number> = {}
+  if (positionId) params.position = positionId
+  if (electionId) params.election = electionId
+  return fetchAllCandidatePages(params)
 }
 
 export async function createCandidate(payload: {

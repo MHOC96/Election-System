@@ -91,7 +91,7 @@ def get_candidates_report_data(election_id: int | None = None, academic_year: st
 
 def get_turnout_report_data(election_id: int | None = None, academic_year: str | None = None) -> dict:
     election = _require_election(election_id)
-    summary = get_dashboard_summary(election.id, use_cache=False, academic_year=academic_year)
+    summary = get_dashboard_summary(election.id, use_cache=True, academic_year=academic_year)
     rows = [
         {
             "position": item["position_name"],
@@ -123,15 +123,15 @@ def get_turnout_report_data(election_id: int | None = None, academic_year: str |
 def get_participation_report_data(election_id: int | None = None, academic_year: str | None = None) -> dict:
     election = _require_election(election_id)
     from voting.services.vote_service import count_votable_positions
+
     total_positions = count_votable_positions(
         academic_year=academic_year,
         election_id=election.id,
     )
-    
+
     members_qs = User.objects.filter(role=UserRole.MEMBER, is_active=True)
     if academic_year:
         members_qs = members_qs.filter(academic_year=academic_year)
-    members = members_qs.order_by("cpm_number")
 
     votes_qs = Vote.objects.filter(election=election)
     if academic_year:
@@ -151,7 +151,9 @@ def get_participation_report_data(election_id: int | None = None, academic_year:
     }
 
     rows = []
-    for member in members:
+    for member in members_qs.only("id", "cpm_number").order_by("cpm_number").iterator(
+        chunk_size=500
+    ):
         stats = vote_stats.get(member.id)
         positions_voted = stats["positions_voted"] if stats else 0
         if positions_voted == 0:

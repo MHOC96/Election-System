@@ -23,6 +23,7 @@ from voting.services.election_lifecycle import (
     validate_application_window,
     validate_voting_window,
 )
+from voting.services.ongoing_election_cache import get_cached_ongoing_election
 from voting.services.vote_service import (
     VoteError,
     build_member_vote_status,
@@ -392,7 +393,7 @@ class MyVoteStatusView(APIView):
     permission_classes = [IsVoter]
 
     def get(self, request):
-        election = Election.get_ongoing()
+        election = get_cached_ongoing_election()
         status_data = get_member_vote_status(request.user, election)
         return Response({"success": True, "data": status_data})
 
@@ -403,7 +404,7 @@ class BallotView(APIView):
     permission_classes = [IsVoter]
 
     def get(self, request):
-        election = Election.get_ongoing()
+        election = get_cached_ongoing_election()
         if election is None:
             recently_closed = Election.get_recently_closed()
             vote_status = build_member_vote_status(request.user, None)

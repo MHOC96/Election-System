@@ -29,8 +29,17 @@ def refresh_live_stats_view() -> None:
     if not materialized_view_available():
         return
 
-    with connection.cursor() as cursor:
-        cursor.execute(f"REFRESH MATERIALIZED VIEW {VIEW_NAME}")
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(f"REFRESH MATERIALIZED VIEW CONCURRENTLY {VIEW_NAME}")
+    except Exception:
+        logger.debug("Concurrent materialized view refresh failed; retrying.", exc_info=True)
+        with connection.cursor() as cursor:
+            cursor.execute(f"REFRESH MATERIALIZED VIEW {VIEW_NAME}")
+
+    from dashboard.services.mv_refresh import record_mv_refresh
+
+    record_mv_refresh()
 
 
 def fetch_candidate_vote_counts(

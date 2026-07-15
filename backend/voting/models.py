@@ -47,6 +47,16 @@ class Election(models.Model):
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["status"]),
+            models.Index(
+                fields=["status", "results_published", "-updated_at"],
+                name="vote_elec_published_idx",
+                condition=Q(status=ElectionStatus.SCHEDULED, results_published=True),
+            ),
+            models.Index(
+                fields=["status", "voting_started", "-voting_end_at"],
+                name="vote_elec_recent_closed_idx",
+                condition=Q(status=ElectionStatus.SCHEDULED, voting_started=True),
+            ),
         ]
         constraints = [
             models.UniqueConstraint(
@@ -166,6 +176,17 @@ class Election(models.Model):
         if hasattr(self, "_cached_has_pending_applications"):
             delattr(self, "_cached_has_pending_applications")
         super().save(*args, **kwargs)
+        self._invalidate_ongoing_cache()
+
+    def delete(self, *args, **kwargs):
+        super().delete(*args, **kwargs)
+        self._invalidate_ongoing_cache()
+
+    @staticmethod
+    def _invalidate_ongoing_cache() -> None:
+        from voting.services.ongoing_election_cache import invalidate_ongoing_election_cache
+
+        invalidate_ongoing_election_cache()
 
     @property
     def applications_locked(self) -> bool:
@@ -232,6 +253,7 @@ class Vote(models.Model):
             models.Index(fields=["election", "position"]),
             models.Index(fields=["election", "candidate"]),
             models.Index(fields=["member", "election"]),
+            models.Index(fields=["election", "member"], name="vote_election_member_idx"),
         ]
 
     def __str__(self):

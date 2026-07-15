@@ -119,6 +119,60 @@ class CandidateAPITestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data["data"]["results"]), 1)
 
+    def test_list_scoped_to_ongoing_election(self):
+        from voting.models import Election, ElectionStatus
+
+        archived = Election.objects.create(
+            name="2024 Election",
+            status=ElectionStatus.ARCHIVED,
+        )
+        ongoing = Election.objects.create(
+            name="2026 Election",
+            status=ElectionStatus.SCHEDULED,
+        )
+        Candidate.objects.create(
+            full_name="Old Candidate",
+            academic_year=AcademicYear.SECOND_YEAR,
+            photo_url=self.photo_url,
+            position=self.position,
+            election=archived,
+        )
+        Candidate.objects.create(
+            full_name="Current Candidate",
+            academic_year=AcademicYear.SECOND_YEAR,
+            photo_url=self.photo_url,
+            position=self.position,
+            election=ongoing,
+        )
+        self._login("ADM200", "admin-pass")
+        response = self.client.get(reverse("candidates-list-create"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        names = [item["full_name"] for item in response.data["data"]["results"]]
+        self.assertEqual(names, ["Current Candidate"])
+
+    def test_list_supports_pagination(self):
+        from voting.models import Election, ElectionStatus
+
+        election = Election.objects.create(name="Paged Election", status=ElectionStatus.SCHEDULED)
+        for index in range(3):
+            Candidate.objects.create(
+                full_name=f"Candidate {index}",
+                academic_year=AcademicYear.SECOND_YEAR,
+                photo_url=self.photo_url,
+                position=self.position,
+                election=election,
+            )
+        self._login("ADM200", "admin-pass")
+        response = self.client.get(
+            reverse("candidates-list-create"),
+            {"page_size": 2, "page": 1},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.data["data"]
+        self.assertEqual(data["count"], 3)
+        self.assertEqual(len(data["results"]), 2)
+        self.assertIsNotNone(data["next"])
+
     def test_member_cannot_create_candidate(self):
         self._login("CPM200", "member-pass")
         response = self.client.post(

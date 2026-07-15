@@ -5,6 +5,7 @@ from accounts.models import User
 from candidates.models import Candidate
 from positions.models import Position
 from voting.models import Election, ElectionPhase, Vote
+from voting.services.ongoing_election_cache import get_cached_ongoing_election
 
 
 class VoteError(Exception):
@@ -19,7 +20,7 @@ def submit_vote(*, member: User, position_id: int, candidate_id: int) -> Vote:
         raise VoteError("Only active members are allowed to vote.", code="not_authorized")
 
     with transaction.atomic():
-        election = Election.get_ongoing()
+        election = get_cached_ongoing_election()
         if election is None or not election.is_voting_open:
             raise VoteError("Voting is not currently open.", code="election_not_active")
 
@@ -68,9 +69,11 @@ def submit_vote(*, member: User, position_id: int, candidate_id: int) -> Vote:
 
     from dashboard.services.stats_service import invalidate_dashboard_cache
 
-    invalidate_dashboard_cache(election.id)
+    invalidate_dashboard_cache(election.id, refresh_mv=True)
 
-    return Vote.objects.select_related("position", "candidate").get(pk=vote.pk)
+    vote.position = position
+    vote.candidate = candidate
+    return vote
 
 
 def count_votable_positions(

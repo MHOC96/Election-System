@@ -1,9 +1,8 @@
 from collections import defaultdict
 import logging
-import sys
+import time
 
 from django.core.cache import cache
-from django.db import transaction
 from django.db.models import Count, Q
 
 from accounts.models import User, UserRole
@@ -11,6 +10,11 @@ from candidates.models import Candidate
 from dashboard.services.materialized_stats import (
     fetch_candidate_vote_counts,
     materialized_view_available,
+)
+from dashboard.services.mv_refresh import (
+    mark_mv_stale,
+    mv_counts_are_fresh,
+    schedule_debounced_mv_refresh,
 )
 from positions.models import Position
 from voting.models import Election, ElectionStatus, Vote
@@ -72,21 +76,39 @@ def get_dashboard_overview(
 ) -> dict:
     """Return summary and live stats in one response (single round trip)."""
     cache_key = _overview_cache_key(election_id, academic_year)
+    lock_key = None
+    acquired_lock = False
     if use_cache:
         cached = cache.get(cache_key)
         if cached is not None:
             return cached
 
-    election = _resolve_election(election_id)
-    result = {
-        "summary": get_dashboard_summary(
-            election_id, use_cache=False, election=election, academic_year=academic_year
-        ),
-        "live": get_live_stats(election_id, use_cache=False, election=election, academic_year=academic_year),
-    }
-    if use_cache:
-        cache.set(cache_key, result, OVERVIEW_CACHE_SECONDS)
-    return result
+        lock_key = f"{cache_key}:lock"
+        if cache.add(lock_key, 1, timeout=30):
+            acquired_lock = True
+        else:
+            for _ in range(40):
+                time.sleep(0.05)
+                cached = cache.get(cache_key)
+                if cached is not None:
+                    return cached
+
+    try:
+        election = _resolve_election(election_id)
+        result = {
+            "summary": get_dashboard_summary(
+                election_id, use_cache=False, election=election, academic_year=academic_year
+            ),
+            "live": get_live_stats(
+                election_id, use_cache=False, election=election, academic_year=academic_year
+            ),
+        }
+        if use_cache:
+            cache.set(cache_key, result, OVERVIEW_CACHE_SECONDS)
+        return result
+    finally:
+        if acquired_lock and lock_key is not None:
+            cache.delete(lock_key)
 
 
 def get_dashboard_summary(
@@ -159,17 +181,19 @@ def get_dashboard_summary(
         if academic_year:
             voter_counts_qs = voter_counts_qs.filter(member__academic_year=academic_year)
             
-        voter_counts = (
-            voter_counts_qs.values("member_id")
-            .annotate(positions_voted=Count("position_id", distinct=True))
+        voter_rows = list(
+            voter_counts_qs.values("member_id").annotate(
+                positions_voted=Count("position_id", distinct=True)
+            )
         )
-        members_completed_ballot = voter_counts.filter(
-            positions_voted__gte=votable_positions_count
-        ).count()
-        members_partial_ballot = voter_counts.filter(
-            positions_voted__gt=0,
-            positions_voted__lt=votable_positions_count,
-        ).count()
+        members_completed_ballot = sum(
+            1 for row in voter_rows if row["positions_voted"] >= votable_positions_count
+        )
+        members_partial_ballot = sum(
+            1
+            for row in voter_rows
+            if 0 < row["positions_voted"] < votable_positions_count
+        )
         members_no_votes = (
             total_members - members_completed_ballot - members_partial_ballot
         )
@@ -240,10 +264,8 @@ def get_live_stats(
         candidates_qs = candidates_qs.filter(Q(position__academic_year__isnull=True) | Q(position__academic_year=academic_year))
 
     mv_vote_counts = None
-    if materialized_view_available():
-        counts = fetch_candidate_vote_counts(election.id, academic_year)
-        if counts:
-            mv_vote_counts = counts
+    if materialized_view_available() and mv_counts_are_fresh():
+        mv_vote_counts = fetch_candidate_vote_counts(election.id, academic_year)
 
     if mv_vote_counts is not None:
         candidates = candidates_qs.order_by("position__name", "full_name")
@@ -382,24 +404,17 @@ def _election_payload(election: Election | None) -> dict | None:
     }
 
 
-def invalidate_dashboard_cache(election_id: int | None = None) -> None:
+def invalidate_dashboard_cache(
+    election_id: int | None = None, *, refresh_mv: bool = False
+) -> None:
     """Bump cache versions so readers miss stale entries without delete storms."""
     _bump_cache_version("default")
     if election_id is not None:
         _bump_cache_version(election_id)
 
-    def _refresh_materialized_view() -> None:
-        try:
-            from dashboard.services.materialized_stats import refresh_live_stats_view
-
-            refresh_live_stats_view()
-        except Exception:
-            logger.debug("Materialized live-stats view refresh skipped.", exc_info=True)
-
-    if "test" in sys.argv:
-        transaction.on_commit(_refresh_materialized_view)
-    else:
-        _refresh_materialized_view()
+    if refresh_mv:
+        mark_mv_stale()
+        schedule_debounced_mv_refresh()
 
     from voting.services.ongoing_election_cache import invalidate_ongoing_election_cache
 

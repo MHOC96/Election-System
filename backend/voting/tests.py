@@ -364,6 +364,50 @@ class VoteUniqueConstraintTestCase(TestCase):
             )
 
 
+class OngoingElectionCacheTestCase(TestCase):
+    def setUp(self):
+        self.election = create_voting_open_election(name="Cache Test Election")
+        self.member = User.objects.create_user(
+            cpm_number="CPM950",
+            mc_number="member-pass",
+            role=UserRole.MEMBER,
+            academic_year=AcademicYear.SECOND_YEAR,
+        )
+        self.position = Position.objects.create(
+            name="Treasurer",
+            academic_year=AcademicYear.SECOND_YEAR,
+        )
+        self.candidate = Candidate.objects.create(
+            full_name="Cache Candidate",
+            academic_year=AcademicYear.SECOND_YEAR,
+            photo_url="https://res.cloudinary.com/demo/image/upload/sample.jpg",
+            election=self.election,
+            position=self.position,
+        )
+
+    def test_get_cached_ongoing_election_hits_cache(self):
+        from voting.services.ongoing_election_cache import (
+            get_cached_ongoing_election,
+            invalidate_ongoing_election_cache,
+        )
+
+        invalidate_ongoing_election_cache()
+        first = get_cached_ongoing_election()
+        self.assertIsNotNone(first)
+        with self.assertNumQueries(0):
+            second = get_cached_ongoing_election()
+        self.assertEqual(first.pk, second.pk)
+
+    def test_submit_vote_returns_prefetched_relations(self):
+        vote = submit_vote(
+            member=self.member,
+            position_id=self.position.pk,
+            candidate_id=self.candidate.pk,
+        )
+        self.assertEqual(vote.position.name, "Treasurer")
+        self.assertEqual(vote.candidate.full_name, "Cache Candidate")
+
+
 class VoteAdminChecker:
     def has_change_permission(self, request, obj=None):
         from voting.admin import VoteAdmin

@@ -148,6 +148,39 @@ class DashboardAPITestCase(TestCase):
             if candidate["full_name"] in {"Alice", "Carol"}:
                 self.assertEqual(candidate["vote_count"], mv_counts.get(candidate["candidate_id"], 0))
 
+    def test_live_stats_mv_path_when_no_votes_recorded(self):
+        from dashboard.services.materialized_stats import (
+            materialized_view_available,
+            refresh_live_stats_view,
+        )
+        from dashboard.services.stats_service import get_live_stats
+
+        if not materialized_view_available():
+            self.skipTest("Materialized view is only available on PostgreSQL.")
+
+        position = Position.objects.create(
+            name="Auditor",
+            academic_year=AcademicYear.SECOND_YEAR,
+        )
+        candidate = Candidate.objects.create(
+            full_name="No Votes Candidate",
+            academic_year=AcademicYear.SECOND_YEAR,
+            photo_url="https://res.cloudinary.com/demo/image/upload/sample.jpg",
+            election=self.election,
+            position=position,
+        )
+        refresh_live_stats_view()
+        live = get_live_stats(
+            self.election.id,
+            use_cache=False,
+            election=self.election,
+            academic_year="2nd Year",
+        )
+        no_votes = next(
+            item for item in live["candidates"] if item["candidate_id"] == candidate.id
+        )
+        self.assertEqual(no_votes["vote_count"], 0)
+
     def test_per_position_turnout(self):
         response = self.client.get(reverse("dashboard-summary"), {"academic_year": "2nd Year"})
         turnout = {
@@ -219,6 +252,73 @@ class DashboardAPITestCase(TestCase):
         self.assertNotIn("Treasurer", turnout_names)
         self.assertEqual(len(live_names), 2)
         self.assertEqual(len(turnout_names), 2)
+
+
+class DashboardCacheInvalidationTestCase(TestCase):
+    def test_invalidate_without_refresh_mv_skips_mv_scheduler(self):
+        from unittest.mock import patch
+
+        from dashboard.services.stats_service import invalidate_dashboard_cache
+
+        with patch(
+            "dashboard.services.stats_service.schedule_debounced_mv_refresh"
+        ) as schedule_mock:
+            invalidate_dashboard_cache(1, refresh_mv=False)
+        schedule_mock.assert_not_called()
+
+    def test_invalidate_with_refresh_mv_schedules_mv_refresh(self):
+        from unittest.mock import patch
+
+        from dashboard.services.stats_service import invalidate_dashboard_cache
+
+        with patch(
+            "dashboard.services.stats_service.schedule_debounced_mv_refresh"
+        ) as schedule_mock:
+            invalidate_dashboard_cache(1, refresh_mv=True)
+        schedule_mock.assert_called_once()
+
+    def test_stale_mv_falls_back_to_orm_live_stats(self):
+        from dashboard.services.materialized_stats import materialized_view_available
+        from dashboard.services.mv_refresh import mark_mv_stale
+        from dashboard.services.stats_service import get_live_stats
+
+        if not materialized_view_available():
+            self.skipTest("Materialized view is only available on PostgreSQL.")
+
+        position = Position.objects.create(
+            name="President",
+            academic_year=AcademicYear.SECOND_YEAR,
+        )
+        election = create_voting_open_election(name="Stale MV Election")
+        member = User.objects.create_user(
+            cpm_number="CPM901",
+            mc_number="member-pass",
+            role=UserRole.MEMBER,
+            academic_year=AcademicYear.SECOND_YEAR,
+        )
+        candidate = Candidate.objects.create(
+            full_name="Alice",
+            academic_year=AcademicYear.SECOND_YEAR,
+            photo_url="https://res.cloudinary.com/demo/image/upload/v1/a.jpg",
+            position=position,
+            election=election,
+        )
+        submit_vote(
+            member=member,
+            position_id=position.id,
+            candidate_id=candidate.id,
+        )
+        mark_mv_stale()
+
+        live = get_live_stats(
+            election.id,
+            use_cache=False,
+            election=election,
+            academic_year="2nd Year",
+        )
+        self.assertEqual(live["total_votes"], 1)
+        alice = next(item for item in live["candidates"] if item["full_name"] == "Alice")
+        self.assertEqual(alice["vote_count"], 1)
 
 
 class DashboardCandidateElectionScopeTestCase(TestCase):
