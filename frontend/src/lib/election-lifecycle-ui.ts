@@ -120,7 +120,7 @@ export function getElectionNextStep(election: Election): ElectionNextStep | null
       if (isVotingStartPending(election)) {
         return {
           title: 'Voting starts soon',
-          detail: 'Members will be able to cast votes when the scheduled time arrives.',
+          detail: 'Members can cast their ballots on this page once the scheduled voting time arrives.',
         }
       }
       if (canShowStartVotingAction(election)) {

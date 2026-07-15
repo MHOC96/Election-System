@@ -27,8 +27,8 @@ function getPhaseCopy(phase: ElectionPhase | undefined) {
       }
     case 'READY_FOR_VOTING':
       return {
-        title: 'Review complete',
-        description: 'Voting will open soon. Check below for your application outcome.',
+        title: 'Application status',
+        description: 'See your application decision below. The ballot countdown shows when voting begins.',
       }
     case 'VOTING_CLOSED':
       return {

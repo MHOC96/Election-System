@@ -205,14 +205,14 @@
     --cd-title: hsl(var(--foreground));
     --cd-subtitle: hsl(var(--muted-foreground));
     --cd-label: hsl(var(--muted-foreground));
-    --cd-digit-bg: hsl(var(--card));
-    --cd-digit-border: hsl(var(--border));
+    --cd-digit-bg: hsl(var(--primary) / 0.07);
+    --cd-digit-border: hsl(var(--primary) / 0.14);
     --cd-digit-accent: hsl(var(--primary));
     --cd-chip-bg: hsl(var(--accent));
     --cd-chip-border: hsl(var(--primary) / 0.18);
     --cd-chip-text: hsl(var(--accent-foreground));
-    --cd-date-bg: hsl(var(--muted) / 0.7);
-    --cd-date-border: hsl(var(--border));
+    --cd-date-bg: hsl(var(--primary) / 0.06);
+    --cd-date-border: hsl(var(--primary) / 0.14);
     --cd-date-text: hsl(var(--foreground));
     --cd-glow-a: hsl(var(--primary) / 0.1);
     --cd-glow-b: hsl(var(--chart-3) / 0.08);
@@ -221,10 +221,10 @@
     background: linear-gradient(
       152deg,
       hsl(var(--card)) 0%,
-      hsl(var(--accent) / 0.5) 48%,
-      hsl(var(--primary) / 0.06) 100%
+      hsl(var(--accent) / 0.32) 52%,
+      hsl(var(--primary) / 0.05) 100%
     );
-    border: 1px solid hsl(var(--border));
+    border: 1px solid hsl(var(--primary) / 0.1);
     box-shadow: var(--shadow-md);
     transition:
       background 0.45s ease,
@@ -235,10 +235,12 @@
 
   .dark .election-countdown {
     --cd-digit-bg: hsl(var(--secondary) / 0.65);
+    --cd-digit-border: hsl(var(--border));
     --cd-chip-bg: hsl(var(--primary) / 0.12);
     --cd-chip-border: hsl(var(--primary) / 0.24);
     --cd-chip-text: hsl(var(--primary));
     --cd-date-bg: hsl(var(--muted) / 0.5);
+    --cd-date-border: hsl(var(--border));
     --cd-glow-a: hsl(var(--primary) / 0.18);
     --cd-glow-b: hsl(var(--chart-3) / 0.14);
     --cd-shadow: hsl(var(--shadow-color) / 0.35);
@@ -256,66 +258,83 @@
   .election-countdown--applications-upcoming {
     --cd-glow-a: hsl(var(--primary) / 0.12);
     --cd-glow-b: hsl(var(--chart-3) / 0.1);
+    --cd-digit-bg: hsl(var(--primary) / 0.06);
+    --cd-digit-border: hsl(var(--primary) / 0.13);
   }
 
   .election-countdown--voting-upcoming {
-    --cd-chip-bg: hsl(var(--chart-3) / 0.1);
-    --cd-chip-border: hsl(var(--chart-3) / 0.22);
-    --cd-chip-text: hsl(var(--chart-3));
-    --cd-glow-a: hsl(var(--chart-3) / 0.16);
-    --cd-glow-b: hsl(var(--primary) / 0.12);
-    --cd-digit-accent: hsl(var(--chart-3));
-    border-color: hsl(var(--chart-3) / 0.28);
+    --cd-chip-bg: hsl(var(--primary) / 0.1);
+    --cd-chip-border: hsl(var(--primary) / 0.2);
+    --cd-chip-text: hsl(224 76% 40%);
+    --cd-glow-a: hsl(var(--primary) / 0.12);
+    --cd-glow-b: hsl(var(--primary) / 0.06);
+    --cd-digit-bg: hsl(var(--primary) / 0.08);
+    --cd-digit-border: hsl(var(--primary) / 0.16);
+    --cd-digit-accent: hsl(224 76% 40%);
+    --cd-date-bg: hsl(var(--primary) / 0.08);
+    --cd-date-border: hsl(var(--primary) / 0.16);
+    border-color: hsl(var(--primary) / 0.16);
     box-shadow:
       var(--shadow-md),
-      0 0 0 1px hsl(var(--chart-3) / 0.06);
+      0 0 0 1px hsl(var(--primary) / 0.04);
   }
 
   .dark .election-countdown--voting-upcoming {
-    --cd-chip-bg: hsl(var(--chart-3) / 0.14);
-    --cd-chip-text: hsl(var(--chart-3));
-    border-color: hsl(var(--chart-3) / 0.32);
+    --cd-chip-bg: hsl(var(--primary) / 0.14);
+    --cd-chip-text: hsl(var(--primary));
+    --cd-digit-bg: hsl(var(--secondary) / 0.65);
+    --cd-digit-border: hsl(var(--border));
+    --cd-date-bg: hsl(var(--muted) / 0.5);
+    --cd-date-border: hsl(var(--border));
+    border-color: hsl(var(--primary) / 0.3);
     box-shadow:
       var(--shadow-lg),
-      0 0 24px hsl(var(--chart-3) / 0.08);
-  }
-
-  .election-countdown--voting-upcoming .election-countdown__digit-value {
-    background: linear-gradient(135deg, hsl(var(--chart-3)), hsl(var(--primary)));
-    -webkit-background-clip: text;
-    background-clip: text;
+      0 0 24px hsl(var(--primary) / 0.08);
   }
 
   .election-countdown--applications-open {
-    --cd-chip-bg: hsl(var(--primary) / 0.09);
-    --cd-chip-text: hsl(var(--primary));
+    --cd-chip-bg: hsl(var(--success) / 0.1);
+    --cd-chip-text: hsl(142 65% 30%);
     --cd-glow-a: hsl(var(--success) / 0.1);
     --cd-glow-b: hsl(var(--primary) / 0.08);
-    border-color: hsl(var(--success) / 0.22);
+    --cd-digit-bg: hsl(var(--success) / 0.07);
+    --cd-digit-border: hsl(var(--success) / 0.18);
+    border-color: hsl(var(--success) / 0.2);
   }
 
   .dark .election-countdown--applications-open {
     --cd-chip-bg: hsl(var(--success) / 0.12);
     --cd-chip-text: hsl(var(--success));
+    --cd-digit-bg: hsl(var(--secondary) / 0.65);
+    --cd-digit-border: hsl(var(--border));
     border-color: hsl(var(--success) / 0.28);
   }
 
   .election-countdown--voting-open {
-    --cd-digit-accent: hsl(var(--chart-3));
-    --cd-chip-text: hsl(var(--chart-3));
-    --cd-glow-a: hsl(var(--primary) / 0.14);
-    --cd-glow-b: hsl(var(--chart-3) / 0.14);
+    --cd-digit-accent: hsl(var(--primary));
+    --cd-chip-bg: hsl(var(--primary) / 0.1);
+    --cd-chip-text: hsl(224 76% 40%);
+    --cd-glow-a: hsl(var(--primary) / 0.12);
+    --cd-glow-b: hsl(var(--chart-3) / 0.08);
+    --cd-digit-bg: hsl(var(--primary) / 0.08);
+    --cd-digit-border: hsl(var(--primary) / 0.16);
+    --cd-date-bg: hsl(var(--primary) / 0.08);
+    --cd-date-border: hsl(var(--primary) / 0.16);
   }
 
   .dark .election-countdown--voting-open {
     --cd-digit-accent: hsl(var(--chart-3));
     --cd-chip-text: hsl(var(--chart-3));
+    --cd-digit-bg: hsl(var(--secondary) / 0.65);
+    --cd-digit-border: hsl(var(--border));
   }
 
   .election-countdown__digit {
     background: var(--cd-digit-bg);
     border: 1px solid var(--cd-digit-border);
-    box-shadow: var(--shadow-xs);
+    box-shadow:
+      var(--shadow-xs),
+      inset 0 1px 0 hsl(0 0% 100% / 0.65);
     transition:
       background 0.45s ease,
       border-color 0.45s ease,
@@ -324,15 +343,26 @@
       transform 0.25s ease;
   }
 
+  .dark .election-countdown__digit {
+    box-shadow: var(--shadow-xs);
+  }
+
   .election-countdown__digit-value {
+    color: var(--cd-digit-accent);
+    background: none;
+    -webkit-background-clip: unset;
+    background-clip: unset;
+    transition: color 0.45s ease;
+  }
+
+  .dark .election-countdown__digit-value {
     background: var(--gradient-brand);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    transition: opacity 0.45s ease;
   }
 
-  .election-countdown--voting-open .election-countdown__digit-value {
+  .dark .election-countdown--voting-open .election-countdown__digit-value {
     background: linear-gradient(
       135deg,
       hsl(var(--primary)),
@@ -340,6 +370,14 @@
     );
     -webkit-background-clip: text;
     background-clip: text;
+    color: transparent;
+  }
+
+  .dark .election-countdown--voting-upcoming .election-countdown__digit-value {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--chart-3)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 
   .election-countdown__digit--seconds {

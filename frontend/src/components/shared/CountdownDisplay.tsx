@@ -96,7 +96,7 @@ export function CountdownDisplay({
 
   return (
     <div className="space-y-2.5 sm:space-y-3">
-      <p className="text-xs font-medium sm:text-sm" style={{ color: 'var(--cd-subtitle)' }}>
+      <p className="text-xs font-semibold tracking-wide sm:text-sm" style={{ color: 'var(--cd-digit-accent)' }}>
         {label}
       </p>
       <CountdownDigits targetAt={targetAt} />
