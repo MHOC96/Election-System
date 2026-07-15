@@ -7,7 +7,7 @@ import { shellContentClass } from '@/lib/design-tokens'
 import { warmMemberConsole, resetConsoleWarmupState } from '@/lib/prefetch'
 import { useOngoingElection } from '@/hooks/useOngoingElection'
 import { ShellActions } from '@/components/layout/ShellActions'
-import { CreatorFooter } from '@/components/layout/CreatorFooter'
+
 import { SkipToContent } from '@/components/shared/SkipToContent'
 import { ElectionStatusBadge } from '@/components/shared/StatusBadge'
 import { MAIN_CONTENT_ID } from '@/lib/a11y'
@@ -129,7 +129,7 @@ export function MemberLayout() {
         </div>
       </main>
 
-      <CreatorFooter />
+
     </div>
   )
 }
