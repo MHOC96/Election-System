@@ -1,6 +1,7 @@
 import { Loader2, LogOut, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/shared/ThemeToggle'
+import { cn } from '@/lib/utils'
 
 interface ShellActionsProps {
   cpmNumber?: string
@@ -9,6 +10,8 @@ interface ShellActionsProps {
   onMenuClick?: () => void
   showMenuButton?: boolean
   menuButtonClassName?: string
+  /** Icon-only actions for narrow mobile headers */
+  compact?: boolean
 }
 
 export function ShellActions({
@@ -18,10 +21,11 @@ export function ShellActions({
   onMenuClick,
   showMenuButton,
   menuButtonClassName = 'lg:hidden',
+  compact = false,
 }: ShellActionsProps) {
   return (
-    <div className="flex items-center gap-1 sm:gap-2">
-      {cpmNumber ? (
+    <div className={cn('flex shrink-0 items-center', compact ? 'gap-0.5' : 'gap-1 sm:gap-2')}>
+      {cpmNumber && !compact ? (
         <span className="hidden max-w-[8rem] truncate text-sm text-muted-foreground md:inline">
           {cpmNumber}
         </span>
@@ -37,11 +41,12 @@ export function ShellActions({
           <Menu className="h-5 w-5" />
         </Button>
       ) : null}
-      <ThemeToggle />
+      {!compact ? <ThemeToggle /> : null}
       <Button
         type="button"
-        variant="outline"
-        size="sm"
+        variant={compact ? 'ghost' : 'outline'}
+        size={compact ? 'icon' : 'sm'}
+        className={compact ? 'h-10 w-10 shrink-0' : undefined}
         onClick={onLogout}
         disabled={isLoggingOut}
         aria-label="Log out"
@@ -52,7 +57,9 @@ export function ShellActions({
         ) : (
           <LogOut className="h-4 w-4" aria-hidden="true" />
         )}
-        <span className="hidden sm:inline">{isLoggingOut ? 'Logging out…' : 'Logout'}</span>
+        {!compact ? (
+          <span className="hidden sm:inline">{isLoggingOut ? 'Logging out…' : 'Logout'}</span>
+        ) : null}
       </Button>
     </div>
   )

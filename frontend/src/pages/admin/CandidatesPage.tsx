@@ -9,6 +9,7 @@ import {
   deleteCandidate,
   fetchCandidates,
   fetchModificationStatus,
+  getCandidateModificationNotice,
   updateCandidate,
   uploadCandidatePhoto,
   uploadCandidateDeclaration,
@@ -185,7 +186,7 @@ export function CandidatesPage() {
 
   const openCreate = (preferredPositionId?: number) => {
     if (!canModifyCandidates) {
-      notifyError('Candidates cannot be changed while an election is active or paused.')
+      notifyError(getCandidateModificationNotice(modificationStatus?.reason))
       return
     }
     if (!positions?.length) {
@@ -205,7 +206,7 @@ export function CandidatesPage() {
 
   const openEdit = (candidate: Candidate) => {
     if (!canModifyCandidates) {
-      notifyError('Candidates cannot be changed while an election is active or paused.')
+      notifyError(getCandidateModificationNotice(modificationStatus?.reason))
       return
     }
     setEditing(candidate)
@@ -335,10 +336,7 @@ export function CandidatesPage() {
             }
           />
           {showElectionLockedNotice ? (
-            <PageNotice>
-              Candidate changes are locked while an election is active or paused. Close the
-              current election to add, edit, or remove candidates.
-            </PageNotice>
+            <PageNotice>{getCandidateModificationNotice(modificationStatus?.reason)}</PageNotice>
           ) : null}
         </div>
       </Stagger>

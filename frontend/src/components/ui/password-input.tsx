@@ -14,7 +14,7 @@ function mergeRefs<T>(...refs: Array<React.Ref<T> | undefined | null>) {
 }
 
 const PasswordInput = React.forwardRef<HTMLInputElement, React.ComponentProps<typeof Input>>(
-  ({ className, value, onChange, onBlur, name, ...props }, forwardedRef) => {
+  ({ className, value, onChange, onBlur, name, placeholder = 'Enter password', ...props }, forwardedRef) => {
     const [visible, setVisible] = React.useState(false)
 
     return (
@@ -26,6 +26,7 @@ const PasswordInput = React.forwardRef<HTMLInputElement, React.ComponentProps<ty
           onChange={onChange}
           onBlur={onBlur}
           type={visible ? 'text' : 'password'}
+          placeholder={placeholder}
           className={cn('pr-11', className)}
           {...props}
         />

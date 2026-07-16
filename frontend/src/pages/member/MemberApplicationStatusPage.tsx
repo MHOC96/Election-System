@@ -3,15 +3,22 @@ import { ClipboardList, Flag, Hourglass, Sparkles } from 'lucide-react'
 import { fetchMyApplications, type CandidateApplication } from '@/api/applications'
 import { useOngoingElection } from '@/hooks/useOngoingElection'
 import { ApplicationStatusBadge } from '@/components/applications/ApplicationStatusBadge'
-import { ElectionCountdownHero } from '@/components/elections/ElectionCountdownHero'
 import { CountdownExpiryWatcher } from '@/components/shared/CountdownDisplay'
+import { VotingStartsSoonCard } from '@/components/voting/VotingStartsSoonCard'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { sectionDelays, Stagger } from '@/components/motion/Stagger'
-import { pageLayoutClass } from '@/lib/design-tokens'
+import { MemberPage } from '@/components/layout/MemberPage'
+import {
+  insetPanelClass,
+  memberCalloutClass,
+  memberCardHeaderTintClass,
+  memberCardSurfaceClass,
+  memberHeroSpacingClass,
+} from '@/lib/design-tokens'
 import { isVotingStartPending } from '@/lib/election-lifecycle-ui'
 import { ONGOING_ELECTION_QUERY_KEY } from '@/lib/query-sync'
 import { optimizeCloudinaryUrl } from '@/lib/cloudinary'
@@ -30,7 +37,7 @@ function getPhaseCopy(phase: ElectionPhase | undefined) {
     case 'READY_FOR_VOTING':
       return {
         title: 'Application status',
-        description: 'See your application decision below. The ballot countdown shows when voting begins.',
+        description: 'Your application decision is below. Voting opens when the timer reaches zero.',
       }
     case 'VOTING_CLOSED':
       return {
@@ -81,29 +88,31 @@ function VotingEndedHero({
   votingEndAt: string | null | undefined
 }) {
   return (
-    <section className="mx-auto w-full max-w-2xl overflow-hidden rounded-2xl border border-primary/15 bg-gradient-to-br from-card via-primary/[0.04] to-chart-3/[0.06] p-6 text-center shadow-md sm:rounded-3xl sm:p-8">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary shadow-sm sm:h-16 sm:w-16">
-        <Flag className="h-7 w-7 sm:h-8 sm:w-8" aria-hidden="true" />
-      </div>
-      <div className="mt-4 space-y-2 sm:mt-5">
-        <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/15">
-          Ballot closed
-        </Badge>
-        <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Voting has ended</h2>
-        <p className="mx-auto max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
-          The voting period for <span className="font-medium text-foreground">{electionName}</span>{' '}
-          is now complete.
-          {votingEndAt ? (
-            <>
-              {' '}
-              Voting closed on <span className="font-medium text-foreground">{formatDate(votingEndAt)}</span>.
-            </>
-          ) : null}
-        </p>
-        <p className="mx-auto flex max-w-md items-center justify-center gap-2 text-sm text-muted-foreground">
-          <Hourglass className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
-          Official results will appear here once they are published.
-        </p>
+    <section className={cn(memberCardSurfaceClass, 'overflow-hidden rounded-2xl sm:rounded-3xl')}>
+      <div className="bg-gradient-to-br from-card via-primary/[0.04] to-chart-3/[0.06] px-5 py-6 text-center sm:px-6 sm:py-8">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary shadow-sm sm:h-16 sm:w-16">
+          <Flag className="h-7 w-7 sm:h-8 sm:w-8" aria-hidden="true" />
+        </div>
+        <div className="mt-4 space-y-2 sm:mt-5">
+          <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/15">
+            Ballot closed
+          </Badge>
+          <h2 className="text-xl font-bold tracking-tight sm:text-2xl md:text-3xl">Voting has ended</h2>
+          <p className="mx-auto max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
+            The voting period for <span className="font-medium text-foreground">{electionName}</span>{' '}
+            is now complete.
+            {votingEndAt ? (
+              <>
+                {' '}
+                Voting closed on <span className="font-medium text-foreground">{formatDate(votingEndAt)}</span>.
+              </>
+            ) : null}
+          </p>
+          <p className="mx-auto flex max-w-md items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Hourglass className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+            Official results will appear here once they are published.
+          </p>
+        </div>
       </div>
     </section>
   )
@@ -113,10 +122,10 @@ function PostVotingOutcomeCard({ application }: { application: CandidateApplicat
   const isApproved = application.status === 'APPROVED'
 
   return (
-    <Card className="mx-auto w-full max-w-2xl overflow-hidden border-primary/15 shadow-md">
+    <Card className={memberCardSurfaceClass}>
       <div
         className={cn(
-          'border-b px-5 py-6 text-center sm:px-8 sm:py-8',
+          'border-b px-5 py-6 text-center sm:px-6 sm:py-8',
           isApproved
             ? 'bg-gradient-to-br from-primary/[0.08] via-card to-success/[0.06]'
             : 'bg-muted/30',
@@ -130,7 +139,7 @@ function PostVotingOutcomeCard({ application }: { application: CandidateApplicat
         <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
           {isApproved ? 'Your candidacy' : 'Application outcome'}
         </p>
-        <h3 className="mt-1 text-xl font-bold tracking-tight sm:text-2xl">{application.full_name}</h3>
+        <h3 className="mt-1 text-lg font-bold tracking-tight sm:text-xl md:text-2xl">{application.full_name}</h3>
         <p className="mt-1 text-sm text-muted-foreground sm:text-base">{application.position_name}</p>
         <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
           <ApplicationStatusBadge status={application.status} reason={application.rejection_reason} />
@@ -143,7 +152,7 @@ function PostVotingOutcomeCard({ application }: { application: CandidateApplicat
         </div>
       </div>
 
-      <CardContent className="space-y-4 px-5 py-6 text-center sm:px-8">
+      <CardContent className="space-y-4 py-6 text-center sm:py-8">
         {isApproved ? (
           <>
             <p className="text-sm leading-relaxed text-foreground sm:text-base">
@@ -182,42 +191,56 @@ function ActiveApplicationCard({
   const footnote = getApplicationFootnote(phase, application.status)
 
   return (
-    <Card className="overflow-hidden border-primary/15 shadow-sm">
-      <CardHeader className="border-b bg-muted/20">
-        <CardTitle className="text-lg">{election.name}</CardTitle>
+    <Card className={memberCardSurfaceClass}>
+      <CardHeader className={memberCardHeaderTintClass}>
+        <CardTitle className="text-lg sm:text-xl">{election.name}</CardTitle>
         <CardDescription>Your candidate application</CardDescription>
       </CardHeader>
-      <CardContent className="pt-6">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+      <CardContent className="space-y-6">
+        <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start sm:gap-6">
           <img
             src={optimizeCloudinaryUrl(application.photo_url, 96)}
             alt=""
-            className="mx-auto h-24 w-24 shrink-0 rounded-2xl border object-cover shadow-sm sm:mx-0"
+            className="h-28 w-28 shrink-0 rounded-2xl border-2 border-background object-cover shadow-md ring-1 ring-border/60 sm:h-32 sm:w-32"
           />
-          <div className="min-w-0 flex-1 space-y-4 text-center sm:text-left">
-            <div>
-              <p className="text-sm text-muted-foreground">Position applied for</p>
-              <p className="text-lg font-semibold">{application.position_name}</p>
+          <div className="grid w-full min-w-0 gap-3 sm:gap-4">
+            <div className={cn(insetPanelClass, 'px-4 py-4 sm:px-5 sm:py-4')}>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Position applied for
+              </p>
+              <p className="mt-1.5 text-base font-semibold leading-snug sm:text-lg">
+                {application.position_name}
+              </p>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Applicant name</p>
-              <p className="font-medium">{application.full_name}</p>
+            <div className={cn(insetPanelClass, 'px-4 py-4 sm:px-5 sm:py-4')}>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Applicant name
+              </p>
+              <p className="mt-1.5 text-base font-medium leading-snug">{application.full_name}</p>
             </div>
-            <div className="flex flex-col items-center gap-2 sm:items-start">
-              <p className="text-sm text-muted-foreground">Decision</p>
-              <ApplicationStatusBadge
-                status={application.status}
-                reason={application.rejection_reason}
-              />
+            <div className={cn(insetPanelClass, 'px-4 py-4 sm:px-5 sm:py-4')}>
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Decision
+              </p>
+              <div className="flex justify-center sm:justify-start">
+                <ApplicationStatusBadge
+                  status={application.status}
+                  reason={application.rejection_reason}
+                />
+              </div>
             </div>
-            {footnote ? (
-              <p className="text-sm leading-relaxed text-muted-foreground">{footnote}</p>
-            ) : null}
-            <p className="text-xs text-muted-foreground">
-              Submitted {formatDate(application.submitted_at)}
-            </p>
           </div>
         </div>
+
+        {footnote ? (
+          <div className={cn(memberCalloutClass, 'text-center sm:text-left')}>
+            <p>{footnote}</p>
+          </div>
+        ) : null}
+
+        <p className="border-t border-border/60 pt-4 text-center text-xs text-muted-foreground sm:text-left">
+          Submitted {formatDate(application.submitted_at)}
+        </p>
       </CardContent>
     </Card>
   )
@@ -246,43 +269,42 @@ export function MemberApplicationStatusPage() {
 
   if (isLoading) {
     return (
-      <div className={pageLayoutClass}>
+      <MemberPage>
         <Skeleton className="h-12 w-64" />
         <Skeleton className="h-48 w-full" />
-      </div>
+      </MemberPage>
     )
   }
 
   if (!election) {
     return (
-      <div className={pageLayoutClass}>
+      <MemberPage>
         <PageHeader title="Application status" description="Member portal" />
         <EmptyState
           icon={ClipboardList}
           title="No active election"
           description="There is no election in progress right now."
         />
-      </div>
+      </MemberPage>
     )
   }
 
   return (
-    <div className={pageLayoutClass}>
+    <MemberPage>
       <Stagger delayMs={sectionDelays.header}>
         <PageHeader title={phaseCopy.title} description={phaseCopy.description} />
         {isPostVoting ? (
-          <div className="mt-6">
+          <div className={memberHeroSpacingClass}>
             <VotingEndedHero electionName={election.name} votingEndAt={election.voting_end_at} />
           </div>
         ) : null}
         {election && isVotingStartPending(election) && election.voting_start_at ? (
-          <div className="mx-auto mt-6 w-full max-w-4xl">
+          <div className={memberHeroSpacingClass}>
             <CountdownExpiryWatcher
               targetAt={election.voting_start_at}
               onExpire={() => void queryClient.invalidateQueries({ queryKey: ONGOING_ELECTION_QUERY_KEY })}
             />
-            <ElectionCountdownHero
-              variant="voting-upcoming"
+            <VotingStartsSoonCard
               electionName={election.name}
               targetAt={election.voting_start_at}
             />
@@ -303,6 +325,6 @@ export function MemberApplicationStatusPage() {
           <ActiveApplicationCard application={application} election={election} phase={phase} />
         )}
       </Stagger>
-    </div>
+    </MemberPage>
   )
 }

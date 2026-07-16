@@ -20,7 +20,7 @@ export function PageHeader({ title, description, action, className }: PageHeader
       <div className="min-w-0">
         <h1 className={pageTitleClass}>{title}</h1>
         {description ? (
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+          <p className="mt-1 text-pretty text-sm text-muted-foreground">{description}</p>
         ) : null}
       </div>
       {action ? (

@@ -30,7 +30,7 @@ export const CandidateCard = memo(function CandidateCard({
       aria-disabled={disabled || undefined}
       aria-label={`${candidate.full_name}, ${candidate.academic_year}${isRecorded ? ', vote recorded' : ''}`}
       className={cn(
-        'group relative flex w-full flex-col overflow-hidden rounded-lg border bg-card text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+        'group relative flex w-full min-w-0 flex-col overflow-hidden rounded-lg border bg-card text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
         isRecorded && 'ring-2 ring-primary',
         !disabled && !isRecorded && 'hover:border-primary/50 hover:shadow-sm',
         disabled && !isRecorded && 'cursor-default opacity-50',
@@ -66,8 +66,8 @@ export const CandidateCard = memo(function CandidateCard({
           </div>
         )}
       </div>
-      <div className="space-y-0.5 p-4">
-        <p className="font-semibold leading-tight">{candidate.full_name}</p>
+      <div className="space-y-0.5 p-4 sm:p-5">
+        <p className="break-words font-semibold leading-tight">{candidate.full_name}</p>
         <p className="text-sm text-muted-foreground">{candidate.academic_year}</p>
       </div>
     </button>

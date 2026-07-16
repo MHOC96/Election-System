@@ -1,9 +1,11 @@
 import { useEffect } from 'react'
+import { Vote } from 'lucide-react'
 import type { NavItem } from '@/lib/navigation'
 import { useQueryClient } from '@tanstack/react-query'
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { SidebarNav } from '@/components/layout/SidebarNav'
-import { shellHeaderBarClass } from '@/lib/design-tokens'
+import { ThemeToggle } from '@/components/shared/ThemeToggle'
+import { brandMarkClass, shellMobileHeaderClass } from '@/lib/design-tokens'
 import { warmAdminConsole } from '@/lib/prefetch'
 import { cn } from '@/lib/utils'
 
@@ -34,9 +36,20 @@ export function MobileNavSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="flex h-full w-[min(100vw,20rem)] max-w-none flex-col border-r p-0 sm:max-w-xs">
-        <SheetHeader className={cn(shellHeaderBarClass, 'border-b px-6 py-0 text-left')}>
-          <SheetTitle className="text-sm font-semibold leading-tight">{title}</SheetTitle>
-        </SheetHeader>
+        <div className={cn(shellMobileHeaderClass, 'justify-between border-b px-4')}>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className={cn(brandMarkClass, 'h-9 w-9 shrink-0')}>
+              <Vote className="h-4 w-4" aria-hidden="true" />
+            </div>
+            <div className="min-w-0 leading-none">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                Election System
+              </p>
+              <p className="mt-0.5 truncate text-sm font-semibold leading-tight">{title}</p>
+            </div>
+          </div>
+          <ThemeToggle />
+        </div>
         <div className="flex-1 overflow-y-auto p-4">
           <SidebarNav
             items={items}

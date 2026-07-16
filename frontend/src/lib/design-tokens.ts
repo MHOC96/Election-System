@@ -30,8 +30,12 @@ export const shellCanvasClass = 'bg-muted/25 dark:bg-background'
 /** Fixed height for admin sidebar brand + top shell header (must match) */
 export const shellHeaderBarClass = 'flex h-14 shrink-0 items-center'
 
+/** Roomier mobile shell header — menu, title, and actions */
+export const shellMobileHeaderClass =
+  'flex min-h-16 shrink-0 items-center gap-2 px-3 py-2 sm:gap-3 sm:px-4'
+
 /** Page title — PageHeader */
-export const pageTitleClass = 'text-xl font-semibold tracking-tight sm:text-2xl'
+export const pageTitleClass = 'text-lg font-semibold tracking-tight sm:text-xl md:text-2xl'
 
 /** Section headings below page title */
 export const sectionHeadingClass = 'text-base font-semibold tracking-tight sm:text-lg'
@@ -65,3 +69,43 @@ export const responsiveTableMobileClass = 'lg:hidden'
 /** Flush data table inside cards — full-width header band + clipped corners */
 export const dataTableShellClass = 'overflow-hidden'
 export const dataTableScrollClass = 'table-scroll-wrapper w-full overflow-x-auto'
+
+/** Member portal — shell, page rhythm, and surfaces */
+export const memberShellHeaderClass =
+  'glass sticky top-0 z-40 w-full border-b pt-[env(safe-area-inset-top)]'
+
+export const memberShellMainClass =
+  'min-w-0 flex-1 overflow-x-hidden px-3 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-8'
+
+export const memberShellContentClass = 'mx-auto w-full min-w-0 max-w-3xl'
+
+export const memberPageLayoutClass = 'w-full min-w-0 space-y-5 sm:space-y-8'
+
+export const memberCardSurfaceClass =
+  'overflow-hidden border border-border/70 shadow-md ring-1 ring-primary/10'
+
+export const memberCardHeaderTintClass =
+  'border-b bg-gradient-to-br from-muted/30 via-card to-primary/[0.04]'
+
+export const memberCardPaddingClass = 'p-5 sm:p-6'
+
+export const memberSectionStackClass = 'space-y-4'
+
+/** Position / results grids inside the member content column */
+export const memberGridClass =
+  'grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3'
+
+export const memberHeroSpacingClass = 'mt-4 sm:mt-6'
+
+export const memberSectionHeadingClass = 'text-base font-semibold tracking-tight sm:text-lg'
+
+export const memberSectionIntroClass = 'mt-1 text-sm leading-relaxed text-muted-foreground'
+
+export const memberSectionHeaderRowClass =
+  'flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3'
+
+export const memberCalloutClass =
+  'rounded-xl border border-primary/15 bg-primary/[0.05] px-4 py-4 text-sm leading-relaxed text-muted-foreground sm:px-6 sm:py-5'
+
+/** Member empty / waiting states — tighter on phones */
+export const memberEmptyStateClass = 'p-8 sm:p-12'

@@ -3,12 +3,19 @@ import { Link, Outlet, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { Vote } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
-import { brandMarkClass, shellCanvasClass, shellContentClass } from '@/lib/design-tokens'
+import {
+  brandMarkClass,
+  memberShellContentClass,
+  memberShellHeaderClass,
+  memberShellMainClass,
+  shellCanvasClass,
+  shellMobileHeaderClass,
+} from '@/lib/design-tokens'
 import { warmMemberConsole, resetConsoleWarmupState } from '@/lib/prefetch'
 import { useOngoingElection } from '@/hooks/useOngoingElection'
 import { ShellActions } from '@/components/layout/ShellActions'
-
 import { SkipToContent } from '@/components/shared/SkipToContent'
+import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import { ElectionStatusBadge } from '@/components/shared/StatusBadge'
 import { MAIN_CONTENT_ID } from '@/lib/a11y'
 import { notifyError } from '@/lib/notify'
@@ -69,24 +76,34 @@ export function MemberLayout() {
   return (
     <div className={cn('flex min-h-screen min-w-0 flex-col', shellCanvasClass)}>
       <SkipToContent />
-      <header className="glass sticky top-0 z-40 w-full border-b">
-        <div className="flex h-14 w-full min-w-0 items-center gap-2 px-3 sm:px-4">
-          <Link to="/" className="flex min-w-0 shrink-0 items-center gap-2">
-            <div className={cn(brandMarkClass, 'h-8 w-8 shrink-0 sm:h-9 sm:w-9')}>
-              <Vote className="h-4 w-4 sm:h-[18px] sm:w-[18px]" aria-hidden="true" />
+      <header className={memberShellHeaderClass}>
+        <div className={cn(shellMobileHeaderClass, 'justify-between gap-2 sm:gap-3')}>
+          <Link to="/" className="flex min-w-0 items-center gap-2.5 overflow-hidden">
+            <div className={cn(brandMarkClass, 'h-9 w-9 shrink-0')}>
+              <Vote className="h-4 w-4" aria-hidden="true" />
             </div>
-            <div className="hidden min-w-0 sm:block">
+            <div className="min-w-0 leading-none">
               <p className="truncate text-sm font-semibold leading-tight">Member Portal</p>
-              <p className="truncate text-xs text-muted-foreground">Executive Committee Election</p>
+              <p className="mt-0.5 hidden truncate text-xs text-muted-foreground sm:block">
+                Executive Committee Election
+              </p>
             </div>
-            <p className="truncate text-sm font-semibold leading-tight sm:hidden">Portal</p>
           </Link>
 
-          <div className="hidden min-w-0 flex-1 items-center justify-center px-1 sm:flex">
+          <div className="hidden shrink-0 sm:block">
             {phase ? <ElectionStatusBadge status={phase} /> : null}
           </div>
 
-          <div className="ml-auto shrink-0">
+          <div className="flex shrink-0 items-center gap-0.5 sm:hidden">
+            <ThemeToggle />
+            <ShellActions
+              compact
+              cpmNumber={user?.cpm_number}
+              onLogout={() => void handleLogout()}
+              isLoggingOut={isLoggingOut}
+            />
+          </div>
+          <div className="hidden sm:block">
             <ShellActions
               cpmNumber={user?.cpm_number}
               onLogout={() => void handleLogout()}
@@ -96,7 +113,7 @@ export function MemberLayout() {
         </div>
 
         {phase ? (
-          <div className="flex justify-center border-t border-border/60 px-3 py-1.5 sm:hidden">
+          <div className="flex justify-center border-t border-border/60 px-4 py-2 sm:hidden">
             <ElectionStatusBadge
               status={phase}
               className="max-w-full truncate text-[10px] uppercase tracking-wide"
@@ -108,12 +125,8 @@ export function MemberLayout() {
         ) : null}
       </header>
 
-      <main
-        id={MAIN_CONTENT_ID}
-        className="min-w-0 flex-1 px-3 py-5 sm:px-4 sm:py-6"
-        tabIndex={-1}
-      >
-        <div className={`${shellContentClass} mx-auto w-full max-w-5xl`}>
+      <main id={MAIN_CONTENT_ID} className={memberShellMainClass} tabIndex={-1}>
+        <div className={memberShellContentClass}>
           <Outlet />
         </div>
       </main>

@@ -89,3 +89,14 @@ export async function fetchModificationStatus() {
   return data
 }
 
+/** User-facing copy aligned with backend `assert_candidate_changes_allowed`. */
+export function getCandidateModificationNotice(reason?: string): string {
+  if (reason === 'No active election') {
+    return 'No election is scheduled yet. Create and schedule an election before adding or editing candidates.'
+  }
+  return (
+    reason ??
+    'Candidates cannot be modified while applications are open or after voting begins. You can manage candidates while the election is being set up or during the review period before voting starts.'
+  )
+}
+

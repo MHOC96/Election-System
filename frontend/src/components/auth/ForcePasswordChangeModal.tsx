@@ -47,6 +47,7 @@ interface PasswordFieldProps {
   id: string
   label: string
   hint?: string
+  placeholder?: string
   error?: string
   required?: boolean
   autoComplete?: string
@@ -60,6 +61,7 @@ function PasswordField({
   id,
   label,
   hint,
+  placeholder = 'Enter password',
   error,
   required,
   autoComplete,
@@ -88,6 +90,7 @@ function PasswordField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         onBlur={onBlur}
+        placeholder={placeholder}
         autoComplete={autoComplete}
         autoCapitalize="off"
         autoCorrect="off"
@@ -206,6 +209,7 @@ export function ForcePasswordChangeModal({ open, onSuccess }: ForcePasswordChang
               <PasswordField
                 id="new_password"
                 label="New Password"
+                placeholder="Enter new password"
                 error={errors.new_password?.message}
                 required
                 autoComplete="new-password"
@@ -224,6 +228,7 @@ export function ForcePasswordChangeModal({ open, onSuccess }: ForcePasswordChang
               <PasswordField
                 id="confirm_password"
                 label="Confirm Password"
+                placeholder="Confirm new password"
                 error={errors.confirm_password?.message}
                 required
                 autoComplete="new-password"

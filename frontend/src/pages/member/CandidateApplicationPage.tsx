@@ -20,9 +20,16 @@ import { EmptyState } from '@/components/shared/EmptyState'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { sectionDelays, Stagger } from '@/components/motion/Stagger'
-import { pageLayoutClass } from '@/lib/design-tokens'
+import { MemberPage } from '@/components/layout/MemberPage'
+import {
+  memberCardHeaderTintClass,
+  memberCardSurfaceClass,
+  memberGridClass,
+  memberHeroSpacingClass,
+} from '@/lib/design-tokens'
 import { ONGOING_ELECTION_QUERY_KEY, APPLICATIONS_STALE_MS, POSITIONS_QUERY_KEY, POSITIONS_STALE_MS } from '@/lib/query-sync'
 import { notifyError, notifySuccess } from '@/lib/notify'
+import { cn } from '@/lib/utils'
 import { ApplicationStatusBadge } from '@/components/applications/ApplicationStatusBadge'
 import { PhotoCropDialog } from '@/components/shared/PhotoCropDialog'
 import { ElectionCountdownHero } from '@/components/elections/ElectionCountdownHero'
@@ -184,16 +191,16 @@ export function CandidateApplicationPage() {
 
   if (electionInitialLoad) {
     return (
-      <div className={pageLayoutClass}>
+      <MemberPage>
         <Skeleton className="h-12 w-64" />
         <Skeleton className="h-64 w-full" />
-      </div>
+      </MemberPage>
     )
   }
 
   if (queryError) {
     return (
-      <div className={pageLayoutClass}>
+      <MemberPage>
         <PageHeader title="Candidate Application" description="Apply for executive committee positions" />
         <QueryErrorState
           onRetry={() => {
@@ -202,20 +209,20 @@ export function CandidateApplicationPage() {
           }}
           isRetrying={fetchingElection || fetchingPositions}
         />
-      </div>
+      </MemberPage>
     )
   }
 
   if (!ongoingElection || !showApplySection) {
     return (
-      <div className={pageLayoutClass}>
+      <MemberPage>
         <PageHeader title="Candidate Application" description="Apply for executive committee positions" />
         <EmptyState
           icon={Clock}
           title="Applications are not open"
           description="There are currently no elections accepting candidate applications."
         />
-      </div>
+      </MemberPage>
     )
   }
 
@@ -227,7 +234,7 @@ export function CandidateApplicationPage() {
   const positionSkeletonCount = 6
 
   return (
-    <div className={pageLayoutClass}>
+    <MemberPage>
       <Stagger delayMs={sectionDelays.header}>
         <PageHeader
           title="Candidate Application"
@@ -238,19 +245,19 @@ export function CandidateApplicationPage() {
           variant={isScheduled ? 'applications-upcoming' : 'applications-open'}
           electionName={ongoingElection.name}
           targetAt={isScheduled ? appStart : appEnd}
-          className="mb-6 sm:mb-8"
+          className={memberHeroSpacingClass}
         />
       </Stagger>
 
       <Stagger delayMs={sectionDelays.primary}>
         {loadingPositions && !positions ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className={memberGridClass}>
             {Array.from({ length: positionSkeletonCount }, (_, index) => (
               <Skeleton key={index} className="h-44 w-full rounded-xl" />
             ))}
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className={memberGridClass}>
             {positions?.map((position) => {
               const isMyPosition = myApplication?.position === position.id
               const isEligibleYear =
@@ -265,11 +272,11 @@ export function CandidateApplicationPage() {
               else if (!isEligibleYear) buttonLabel = 'Not eligible'
 
               return (
-                <Card key={position.id} className="flex flex-col">
-                  <CardHeader>
-                    <CardTitle className="text-lg">{position.name}</CardTitle>
+                <Card key={position.id} className={cn(memberCardSurfaceClass, 'flex flex-col')}>
+                  <CardHeader className={memberCardHeaderTintClass}>
+                    <CardTitle className="break-words">{position.name}</CardTitle>
                   </CardHeader>
-                  <CardContent className="flex-grow">
+                  <CardContent className="flex-grow pt-0">
                     {isMyPosition && myApplication ? (
                       <div className="flex flex-col items-start gap-2">
                         <Label className="text-muted-foreground">My application status</Label>
@@ -292,7 +299,7 @@ export function CandidateApplicationPage() {
                       </p>
                     )}
                   </CardContent>
-                  <CardFooter>
+                  <CardFooter className="pt-0">
                     {isMyPosition && myApplication ? (
                       <Button disabled variant="secondary" className="w-full">
                         Application submitted
@@ -317,7 +324,7 @@ export function CandidateApplicationPage() {
       </Stagger>
 
       <Dialog open={!!selectedPosition} onOpenChange={(open) => !open && !isSubmittingApplication && closeDialog()}>
-        <DialogContent className="max-w-lg">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Apply for Position</DialogTitle>
             <DialogDescription>
@@ -329,14 +336,24 @@ export function CandidateApplicationPage() {
               <Input id="full_name" autoComplete="name" disabled={isSubmittingApplication} {...register('full_name')} />
             </FormField>
 
-            <div className="grid gap-4 sm:grid-cols-1">
-              <FormField label="CPM Number" htmlFor="cpm_number" error={errors.cpm_number?.message} required>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField label="CPM Number" htmlFor="cpm_number" error={errors.cpm_number?.message}>
                 <Input
                   id="cpm_number"
                   readOnly
                   autoComplete="off"
                   className="bg-muted cursor-not-allowed text-muted-foreground"
                   {...register('cpm_number')}
+                />
+              </FormField>
+              <FormField label="MC Number" htmlFor="mc_number">
+                <Input
+                  id="mc_number"
+                  readOnly
+                  value={user?.mc_number ?? ''}
+                  placeholder={authLoading ? 'Loading…' : '—'}
+                  autoComplete="off"
+                  className="bg-muted cursor-not-allowed text-muted-foreground"
                 />
               </FormField>
             </div>
@@ -448,6 +465,6 @@ export function CandidateApplicationPage() {
           setCropImageSrc(null)
         }}
       />
-    </div>
+    </MemberPage>
   )
 }

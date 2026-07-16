@@ -2,6 +2,7 @@ import { CheckCircle2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import { memberCardHeaderTintClass, memberCardSurfaceClass } from '@/lib/design-tokens'
 import type { ElectionPhase } from '@/types/api'
 import { formatPercent } from '@/lib/utils'
 
@@ -47,12 +48,12 @@ export function ElectionProgressCard({
   const progress = total > 0 ? (votedCount / total) * 100 : 0
 
   return (
-    <Card className="overflow-hidden border-primary/20 shadow-sm">
-      <CardHeader className="border-b bg-gradient-to-br from-primary/5 via-transparent to-transparent pb-4">
-        <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
-          <div className="space-y-1">
-            <CardTitle className="text-xl">{electionName}</CardTitle>
-            <CardDescription>
+    <Card className={memberCardSurfaceClass}>
+      <CardHeader className={memberCardHeaderTintClass}>
+        <div className="flex min-w-0 flex-col items-start justify-between gap-3 sm:flex-row">
+          <div className="min-w-0 space-y-1">
+            <CardTitle className="text-lg sm:text-xl">{electionName}</CardTitle>
+            <CardDescription className="text-pretty">
               {canVote
                 ? 'Choose one candidate for each position below.'
                 : status === 'VOTING_CLOSED' || status === 'RESULTS_PUBLISHED'
@@ -60,15 +61,17 @@ export function ElectionProgressCard({
                   : 'Voting is not open yet.'}
             </CardDescription>
           </div>
-          <Badge variant={statusVariants[status]}>{statusLabels[status]}</Badge>
+          <Badge variant={statusVariants[status]} className="w-fit shrink-0">
+            {statusLabels[status]}
+          </Badge>
         </div>
       </CardHeader>
-      <CardContent className="pt-5">
-        <div className="mb-2 flex items-center justify-between gap-3 text-sm">
-          <span className="font-medium">
+      <CardContent className="pt-5 sm:pt-6">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm">
+          <span className="min-w-0 font-medium">
             {votedCount} of {total} positions completed
           </span>
-          <span className="font-semibold tabular-nums text-primary">{formatPercent(progress)}</span>
+          <span className="shrink-0 font-semibold tabular-nums text-primary">{formatPercent(progress)}</span>
         </div>
         <Progress
           value={progress}

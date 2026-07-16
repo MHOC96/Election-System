@@ -5,7 +5,13 @@ import { Vote, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
 import { adminNavItems } from '@/lib/navigation'
-import { shellContentClass, shellCanvasClass, brandMarkClass, shellHeaderBarClass } from '@/lib/design-tokens'
+import {
+  shellContentClass,
+  shellCanvasClass,
+  brandMarkClass,
+  shellHeaderBarClass,
+  shellMobileHeaderClass,
+} from '@/lib/design-tokens'
 import { warmAdminConsole, resetConsoleWarmupState } from '@/lib/prefetch'
 import { MobileNavSheet } from '@/components/layout/MobileNavSheet'
 import { AdminSidebarFooter } from '@/components/layout/AdminSidebarFooter'
@@ -15,6 +21,22 @@ import { SkipToContent } from '@/components/shared/SkipToContent'
 import { MAIN_CONTENT_ID } from '@/lib/a11y'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
+
+function AdminBrandMark({ className }: { className?: string }) {
+  return (
+    <div className={cn('flex min-w-0 items-center gap-2.5', className)}>
+      <div className={cn(brandMarkClass, 'h-9 w-9 shrink-0')}>
+        <Vote className="h-4 w-4" aria-hidden="true" />
+      </div>
+      <div className="min-w-0 leading-none">
+        <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          Election System
+        </p>
+        <p className="mt-0.5 truncate text-sm font-semibold leading-tight">Admin Console</p>
+      </div>
+    </div>
+  )
+}
 
 export function AdminLayout() {
   const { user, logout } = useAuth()
@@ -49,17 +71,7 @@ export function AdminLayout() {
       <SkipToContent />
       <aside className="hidden w-64 shrink-0 flex-col border-r bg-background lg:flex">
         <div className={cn(shellHeaderBarClass, 'border-b px-6')}>
-          <div className="flex min-w-0 items-center gap-2.5">
-            <div className={cn(brandMarkClass, 'h-8 w-8 shrink-0')}>
-              <Vote className="h-4 w-4" aria-hidden="true" />
-            </div>
-            <div className="min-w-0 leading-none">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                Election System
-              </p>
-              <p className="mt-0.5 truncate text-sm font-semibold leading-tight">Admin Console</p>
-            </div>
-          </div>
+          <AdminBrandMark />
         </div>
         <div className="flex-1 overflow-y-auto p-4">
           <SidebarNav items={adminNavItems} prefetchScope="admin" />
@@ -71,40 +83,39 @@ export function AdminLayout() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="glass sticky top-0 z-40 w-full border-b">
-          <div
-            className={cn(
-              shellHeaderBarClass,
-              'w-full gap-1 px-2 sm:gap-2 sm:px-4 lg:px-8',
-            )}
-          >
+          <div className={cn(shellMobileHeaderClass, 'lg:hidden')}>
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="shrink-0 lg:hidden"
+              className="h-10 w-10 shrink-0"
               onClick={() => setMobileNavOpen(true)}
               aria-label="Open navigation menu"
             >
               <Menu className="h-5 w-5" aria-hidden="true" />
             </Button>
 
-            <Link to="/admin" className="flex min-w-0 flex-1 items-center gap-2 lg:hidden">
-              <div className={cn(brandMarkClass, 'h-8 w-8 shrink-0 rounded-lg')}>
-                <Vote className="h-4 w-4" aria-hidden="true" />
-              </div>
-              <span className="truncate text-sm font-semibold">Admin Console</span>
+            <Link to="/admin" className="min-w-0 flex-1 overflow-hidden">
+              <AdminBrandMark />
             </Link>
 
-            <div className="hidden flex-1 lg:block" aria-hidden="true" />
+            <ShellActions
+              compact
+              cpmNumber={user?.cpm_number}
+              onLogout={() => void handleLogout()}
+              isLoggingOut={isLoggingOut}
+              showMenuButton={false}
+            />
+          </div>
 
-            <div className="ml-auto shrink-0">
-              <ShellActions
-                cpmNumber={user?.cpm_number}
-                onLogout={() => void handleLogout()}
-                isLoggingOut={isLoggingOut}
-                showMenuButton={false}
-              />
-            </div>
+          <div className={cn(shellHeaderBarClass, 'hidden w-full gap-2 px-8 lg:flex')}>
+            <div className="flex-1" aria-hidden="true" />
+            <ShellActions
+              cpmNumber={user?.cpm_number}
+              onLogout={() => void handleLogout()}
+              isLoggingOut={isLoggingOut}
+              showMenuButton={false}
+            />
           </div>
         </header>
 

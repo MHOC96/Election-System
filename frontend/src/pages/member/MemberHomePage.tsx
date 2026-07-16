@@ -12,21 +12,21 @@ import { EmptyState } from '@/components/shared/EmptyState'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { Skeleton } from '@/components/ui/skeleton'
-import { pageLayoutClass } from '@/lib/design-tokens'
+import { MemberPage } from '@/components/layout/MemberPage'
 import type { Election } from '@/types/api'
 
 function PhasePageSkeleton() {
   return (
-    <div className={pageLayoutClass}>
+    <MemberPage>
       <Skeleton className="h-44 w-full rounded-3xl" />
       <Skeleton className="h-64 w-full" />
-    </div>
+    </MemberPage>
   )
 }
 
 function MemberHomeWaiting({ election }: { election: Election | null | undefined }) {
   return (
-    <div className={pageLayoutClass}>
+    <MemberPage>
       <PageHeader
         title={election?.name ?? 'Executive Election'}
         description="Member portal"
@@ -36,7 +36,7 @@ function MemberHomeWaiting({ election }: { election: Election | null | undefined
         title={election ? 'Nothing to do right now' : 'No active election'}
         description="Check back when the next election phase begins."
       />
-    </div>
+    </MemberPage>
   )
 }
 
@@ -56,9 +56,9 @@ export function MemberHomePage() {
 
   if (isError) {
     return (
-      <div className={pageLayoutClass}>
+      <MemberPage>
         <QueryErrorState onRetry={() => void refetch()} isRetrying={isFetching} />
-      </div>
+      </MemberPage>
     )
   }
 

@@ -6,6 +6,7 @@ import { getApiErrorMessage } from '@/api/client'
 import { ElectionCountdownHero } from '@/components/elections/ElectionCountdownHero'
 import { CountdownExpiryWatcher } from '@/components/shared/CountdownDisplay'
 import { ElectionProgressCard } from '@/components/voting/ElectionProgressCard'
+import { VotingStartsSoonCard } from '@/components/voting/VotingStartsSoonCard'
 import { CandidateCard } from '@/components/voting/CandidateCard'
 import { MemberSelectionItem } from '@/components/voting/MemberSelectionItem'
 import { VoteConfirmDialog } from '@/components/voting/VoteConfirmDialog'
@@ -15,8 +16,17 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { QueryErrorState } from '@/components/shared/QueryErrorState'
+import { MemberPage } from '@/components/layout/MemberPage'
 import { sectionDelays, Stagger, StaggerChildren } from '@/components/motion/Stagger'
-import { pageLayoutClass } from '@/lib/design-tokens'
+import {
+  memberCardHeaderTintClass,
+  memberCardSurfaceClass,
+  memberHeroSpacingClass,
+  memberSectionHeadingClass,
+  memberSectionIntroClass,
+  memberSectionHeaderRowClass,
+  memberSectionStackClass,
+} from '@/lib/design-tokens'
 import { BALLOT_QUERY_KEY, BALLOT_STALE_MS, ONGOING_ELECTION_QUERY_KEY } from '@/lib/query-sync'
 import { isVotingStartPending } from '@/lib/election-lifecycle-ui'
 import { handleRadioGroupKeyDown } from '@/lib/a11y'
@@ -88,23 +98,23 @@ export function BallotPage() {
 
   if (ballotQuery.isPending && !ballotQuery.data) {
     return (
-      <div className={cn(pageLayoutClass, 'mx-auto max-w-3xl')}>
+      <MemberPage>
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-36 w-full" />
         <Skeleton className="h-64 w-full" />
-      </div>
+      </MemberPage>
     )
   }
 
   if (ballotQuery.isError) {
     return (
-      <div className={cn(pageLayoutClass, 'mx-auto max-w-3xl')}>
+      <MemberPage>
         <PageHeader title="Executive Election" description="Member voting portal" />
         <QueryErrorState
           onRetry={() => void ballotQuery.refetch()}
           isRetrying={ballotQuery.isFetching}
         />
-      </div>
+      </MemberPage>
     )
   }
 
@@ -114,27 +124,27 @@ export function BallotPage() {
 
   if (electionEnded) {
     return (
-      <div className={cn(pageLayoutClass, 'mx-auto max-w-3xl')}>
+      <MemberPage>
         <PageHeader title="Executive Election" description="Member voting portal" />
         <EmptyState
           icon={CalendarCheck}
           title="This election has ended"
           description="Election details and your selections are no longer shown after an election closes."
         />
-      </div>
+      </MemberPage>
     )
   }
 
   if (!ballot?.election) {
     return (
-      <div className={cn(pageLayoutClass, 'mx-auto max-w-3xl')}>
+      <MemberPage>
         <PageHeader title="Executive Election" description="Member voting portal" />
         <EmptyState
           icon={Vote}
           title="No election in progress"
           description="When an election starts, you will be able to view details and cast your votes here."
         />
-      </div>
+      </MemberPage>
     )
   }
 
@@ -146,38 +156,54 @@ export function BallotPage() {
 
   if (positions.length === 0) {
     return (
-      <div className={cn(pageLayoutClass, 'mx-auto max-w-3xl')}>
+      <MemberPage>
         <PageHeader title="Executive Election" description="Member voting portal" />
         <EmptyState
           icon={Vote}
           title="No candidates yet"
           description="Positions will appear here once candidates are registered for the election."
         />
-      </div>
+      </MemberPage>
     )
   }
 
   return (
-    <div className={cn(pageLayoutClass, 'mx-auto max-w-3xl space-y-8')}>
+    <MemberPage>
       <Stagger delayMs={sectionDelays.header}>
         <PageHeader
           title="Executive Election"
-          description="View election details and submit your votes"
+          description={
+            isVotingUpcoming
+              ? 'Voting opens soon — preview the ballot below'
+              : 'View election details and submit your votes'
+          }
         />
       </Stagger>
 
-      {ballot.election && (canVote || isVotingUpcoming) ? (
+      {ballot.election && isVotingUpcoming ? (
         <Stagger delayMs={sectionDelays.primary}>
           <CountdownExpiryWatcher targetAt={countdownTarget} onExpire={handleCountdownExpire} />
-          <ElectionCountdownHero
-            variant={isVotingUpcoming ? 'voting-upcoming' : 'voting-open'}
+          <VotingStartsSoonCard
             electionName={ballot.election.name}
             targetAt={countdownTarget}
-            className="mb-2 sm:mb-0"
+            className={memberHeroSpacingClass}
           />
         </Stagger>
       ) : null}
 
+      {ballot.election && canVote ? (
+        <Stagger delayMs={sectionDelays.primary}>
+          <CountdownExpiryWatcher targetAt={countdownTarget} onExpire={handleCountdownExpire} />
+          <ElectionCountdownHero
+            variant="voting-open"
+            electionName={ballot.election.name}
+            targetAt={countdownTarget}
+            className={memberHeroSpacingClass}
+          />
+        </Stagger>
+      ) : null}
+
+      {!isVotingUpcoming ? (
       <Stagger delayMs={sectionDelays.primary}>
         <ElectionProgressCard
           electionName={ballot.election.name}
@@ -187,24 +213,28 @@ export function BallotPage() {
           canVote={canVote}
         />
       </Stagger>
+      ) : null}
 
       {selections.length > 0 && (
         <Stagger delayMs={sectionDelays.secondary}>
-          <section aria-labelledby="my-selections-heading" className="space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <h2 id="my-selections-heading" className="text-lg font-semibold">
+          <section aria-labelledby="my-selections-heading" className={memberSectionStackClass}>
+          <div className={memberSectionHeaderRowClass}>
+            <div className="min-w-0">
+              <h2 id="my-selections-heading" className={memberSectionHeadingClass}>
                 Your selections
               </h2>
-              <p className="text-sm text-muted-foreground">
+              <p className={memberSectionIntroClass}>
                 Only you can see who you voted for
               </p>
             </div>
-            <Badge variant={voteStatus?.all_positions_voted ? 'success' : 'secondary'}>
+            <Badge
+              variant={voteStatus?.all_positions_voted ? 'success' : 'secondary'}
+              className="w-fit shrink-0 self-start sm:self-center"
+            >
               {votedCount}/{total}
             </Badge>
           </div>
-          <StaggerChildren className="grid gap-3 sm:grid-cols-2" staggerMs={60}>
+          <StaggerChildren className="grid gap-4 sm:grid-cols-2" staggerMs={60}>
             {selections.map((vote) => (
               <MemberSelectionItem
                 key={vote.position_id}
@@ -219,25 +249,28 @@ export function BallotPage() {
       )}
 
       <Stagger delayMs={selections.length > 0 ? sectionDelays.tertiary : sectionDelays.secondary}>
-        <section aria-labelledby="vote-positions-heading" className="space-y-4">
+        <section aria-labelledby="vote-positions-heading" className={memberSectionStackClass}>
         <div>
-          <h2 id="vote-positions-heading" className="text-lg font-semibold">
-            {canVote ? 'Cast your votes' : 'Election positions'}
+          <h2 id="vote-positions-heading" className={memberSectionHeadingClass}>
+            {canVote ? 'Cast your votes' : isVotingUpcoming ? 'Ballot preview' : 'Election positions'}
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className={memberSectionIntroClass}>
             {canVote
               ? 'Select one candidate for each position. Each choice is final once submitted.'
-              : 'Voting is not open. You can review candidates and your recorded selections.'}
+              : isVotingUpcoming
+                ? 'Review candidates below. Voting opens when the timer above reaches zero.'
+                : 'Voting is not open. You can review candidates and your recorded selections.'}
           </p>
         </div>
 
-        <StaggerChildren className="space-y-4" staggerMs={80} initialDelayMs={40}>
+        <StaggerChildren className="space-y-5" staggerMs={80} initialDelayMs={40}>
           {positions.map((item, index) => (
             <PositionSection
               key={item.position.id}
               item={item}
               index={index}
               canVote={canVote}
+              isVotingUpcoming={isVotingUpcoming}
               onSelectCandidate={handleSelectCandidate}
             />
           ))}
@@ -261,7 +294,7 @@ export function BallotPage() {
           }
         />
       )}
-    </div>
+    </MemberPage>
   )
 }
 
@@ -269,11 +302,13 @@ const PositionSection = memo(function PositionSection({
   item,
   index,
   canVote,
+  isVotingUpcoming,
   onSelectCandidate,
 }: {
   item: BallotItem
   index: number
   canVote: boolean
+  isVotingUpcoming: boolean
   onSelectCandidate: (
     positionId: number,
     positionName: string,
@@ -292,14 +327,14 @@ const PositionSection = memo(function PositionSection({
   return (
     <Card
       className={cn(
-        'overflow-hidden shadow-sm',
+        memberCardSurfaceClass,
         item.has_voted && 'border-success/30 bg-success/[0.03]',
       )}
     >
-      <CardHeader className="border-b bg-muted/20 pb-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-          <div>
-            <h3 id={sectionId} className="text-lg font-semibold leading-none tracking-tight">
+      <CardHeader className={memberCardHeaderTintClass}>
+        <div className="flex min-w-0 flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+          <div className="min-w-0">
+            <h3 id={sectionId} className="text-base font-semibold leading-snug tracking-tight sm:text-lg">
               {item.position.name}
             </h3>
             <CardDescription className="mt-1.5">
@@ -307,23 +342,25 @@ const PositionSection = memo(function PositionSection({
                 ? 'Your vote for this position is recorded'
                 : canVote
                   ? 'Choose one candidate'
-                  : 'Waiting for voting to resume'}
+                  : isVotingUpcoming
+                    ? 'Voting opens soon'
+                    : 'Waiting for voting to resume'}
             </CardDescription>
           </div>
           {item.has_voted && (
-            <Badge variant="success" className="gap-1">
+            <Badge variant="success" className="w-fit shrink-0 gap-1">
               <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
               Voted
             </Badge>
           )}
         </div>
       </CardHeader>
-      <CardContent className="pt-5">
+      <CardContent className="pt-5 sm:pt-6">
         <div
           role="radiogroup"
           aria-labelledby={sectionId}
           aria-readonly={votingDisabled || undefined}
-          className="grid gap-3 sm:grid-cols-2"
+          className="grid gap-4 sm:grid-cols-2"
           onKeyDown={handleRadioGroupKeyDown}
         >
           {item.candidates.map((candidate, candidateIndex) => {

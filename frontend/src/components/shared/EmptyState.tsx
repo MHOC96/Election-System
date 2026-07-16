@@ -13,7 +13,7 @@ export function EmptyState({ icon: Icon = Inbox, title, description, className, 
   return (
     <div
       className={cn(
-        'bg-grid flex animate-fade-in flex-col items-center justify-center rounded-xl border border-dashed bg-card/40 p-12 text-center',
+        'bg-grid flex animate-fade-in flex-col items-center justify-center rounded-xl border border-dashed bg-card/40 p-8 text-center sm:p-12',
         className,
       )}
     >
