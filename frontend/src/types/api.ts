@@ -87,6 +87,7 @@ export interface Candidate {
   full_name: string
   academic_year: AcademicYear
   photo_url: string
+  declaration_file: string
   position: number
   position_name: string
   created_at: string
@@ -231,3 +232,17 @@ export interface LiveStats {
 
 export type ReportType = 'results' | 'candidates' | 'turnout' | 'participation'
 export type ExportFormat = 'csv' | 'xlsx' | 'pdf'
+
+export interface ReportElectionSummary {
+  id: number
+  name: string
+  status: ElectionStatus
+  results_published: boolean
+  archived_at: string | null
+}
+
+export interface ReportsStatus {
+  available: boolean
+  archived_elections: ReportElectionSummary[]
+  active_election: ReportElectionSummary | null
+}

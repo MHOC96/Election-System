@@ -17,6 +17,49 @@ from reports.services.report_data import (
     get_results_report_data,
     get_turnout_report_data,
 )
+from voting.models import Election, ElectionStatus
+
+
+def _serialize_report_election(election: Election) -> dict:
+    return {
+        "id": election.id,
+        "name": election.name,
+        "status": election.status,
+        "results_published": election.results_published,
+        "archived_at": election.updated_at.isoformat() if election.updated_at else None,
+    }
+
+
+class ReportsStatusView(APIView):
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        active_election = (
+            Election.objects.exclude(status=ElectionStatus.ARCHIVED)
+            .order_by("-created_at")
+            .only("id", "name", "status", "results_published", "updated_at")
+            .first()
+        )
+        archived_elections = (
+            Election.objects.filter(status=ElectionStatus.ARCHIVED)
+            .order_by("-created_at")
+            .only("id", "name", "status", "results_published", "updated_at")
+        )
+
+        return Response(
+            {
+                "success": True,
+                "data": {
+                    "available": archived_elections.exists(),
+                    "archived_elections": [
+                        _serialize_report_election(election) for election in archived_elections
+                    ],
+                    "active_election": _serialize_report_election(active_election)
+                    if active_election
+                    else None,
+                },
+            }
+        )
 
 
 class BaseReportView(APIView):

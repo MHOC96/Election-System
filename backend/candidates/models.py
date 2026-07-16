@@ -12,6 +12,7 @@ class Candidate(models.Model):
     full_name = models.CharField(max_length=200)
     academic_year = models.CharField(max_length=10, choices=AcademicYear.choices)
     photo_url = models.URLField(max_length=500)
+    declaration_file = models.URLField(max_length=500, blank=True, default="")
     election = models.ForeignKey("voting.Election", on_delete=models.CASCADE, related_name="candidates")
     position = models.ForeignKey(
         Position,

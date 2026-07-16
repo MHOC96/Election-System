@@ -176,7 +176,7 @@ export function ForcePasswordChangeModal({ open, onSuccess }: ForcePasswordChang
         <DialogHeader>
           <DialogTitle>Change Your Password</DialogTitle>
           <DialogDescription>
-            For security reasons, please change your password from the default MC Number to something else before continuing.
+            For security, change your password before continuing. If you have not changed it yet, your current password is your MC Number.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-4 pt-2" noValidate>
@@ -187,7 +187,7 @@ export function ForcePasswordChangeModal({ open, onSuccess }: ForcePasswordChang
               <PasswordField
                 id="current_password"
                 label="Current Password"
-                hint="Use your MC Number if you have not changed your password yet."
+                hint="Enter your MC Number if you have not changed your password yet."
                 error={errors.current_password?.message}
                 required
                 autoComplete="current-password"

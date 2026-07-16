@@ -179,6 +179,7 @@ class AdminApplicationReviewView(APIView):
                     full_name=application.full_name,
                     academic_year=application.member.academic_year,
                     photo_url=application.photo_url,
+                    declaration_file=application.declaration_file,
                     position=application.position,
                 )
 

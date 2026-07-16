@@ -6,12 +6,12 @@
   :root {
     color-scheme: light;
 
-    /* Surfaces & text — light theme designed independently for elegant, airy surfaces */
-    --background: 210 40% 98%;
+    /* Surfaces & text — calm, layered light theme (not pure white) */
+    --background: 220 24% 97%;
     --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
+    --card: 220 20% 99%;
     --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
+    --popover: 220 20% 99%;
     --popover-foreground: 222 47% 11%;
 
     /* Brand + semantic (tuned for WCAG AA on their foregrounds) */
@@ -30,8 +30,8 @@
     --warning: 32 95% 44%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 214 22% 90%;
-    --input: 214 22% 89%;
+    --border: 220 16% 88%;
+    --input: 220 14% 86%;
     --ring: 224 76% 48%;
     --radius: 0.625rem;
 
@@ -57,12 +57,12 @@
   .dark {
     color-scheme: dark;
 
-    --background: 224 44% 6%;
-    --foreground: 210 40% 98%;
-    --card: 224 36% 9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 224 34% 11%;
-    --popover-foreground: 210 40% 98%;
+    --background: 224 38% 7%;
+    --foreground: 210 40% 96%;
+    --card: 224 32% 10%;
+    --card-foreground: 210 40% 96%;
+    --popover: 224 30% 12%;
+    --popover-foreground: 210 40% 96%;
 
     --primary: 217 91% 65%;
     --primary-foreground: 224 44% 8%;
@@ -79,8 +79,8 @@
     --warning: 35 92% 58%;
     --warning-foreground: 224 44% 8%;
 
-    --border: 216 22% 17%;
-    --input: 216 22% 20%;
+    --border: 216 18% 20%;
+    --input: 216 16% 22%;
     --ring: 217 91% 65%;
 
     --chart-1: 217 91% 65%;
@@ -117,6 +117,12 @@
     font-feature-settings: 'cv11', 'ss01', 'liga', 'calt';
     letter-spacing: -0.011em;
     text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+    min-width: 0;
+  }
+
+  html {
+    overflow-x: hidden;
   }
 
   h1,
@@ -181,11 +187,32 @@
 }
 
 @layer components {
+  /* Layered surfaces — background → section → card → raised */
+  .surface-page {
+    @apply bg-muted/25 dark:bg-background;
+  }
+
+  .surface-card {
+    @apply rounded-xl border border-border/70 bg-card text-card-foreground shadow-sm;
+  }
+
+  .surface-raised {
+    @apply rounded-xl border border-border/80 bg-card text-card-foreground shadow-md;
+  }
+
+  .section-heading {
+    @apply text-base font-semibold tracking-tight sm:text-lg;
+  }
+
+  .section-description {
+    @apply text-sm text-muted-foreground;
+  }
+
   /* Frosted glass surface for premium headers/overlays */
   .glass {
-    background-color: hsl(var(--card) / 0.72);
-    backdrop-filter: saturate(180%) blur(12px);
-    -webkit-backdrop-filter: saturate(180%) blur(12px);
+    background-color: hsl(var(--card) / 0.78);
+    backdrop-filter: saturate(160%) blur(14px);
+    -webkit-backdrop-filter: saturate(160%) blur(14px);
   }
 
   /* Gradient brand text (logos, hero numbers) */
@@ -277,12 +304,12 @@
   .election-countdown--voting-upcoming {
     --cd-chip-bg: hsl(var(--primary) / 0.1);
     --cd-chip-border: hsl(var(--primary) / 0.2);
-    --cd-chip-text: hsl(224 76% 40%);
+    --cd-chip-text: hsl(var(--accent-foreground));
     --cd-glow-a: hsl(var(--primary) / 0.12);
     --cd-glow-b: hsl(var(--primary) / 0.06);
     --cd-digit-bg: hsl(var(--primary) / 0.08);
     --cd-digit-border: hsl(var(--primary) / 0.16);
-    --cd-digit-accent: hsl(224 76% 40%);
+    --cd-digit-accent: hsl(var(--accent-foreground));
     --cd-date-bg: hsl(var(--primary) / 0.08);
     --cd-date-border: hsl(var(--primary) / 0.16);
     border-color: hsl(var(--primary) / 0.16);
@@ -306,7 +333,7 @@
 
   .election-countdown--applications-open {
     --cd-chip-bg: hsl(var(--success) / 0.1);
-    --cd-chip-text: hsl(142 65% 30%);
+    --cd-chip-text: hsl(var(--success));
     --cd-glow-a: hsl(var(--success) / 0.1);
     --cd-glow-b: hsl(var(--primary) / 0.08);
     --cd-digit-bg: hsl(var(--success) / 0.07);
@@ -325,7 +352,7 @@
   .election-countdown--voting-open {
     --cd-digit-accent: hsl(var(--primary));
     --cd-chip-bg: hsl(var(--primary) / 0.1);
-    --cd-chip-text: hsl(224 76% 40%);
+    --cd-chip-text: hsl(var(--accent-foreground));
     --cd-glow-a: hsl(var(--primary) / 0.12);
     --cd-glow-b: hsl(var(--chart-3) / 0.08);
     --cd-digit-bg: hsl(var(--primary) / 0.08);
@@ -450,9 +477,55 @@
 
   /* Responsive table wrapper — horizontal scroll on narrow viewports */
   .table-scroll-wrapper {
+    position: relative;
     -webkit-overflow-scrolling: touch;
     overflow-x: auto;
     overscroll-behavior-x: contain;
+    width: 100%;
+  }
+
+  /* Full-bleed header band — fills card edges, not just th cell boxes */
+  .table-scroll-wrapper:has(thead)::before {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2.75rem;
+    background-color: hsl(var(--muted) / 0.4);
+    border-bottom: 1px solid hsl(var(--border) / 0.6);
+    pointer-events: none;
+  }
+
+  .table-scroll-wrapper > table {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    min-width: 100%;
+    table-layout: fixed;
+  }
+
+  .table-scroll-wrapper thead,
+  .table-scroll-wrapper thead th {
+    background-color: transparent !important;
+  }
+
+  .table-scroll-wrapper thead th {
+    border-bottom-color: transparent;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .table-scroll-wrapper tbody td {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* Keep a little space between interior columns only */
+  .table-scroll-wrapper thead th:not(:first-child),
+  .table-scroll-wrapper tbody td:not(:first-child) {
+    padding-left: 0.75rem !important;
   }
 
   .table-scroll-wrapper::-webkit-scrollbar {
@@ -481,6 +554,7 @@
     border: 1px solid hsl(var(--border));
     background: hsl(var(--card));
     transition: background 0.15s ease, box-shadow 0.15s ease;
+    min-width: 0;
   }
 
   .mobile-card-list > .mobile-card-item:active {

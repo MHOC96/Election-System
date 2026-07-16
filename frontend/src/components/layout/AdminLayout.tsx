@@ -5,7 +5,7 @@ import { Vote, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
 import { adminNavItems } from '@/lib/navigation'
-import { shellContentClass } from '@/lib/design-tokens'
+import { shellContentClass, shellCanvasClass, brandMarkClass, shellHeaderBarClass } from '@/lib/design-tokens'
 import { warmAdminConsole, resetConsoleWarmupState } from '@/lib/prefetch'
 import { MobileNavSheet } from '@/components/layout/MobileNavSheet'
 import { AdminSidebarFooter } from '@/components/layout/AdminSidebarFooter'
@@ -14,6 +14,7 @@ import { SidebarNav } from '@/components/layout/SidebarNav'
 import { SkipToContent } from '@/components/shared/SkipToContent'
 import { MAIN_CONTENT_ID } from '@/lib/a11y'
 import { notifyError } from '@/lib/notify'
+import { cn } from '@/lib/utils'
 
 export function AdminLayout() {
   const { user, logout } = useAuth()
@@ -44,19 +45,19 @@ export function AdminLayout() {
   }, [isLoggingOut, logout, navigate, queryClient])
 
   return (
-    <div className="flex min-h-screen bg-muted/30">
+    <div className={cn('flex min-h-screen min-w-0', shellCanvasClass)}>
       <SkipToContent />
       <aside className="hidden w-64 shrink-0 flex-col border-r bg-background lg:flex">
-        <div className="border-b px-6 py-5">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-brand text-white shadow-sm">
-              <Vote className="h-[18px] w-[18px]" aria-hidden="true" />
+        <div className={cn(shellHeaderBarClass, 'border-b px-6')}>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className={cn(brandMarkClass, 'h-8 w-8 shrink-0')}>
+              <Vote className="h-4 w-4" aria-hidden="true" />
             </div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            <div className="min-w-0 leading-none">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                 Election System
               </p>
-              <p className="text-sm font-semibold leading-tight">Admin Console</p>
+              <p className="mt-0.5 truncate text-sm font-semibold leading-tight">Admin Console</p>
             </div>
           </div>
         </div>
@@ -70,7 +71,12 @@ export function AdminLayout() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="glass sticky top-0 z-40 w-full border-b">
-          <div className="flex h-14 w-full items-center gap-1 px-2 sm:gap-2 sm:px-4 lg:px-8">
+          <div
+            className={cn(
+              shellHeaderBarClass,
+              'w-full gap-1 px-2 sm:gap-2 sm:px-4 lg:px-8',
+            )}
+          >
             <Button
               type="button"
               variant="ghost"
@@ -83,7 +89,7 @@ export function AdminLayout() {
             </Button>
 
             <Link to="/admin" className="flex min-w-0 flex-1 items-center gap-2 lg:hidden">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-brand text-white shadow-sm">
+              <div className={cn(brandMarkClass, 'h-8 w-8 shrink-0 rounded-lg')}>
                 <Vote className="h-4 w-4" aria-hidden="true" />
               </div>
               <span className="truncate text-sm font-semibold">Admin Console</span>
@@ -102,7 +108,7 @@ export function AdminLayout() {
           </div>
         </header>
 
-        <main id={MAIN_CONTENT_ID} className="flex-1 p-4 lg:p-8" tabIndex={-1}>
+        <main id={MAIN_CONTENT_ID} className="min-w-0 flex-1 p-4 lg:p-8" tabIndex={-1}>
           <div className={shellContentClass}>
             <Outlet />
           </div>
@@ -113,7 +119,6 @@ export function AdminLayout() {
         open={mobileNavOpen}
         onOpenChange={setMobileNavOpen}
         title="Admin Console"
-        description="Election management"
         items={adminNavItems}
         prefetchScope="admin"
         footer={<AdminSidebarFooter />}

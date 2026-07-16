@@ -58,6 +58,7 @@ export default {
         },
       },
       borderRadius: {
+        '3xl': 'calc(var(--radius) + 12px)',
         '2xl': 'calc(var(--radius) + 8px)',
         xl: 'calc(var(--radius) + 4px)',
         lg: 'var(--radius)',
@@ -74,6 +75,11 @@ export default {
         md: 'var(--shadow-md)',
         lg: 'var(--shadow-lg)',
         xl: 'var(--shadow-xl)',
+      },
+      transitionDuration: {
+        DEFAULT: '200ms',
+        fast: '150ms',
+        slow: '250ms',
       },
       transitionTimingFunction: {
         'out-expo': 'cubic-bezier(0.16, 1, 0.3, 1)',

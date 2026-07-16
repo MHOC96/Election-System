@@ -24,11 +24,12 @@ import { sectionDelays, Stagger } from '@/components/motion/Stagger'
 import { FormField } from '@/components/design-system/FormField'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { restoreBodyPointerEvents } from '@/lib/pointer-events'
-import { pageLayoutClass } from '@/lib/design-tokens'
+import { pageLayoutClass, responsiveTableDesktopClass, responsiveTableMobileClass, dataTableShellClass, dataTableScrollClass } from '@/lib/design-tokens'
 import { POSITIONS_QUERY_KEY, POSITIONS_STALE_MS } from '@/lib/query-sync'
 import { positionSchema, type PositionForm } from '@/lib/form-schemas'
 import type { Position } from '@/types/api'
 import { notifyError } from '@/lib/notify'
+import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 
 export function PositionsPage() {
@@ -129,7 +130,7 @@ export function PositionsPage() {
       </Stagger>
 
       <Stagger delayMs={sectionDelays.primary}>
-      <Card>
+      <Card className={dataTableShellClass}>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="space-y-2 p-6">
@@ -151,7 +152,7 @@ export function PositionsPage() {
           ) : (
             <>
               {/* Mobile card view */}
-              <div className="mobile-card-list md:hidden">
+              <div className={`mobile-card-list ${responsiveTableMobileClass}`}>
                 {filteredPositions.map((position) => (
                   <div key={position.id} className="mobile-card-item">
                     <div className="min-w-0 flex-1">
@@ -190,7 +191,7 @@ export function PositionsPage() {
               </div>
 
               {/* Desktop table view */}
-              <div className="hidden md:block">
+              <div className={cn(dataTableScrollClass, responsiveTableDesktopClass)}>
                 <Table>
                   <TableHeader>
                     <TableRow>

@@ -276,7 +276,7 @@ export function MemberApplicationStatusPage() {
           </div>
         ) : null}
         {election && isVotingStartPending(election) && election.voting_start_at ? (
-          <div className="mx-auto mt-6 w-full max-w-2xl">
+          <div className="mx-auto mt-6 w-full max-w-4xl">
             <CountdownExpiryWatcher
               targetAt={election.voting_start_at}
               onExpire={() => void queryClient.invalidateQueries({ queryKey: ONGOING_ELECTION_QUERY_KEY })}

@@ -1,4 +1,5 @@
 import { Loader2 } from 'lucide-react'
+import { shellCanvasClass } from '@/lib/design-tokens'
 import { cn } from '@/lib/utils'
 
 interface PageLoaderProps {
@@ -14,7 +15,7 @@ export function PageLoader({ className, fullScreen = false, shell = false }: Pag
     <div
       className={cn(
         'flex w-full items-center justify-center',
-        shell ? 'bg-muted/30' : 'bg-background',
+        shell ? shellCanvasClass : 'bg-background',
         fullScreen ? 'min-h-[100dvh]' : 'min-h-[40vh]',
         className,
       )}

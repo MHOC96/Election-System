@@ -53,19 +53,19 @@ export function Countdown({ targetDate, label = 'Starts in' }: CountdownProps) {
           <p>{label}</p>
         </div>
         <div className="grid grid-cols-4 gap-4 text-center w-full max-w-sm">
-          <div className="flex flex-col bg-background rounded-lg border shadow-sm p-2">
+          <div className="surface-card flex flex-col rounded-lg p-2">
             <span className="text-2xl font-bold text-foreground">{timeLeft.days}</span>
             <span className="text-xs text-muted-foreground uppercase tracking-wider">Days</span>
           </div>
-          <div className="flex flex-col bg-background rounded-lg border shadow-sm p-2">
+          <div className="surface-card flex flex-col rounded-lg p-2">
             <span className="text-2xl font-bold text-foreground">{timeLeft.hours}</span>
             <span className="text-xs text-muted-foreground uppercase tracking-wider">Hrs</span>
           </div>
-          <div className="flex flex-col bg-background rounded-lg border shadow-sm p-2">
+          <div className="surface-card flex flex-col rounded-lg p-2">
             <span className="text-2xl font-bold text-foreground">{timeLeft.minutes}</span>
             <span className="text-xs text-muted-foreground uppercase tracking-wider">Mins</span>
           </div>
-          <div className="flex flex-col bg-background rounded-lg border shadow-sm p-2">
+          <div className="surface-card flex flex-col rounded-lg p-2">
             <span className="text-2xl font-bold text-foreground">{timeLeft.seconds}</span>
             <span className="text-xs text-muted-foreground uppercase tracking-wider">Secs</span>
           </div>

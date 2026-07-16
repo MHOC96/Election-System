@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { DataTablePagination, DEFAULT_PAGE_SIZE } from '@/components/shared/DataTablePagination'
+import { responsiveTableDesktopClass, responsiveTableMobileClass, dataTableShellClass, dataTableScrollClass } from '@/lib/design-tokens'
 import { cn } from '@/lib/utils'
 
 interface DataTablePaginationConfig {
@@ -44,17 +45,17 @@ export function DataTable({
   className,
 }: DataTableProps) {
   return (
-    <Card className={className}>
+    <Card className={cn(dataTableShellClass, className)}>
       <CardContent className="p-0">
         {isLoading ? (
           <div className="divide-y">
-            <div className="flex items-center gap-4 bg-muted/40 px-6 py-3">
+            <div className="flex items-center gap-4 border-b border-border/60 bg-muted/40 px-0 py-3">
               <Skeleton className="h-3.5 w-28" />
               <Skeleton className="h-3.5 w-20" />
               <Skeleton className="ml-auto h-3.5 w-16" />
             </div>
             {Array.from({ length: skeletonRows }).map((_, i) => (
-              <div key={i} className="flex items-center gap-4 px-6 py-3.5">
+              <div key={i} className="flex items-center gap-4 px-0 py-3.5">
                 <Skeleton className="h-4 w-32" />
                 <Skeleton className="h-4 w-24" />
                 <Skeleton className="ml-auto h-8 w-8 rounded-lg" />
@@ -65,11 +66,12 @@ export function DataTable({
           <EmptyState icon={emptyIcon} title={emptyTitle} description={emptyDescription} />
         ) : (
           <>
-            {mobileView ? <div className="md:hidden">{mobileView}</div> : null}
+            {mobileView ? <div className={responsiveTableMobileClass}>{mobileView}</div> : null}
             <div
               className={cn(
-                'table-scroll-wrapper relative transition-opacity duration-150',
-                mobileView && 'hidden md:block',
+                dataTableScrollClass,
+                'relative transition-opacity duration-150',
+                mobileView && responsiveTableDesktopClass,
                 isRefreshing && 'opacity-60',
               )}
               aria-busy={isRefreshing}

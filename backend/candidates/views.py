@@ -8,8 +8,12 @@ from rest_framework.views import APIView
 from accounts.permissions import IsAdmin, IsAdminOrReadOnly
 from candidates.models import Candidate
 from candidates.pagination import CandidateListPagination
-from candidates.serializers import CandidatePhotoUploadSerializer, CandidateSerializer
-from candidates.services.cloudinary_service import upload_candidate_photo
+from candidates.serializers import (
+    CandidateApplicationDocumentUploadSerializer,
+    CandidatePhotoUploadSerializer,
+    CandidateSerializer,
+)
+from candidates.services.cloudinary_service import upload_candidate_document, upload_candidate_photo
 from candidates.services.deletion_service import clear_all_candidates
 from members.services.deletion_service import MemberDeletionNotAllowedError
 from positions.models import Position
@@ -245,6 +249,47 @@ class CandidatePhotoUploadView(APIView):
             actor=request.user,
             metadata={"public_id": result.get("public_id"), "photo_url": result.get("photo_url")},
         )
+
+        return Response(
+            {"success": True, "data": result},
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class CandidateDeclarationUploadView(APIView):
+    permission_classes = [IsAdmin]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        serializer = CandidateApplicationDocumentUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            result = upload_candidate_document(serializer.validated_data["document"])
+        except ValueError as exc:
+            return Response(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "upload_failed",
+                        "message": str(exc),
+                        "details": None,
+                    },
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as exc:
+            return Response(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "upload_failed",
+                        "message": "Failed to upload document to Cloudinary.",
+                        "details": str(exc),
+                    },
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
 
         return Response(
             {"success": True, "data": result},

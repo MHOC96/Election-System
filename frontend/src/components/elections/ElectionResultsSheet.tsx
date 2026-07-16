@@ -79,7 +79,7 @@ export function ElectionResultsSheet({ election, open, onOpenChange }: ElectionR
             </p>
           ) : (
             <>
-              <div className="grid gap-3 grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground">

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -20,7 +20,9 @@ import { FormField } from '@/components/design-system/FormField'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { sectionDelays, Stagger } from '@/components/motion/Stagger'
-import { pageLayoutClass } from '@/lib/design-tokens'
+import { getPaginationMeta } from '@/components/shared/DataTablePagination'
+import { pageLayoutClass, responsiveTableDesktopClass, responsiveTableMobileClass, dataTableScrollClass } from '@/lib/design-tokens'
+import { cn } from '@/lib/utils'
 import { notifyError, notifySuccess } from '@/lib/notify'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -30,6 +32,8 @@ const rejectSchema = z.object({
 })
 
 type RejectForm = z.infer<typeof rejectSchema>
+
+const APPLICATIONS_PAGE_SIZE = 20
 
 export function ApplicationReviewPage() {
   const queryClient = useQueryClient()
@@ -80,14 +84,26 @@ export function ApplicationReviewPage() {
         position: positionFilterId,
         search: searchQuery.trim() || undefined,
         page,
+        page_size: APPLICATIONS_PAGE_SIZE,
       }),
     enabled: !!ongoingElection && reviewOpen,
   })
 
   const applications = applicationsPage?.results ?? []
   const totalCount = applicationsPage?.count ?? 0
-  const pageSize = 20
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
+  const { totalPages } = getPaginationMeta(page, totalCount, APPLICATIONS_PAGE_SIZE)
+  const canGoPrevious = !!applicationsPage?.previous && page > 1
+  const canGoNext = !!applicationsPage?.next && page < totalPages
+
+  useEffect(() => {
+    setPage(1)
+  }, [activeStatusTab, activeYearTab, selectedPosition, searchQuery])
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages)
+    }
+  }, [page, totalPages])
 
   const groupedApplications = applications.reduce((acc, app) => {
     if (!acc[app.position_name]) acc[app.position_name] = []
@@ -265,7 +281,7 @@ export function ApplicationReviewPage() {
                         </div>
 
                         {/* Mobile card view */}
-                        <div className="md:hidden">
+                        <div className={responsiveTableMobileClass}>
                           <div className="divide-y">
                             {apps.map((app) => (
                               <div key={app.id} className="px-4 py-3 space-y-3">
@@ -283,19 +299,19 @@ export function ApplicationReviewPage() {
                                     <p className="text-xs text-muted-foreground">CPM: {app.cpm_number}</p>
                                   </div>
                                 </div>
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <Button variant="link" size="sm" asChild className="px-0 h-auto">
+                                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                                  <Button variant="link" size="sm" asChild className="h-auto w-fit px-0">
                                     <a href={app.declaration_file} target="_blank" rel="noopener noreferrer">
-                                      <FileText className="w-3.5 h-3.5 mr-1" />
-                                      Declaration <ExternalLink className="w-3 h-3 ml-1" />
+                                      <FileText className="mr-1 h-3.5 w-3.5" />
+                                      Declaration <ExternalLink className="ml-1 h-3 w-3" />
                                     </a>
                                   </Button>
                                   {activeStatusTab === 'PENDING_REVIEW' && (
-                                    <div className="ml-auto flex gap-1.5">
+                                    <div className="flex flex-wrap gap-2 sm:ml-auto">
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        className="h-8 text-green-600 border-green-200 hover:bg-green-50"
+                                        className="h-8 border-success/30 text-success hover:bg-success/10"
                                         onClick={() => handleApprove(app.id)}
                                         disabled={pendingId === app.id}
                                       >
@@ -316,7 +332,7 @@ export function ApplicationReviewPage() {
                                     <span className="text-xs text-destructive">{app.rejection_reason}</span>
                                   )}
                                   {activeStatusTab === 'APPROVED' && (
-                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 ml-auto">Approved</Badge>
+                                    <Badge variant="success" className="ml-auto">Approved</Badge>
                                   )}
                                 </div>
                               </div>
@@ -325,7 +341,7 @@ export function ApplicationReviewPage() {
                         </div>
 
                         {/* Desktop table view */}
-                        <div className="hidden md:block">
+                        <div className={cn(dataTableScrollClass, responsiveTableDesktopClass)}>
                           <Table>
                             <TableHeader>
                               <TableRow>
@@ -377,7 +393,7 @@ export function ApplicationReviewPage() {
                                       <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                        className="text-success hover:bg-success/10 hover:text-success"
                                         onClick={() => handleApprove(app.id)}
                                         disabled={pendingId === app.id}
                                       >
@@ -401,7 +417,7 @@ export function ApplicationReviewPage() {
                                   )}
                                   {activeStatusTab === 'APPROVED' && (
                                     <TableCell className="text-right">
-                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Approved</Badge>
+                                      <Badge variant="success">Approved</Badge>
                                     </TableCell>
                                   )}
                                 </TableRow>
@@ -422,7 +438,7 @@ export function ApplicationReviewPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={page <= 1}
+                    disabled={!canGoPrevious}
                     onClick={() => setPage((current) => Math.max(1, current - 1))}
                   >
                     Previous
@@ -430,7 +446,7 @@ export function ApplicationReviewPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={page >= totalPages}
+                    disabled={!canGoNext}
                     onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
                   >
                     Next

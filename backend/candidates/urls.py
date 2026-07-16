@@ -2,6 +2,7 @@ from django.urls import path
 
 from candidates.views import (
     CandidateClearAllView,
+    CandidateDeclarationUploadView,
     CandidateDetailView,
     CandidateListCreateView,
     CandidateModificationStatusView,
@@ -27,6 +28,7 @@ urlpatterns = [
     # Candidates
     path("modification-status/", CandidateModificationStatusView.as_view(), name="candidates-modification-status"),
     path("upload-photo/", CandidatePhotoUploadView.as_view(), name="candidates-upload-photo"),
+    path("upload-declaration/", CandidateDeclarationUploadView.as_view(), name="candidates-upload-declaration"),
     path("clear-all/", CandidateClearAllView.as_view(), name="candidates-clear-all"),
     path("", CandidateListCreateView.as_view(), name="candidates-list-create"),
     path("<int:pk>/", CandidateDetailView.as_view(), name="candidates-detail"),

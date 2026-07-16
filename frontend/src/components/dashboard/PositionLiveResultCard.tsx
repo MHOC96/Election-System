@@ -2,6 +2,7 @@ import { memo } from 'react'
 import { Crown, Medal } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { transitionInteractive } from '@/lib/design-tokens'
 import { cn, formatPercent } from '@/lib/utils'
 import type { CandidateRanking } from '@/types/api'
 
@@ -149,11 +150,13 @@ export const PositionLiveResultCard = memo(function PositionLiveResultCard({
   return (
     <Card
       className={cn(
-        'overflow-hidden border shadow-sm transition-shadow hover:shadow-md',
+        'overflow-hidden',
+        transitionInteractive,
+        'hover:shadow-md',
         className,
       )}
     >
-      <CardHeader className="space-y-3 border-b bg-muted/30 px-4 pb-4 sm:px-6">
+      <CardHeader className="space-y-3 border-b border-border/60 bg-muted/20 px-4 pb-4 sm:px-6">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base font-semibold leading-tight">{positionName}</CardTitle>
           {hasVotes && (

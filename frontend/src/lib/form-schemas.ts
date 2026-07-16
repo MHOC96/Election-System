@@ -46,6 +46,7 @@ export const candidateSchema = z.object({
   academic_year: z.enum(['2nd Year', '3rd Year']),
   position: z.number().min(1, 'Position is required'),
   photo_url: z.string().url('Photo URL is required'),
+  declaration_file: z.string().url('Declaration PDF is required'),
 })
 
 export type CandidateForm = z.infer<typeof candidateSchema>

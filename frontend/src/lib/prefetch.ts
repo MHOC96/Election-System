@@ -11,6 +11,8 @@ import {
   ONGOING_ELECTION_QUERY_KEY,
   POSITIONS_QUERY_KEY,
   POSITIONS_STALE_MS,
+  REPORTS_STATUS_QUERY_KEY,
+  REPORTS_STATUS_STALE_MS,
 } from '@/lib/query-sync'
 import { scheduleIdle } from '@/lib/schedule-idle'
 import {
@@ -174,8 +176,19 @@ function prefetchElectionsData(queryClient: QueryClient) {
   })
 }
 
+function prefetchReportsData(queryClient: QueryClient) {
+  void import('@/api/reports').then(({ fetchReportsStatus }) => {
+    void queryClient.prefetchQuery({
+      queryKey: REPORTS_STATUS_QUERY_KEY,
+      queryFn: fetchReportsStatus,
+      staleTime: REPORTS_STATUS_STALE_MS,
+    })
+  })
+}
+
 function prefetchSecondaryAdminData(queryClient: QueryClient) {
   prefetchPositions(queryClient)
+  prefetchReportsData(queryClient)
 }
 
 /** Warm admin console after login or when the admin shell mounts. */
@@ -252,6 +265,7 @@ export function prefetchAdminNavRoute(to: string, queryClient: QueryClient) {
       break
     case '/admin/reports':
       void ReportsPage.preload()
+      prefetchReportsData(queryClient)
       break
     default:
       prefetchedNavRoutes.delete(routeKey)

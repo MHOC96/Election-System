@@ -35,6 +35,9 @@ export function DataTablePagination({
   className,
 }: DataTablePaginationProps) {
   const { totalPages, start, end } = getPaginationMeta(page, totalCount, pageSize)
+  const safePage = Math.min(Math.max(page, 1), totalPages)
+  const canGoPrevious = hasPrevious && safePage > 1
+  const canGoNext = hasNext && safePage < totalPages
 
   return (
     <div
@@ -57,7 +60,7 @@ export function DataTablePagination({
             <span className="hidden sm:inline">
               {' '}
               · Page{' '}
-              <span className="font-medium text-foreground tabular-nums">{page}</span> of{' '}
+              <span className="font-medium text-foreground tabular-nums">{safePage}</span> of{' '}
               <span className="font-medium text-foreground tabular-nums">{totalPages}</span>
             </span>
           </>
@@ -65,12 +68,12 @@ export function DataTablePagination({
       </div>
       <div className="flex items-center gap-2">
         <span className="text-xs text-muted-foreground sm:hidden tabular-nums">
-          Page {page} / {totalPages}
+          Page {safePage} / {totalPages}
         </span>
-        <Button variant="outline" size="sm" disabled={!hasPrevious} onClick={onPrevious}>
+        <Button variant="outline" size="sm" disabled={!canGoPrevious} onClick={onPrevious}>
           Previous
         </Button>
-        <Button variant="outline" size="sm" disabled={!hasNext} onClick={onNext}>
+        <Button variant="outline" size="sm" disabled={!canGoNext} onClick={onNext}>
           Next
         </Button>
       </div>

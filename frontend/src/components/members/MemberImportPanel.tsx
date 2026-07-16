@@ -332,7 +332,7 @@ export function MemberImportPanel({
       ) : null}
 
       {awaitingConfirm && filePreview ? (
-        <Card className="animate-fade-in-up overflow-hidden border shadow-sm">
+        <Card className="animate-fade-in-up overflow-hidden">
           <CardHeader className="border-b bg-muted/20 pb-4">
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-1">
@@ -369,14 +369,14 @@ export function MemberImportPanel({
             </div>
 
             {filePreview.preview.length > 0 ? (
-              <div className="table-scroll-wrapper rounded-lg border">
-                <table className="w-full min-w-[320px] text-sm">
-                  <thead className="border-b bg-muted/30 text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <div className="table-scroll-wrapper overflow-hidden rounded-lg border">
+                <table className="w-full min-w-[320px] border-collapse text-sm">
+                  <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
                     <tr>
-                      <th className="px-3 py-2 font-medium">Row</th>
-                      <th className="px-3 py-2 font-medium">CPM Number</th>
-                      <th className="px-3 py-2 font-medium">MC Number</th>
-                      <th className="px-3 py-2 font-medium">Status</th>
+                      <th className="h-11 border-0 bg-transparent px-3 py-2 font-medium sm:px-4">Row</th>
+                      <th className="h-11 border-0 bg-transparent px-3 py-2 font-medium sm:px-4">CPM Number</th>
+                      <th className="h-11 border-0 bg-transparent px-3 py-2 font-medium sm:px-4">MC Number</th>
+                      <th className="h-11 border-0 bg-transparent px-3 py-2 font-medium sm:px-4">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -437,7 +437,7 @@ export function MemberImportPanel({
       ) : null}
 
       {result ? (
-        <Card className="animate-fade-in-up overflow-hidden border shadow-sm">
+        <Card className="animate-fade-in-up overflow-hidden">
           <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 border-b bg-muted/20 pb-4">
             <div className="space-y-1">
               <CardTitle className="text-base">Import summary</CardTitle>

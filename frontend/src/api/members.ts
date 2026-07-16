@@ -13,7 +13,9 @@ const IMPORT_POLL_TIMEOUT_MS = 10 * 60 * 1000
 
 export { ASYNC_IMPORT_ROW_THRESHOLD }
 
-export async function fetchMembers(academicYear?: string, page = 1, pageSize = 50) {
+export const MEMBERS_PAGE_SIZE = 50
+
+export async function fetchMembers(academicYear?: string, page = 1, pageSize = MEMBERS_PAGE_SIZE) {
   const params: Record<string, string | number> = { page, page_size: pageSize }
   if (academicYear) params.academic_year = academicYear
   return apiGet<Paginated<Member>>('/members/', params)

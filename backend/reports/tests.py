@@ -1,5 +1,8 @@
+from datetime import timedelta
+
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -7,6 +10,7 @@ from accounts.models import User, UserRole
 from candidates.models import AcademicYear, Candidate
 from positions.models import Position
 from voting.models import Election, ElectionStatus, Vote
+from voting.services.election_lifecycle import archive_election, publish_results
 from voting.services.vote_service import submit_vote
 from voting.test_helpers import create_voting_open_election
 
@@ -43,6 +47,11 @@ class ReportsAPITestCase(TestCase):
             position_id=self.position.id,
             candidate_id=self.candidate.id,
         )
+        self.election.voting_end_at = timezone.now() - timedelta(minutes=5)
+        self.election.save(update_fields=["voting_end_at"])
+        publish_results(self.election)
+        archive_election(self.election)
+        self.election.refresh_from_db()
         self._login_admin()
 
     def _login_admin(self):
@@ -133,6 +142,38 @@ class ReportsAPITestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data["error"]["code"], "no_election")
 
+    def test_active_election_export_rejected(self):
+        active = create_voting_open_election(name="Active Election")
+        Candidate.objects.create(
+            full_name="Bob",
+            academic_year=AcademicYear.SECOND_YEAR,
+            photo_url="https://res.cloudinary.com/demo/image/upload/v1/b.jpg",
+            position=self.position,
+            election=active,
+        )
+        response = self.client.get(
+            reverse("reports-results"),
+            {"export_format": "csv", "election_id": active.id},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["error"]["code"], "election_not_archived")
+
+    def test_reports_status_without_archived_election(self):
+        Vote.objects.all().delete()
+        Candidate.objects.all().delete()
+        Election.objects.all().delete()
+        response = self.client.get(reverse("reports-status"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["data"]["available"])
+        self.assertEqual(response.data["data"]["archived_elections"], [])
+
+    def test_reports_status_with_archived_election(self):
+        response = self.client.get(reverse("reports-status"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["data"]["available"])
+        self.assertEqual(len(response.data["data"]["archived_elections"]), 1)
+        self.assertEqual(response.data["data"]["archived_elections"][0]["name"], "2026 Election")
+
 
 class ReportCandidateElectionScopeTestCase(TestCase):
     def setUp(self):
@@ -166,6 +207,13 @@ class ReportCandidateElectionScopeTestCase(TestCase):
     def test_candidates_report_only_includes_resolved_election(self):
         from reports.services.report_data import get_candidates_report_data
 
-        data = get_candidates_report_data(self.current_election.id)
+        data = get_candidates_report_data(self.old_election.id)
         self.assertEqual(len(data["rows"]), 1)
-        self.assertEqual(data["rows"][0]["full_name"], "Current Carol")
+        self.assertEqual(data["rows"][0]["full_name"], "Old Alice")
+
+    def test_candidates_report_rejects_non_archived_election(self):
+        from reports.services.report_data import ReportDataError, get_candidates_report_data
+
+        with self.assertRaises(ReportDataError) as exc:
+            get_candidates_report_data(self.current_election.id)
+        self.assertEqual(exc.exception.code, "election_not_archived")

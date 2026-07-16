@@ -31,6 +31,7 @@ class CandidateAPITestCase(TestCase):
         )
         self.position = Position.objects.create(name="President")
         self.photo_url = "https://res.cloudinary.com/demo/image/upload/v1/sample.jpg"
+        self.declaration_url = "https://res.cloudinary.com/demo/raw/upload/v1/declaration.pdf"
 
     def _login(self, cpm_number, mc_number):
         response = self.client.post(
@@ -68,6 +69,7 @@ class CandidateAPITestCase(TestCase):
                 "full_name": "Jane Doe",
                 "academic_year": AcademicYear.SECOND_YEAR,
                 "photo_url": self.photo_url,
+                "declaration_file": self.declaration_url,
                 "position": self.position.pk,
             },
             format="json",

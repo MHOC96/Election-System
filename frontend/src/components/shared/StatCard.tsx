@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { iconTileClass, transitionInteractive } from '@/lib/design-tokens'
 import { cn } from '@/lib/utils'
 
 interface StatCardProps {
@@ -21,25 +22,27 @@ export const StatCard = memo(function StatCard({
   return (
     <Card
       className={cn(
-        'group relative flex h-full flex-col overflow-hidden transition-all duration-200 ease-out-expo hover:-translate-y-0.5 hover:shadow-md',
+        'group relative flex h-full flex-col overflow-hidden',
+        transitionInteractive,
+        'hover:-translate-y-0.5 hover:border-border hover:shadow-md',
         className,
       )}
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-primary/[0.06] blur-2xl transition-opacity duration-300 group-hover:bg-primary/[0.1]"
+        className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-primary/[0.05] blur-2xl transition-opacity duration-200 group-hover:bg-primary/[0.08] dark:bg-primary/[0.08] dark:group-hover:bg-primary/[0.12]"
       />
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        {Icon && (
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-inset ring-primary/15">
+        {Icon ? (
+          <span className={iconTileClass}>
             <Icon className="h-4 w-4" aria-hidden="true" />
           </span>
-        )}
+        ) : null}
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-semibold tabular-nums tracking-tight sm:text-3xl">{value}</div>
-        {description && <p className="mt-1 text-xs text-muted-foreground">{description}</p>}
+        {description ? <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{description}</p> : null}
       </CardContent>
     </Card>
   )

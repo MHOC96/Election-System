@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { AlertTriangle, Plus, Trash2, UserCheck } from 'lucide-react'
+import { Plus, Trash2, UserCheck } from 'lucide-react'
 import {
   clearAllCandidates,
   createCandidate,
@@ -11,6 +11,7 @@ import {
   fetchModificationStatus,
   updateCandidate,
   uploadCandidatePhoto,
+  uploadCandidateDeclaration,
 } from '@/api/candidates'
 import { fetchPositions } from '@/api/positions'
 import { getApiErrorMessage } from '@/api/client'
@@ -38,7 +39,8 @@ import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { sectionDelays, Stagger } from '@/components/motion/Stagger'
 import { FormField } from '@/components/design-system/FormField'
 import { restoreBodyPointerEvents } from '@/lib/pointer-events'
-import { pageLayoutClass } from '@/lib/design-tokens'
+import { pageLayoutClass, pageHeaderBlockClass } from '@/lib/design-tokens'
+import { PageNotice } from '@/components/shared/PageNotice'
 import { optimizeCloudinaryUrl } from '@/lib/cloudinary'
 import { candidateSchema, type CandidateForm } from '@/lib/form-schemas'
 import { markQueriesStale, refreshDashboard, POSITIONS_QUERY_KEY, POSITIONS_STALE_MS } from '@/lib/query-sync'
@@ -49,11 +51,13 @@ import { notifyError, notifyInfo, notifyWarning } from '@/lib/notify'
 export function CandidatesPage() {
   const queryClient = useQueryClient()
   const fileRef = useRef<HTMLInputElement>(null)
+  const declarationRef = useRef<HTMLInputElement>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Candidate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Candidate | null>(null)
   const [clearAllOpen, setClearAllOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [uploadingDeclaration, setUploadingDeclaration] = useState(false)
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
 
   const { data: candidates, isLoading: candidatesLoading, isFetching, isError: candidatesError, refetch: refetchCandidates } = useQuery({
@@ -106,10 +110,11 @@ export function CandidatesPage() {
     formState: { errors },
   } = useForm<CandidateForm>({
     resolver: zodResolver(candidateSchema),
-    defaultValues: { academic_year: '2nd Year', photo_url: '' },
+    defaultValues: { academic_year: '2nd Year', photo_url: '', declaration_file: '' },
   })
 
   const photoUrl = watch('photo_url')
+  const declarationUrl = watch('declaration_file')
   const academicYear = watch('academic_year')
   const positionId = watch('position')
 
@@ -193,6 +198,7 @@ export function CandidatesPage() {
       academic_year: '2nd Year',
       position: preferredPositionId ?? positions[0].id,
       photo_url: '',
+      declaration_file: '',
     })
     setDialogOpen(true)
   }
@@ -208,6 +214,7 @@ export function CandidatesPage() {
       academic_year: candidate.academic_year,
       position: candidate.position,
       photo_url: candidate.photo_url,
+      declaration_file: candidate.declaration_file,
     })
     setDialogOpen(true)
   }
@@ -231,6 +238,25 @@ export function CandidatesPage() {
       setCropImageSrc(objectUrl)
     } catch {
       notifyError('Could not read the selected image')
+    }
+  }
+
+  const handleDeclarationSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      notifyError('Please choose a PDF file')
+      return
+    }
+    setUploadingDeclaration(true)
+    try {
+      const result = await uploadCandidateDeclaration(file)
+      setValue('declaration_file', result.document_url, { shouldValidate: true })
+    } catch (error) {
+      notifyError(getApiErrorMessage(error))
+    } finally {
+      setUploadingDeclaration(false)
     }
   }
 
@@ -283,47 +309,41 @@ export function CandidatesPage() {
   return (
     <div className={pageLayoutClass}>
       <Stagger delayMs={sectionDelays.header}>
-        <PageHeader
-          title="Candidates"
-          description="Candidates grouped by executive position"
-          action={
-            <div className="flex flex-col gap-2 w-full sm:w-auto sm:flex-row">
-              {canModifyCandidates && totalCandidates > 0 ? (
-                <Button
-                  variant="outline"
-                  className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  onClick={() => setClearAllOpen(true)}
-                  disabled={clearAllMutation.isPending}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  <span className="sm:hidden">Clear all</span>
-                  <span className="hidden sm:inline">Clear all candidates</span>
+        <div className={pageHeaderBlockClass}>
+          <PageHeader
+            title="Candidates"
+            description="Candidates grouped by executive position"
+            action={
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                {canModifyCandidates && totalCandidates > 0 ? (
+                  <Button
+                    variant="outline"
+                    className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => setClearAllOpen(true)}
+                    disabled={clearAllMutation.isPending}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span className="sm:hidden">Clear all</span>
+                    <span className="hidden sm:inline">Clear all candidates</span>
+                  </Button>
+                ) : null}
+                <Button onClick={() => openCreate()} disabled={!hasPositions || !canModifyCandidates}>
+                  <Plus className="h-4 w-4" />
+                  Add candidate
                 </Button>
-              ) : null}
-              <Button onClick={() => openCreate()} disabled={!hasPositions || !canModifyCandidates}>
-                <Plus className="h-4 w-4" />
-                Add candidate
-              </Button>
-            </div>
-          }
-        />
+              </div>
+            }
+          />
+          {showElectionLockedNotice ? (
+            <PageNotice>
+              Candidate changes are locked while an election is active or paused. Close the
+              current election to add, edit, or remove candidates.
+            </PageNotice>
+          ) : null}
+        </div>
       </Stagger>
 
-      {showElectionLockedNotice ? (
-        <Stagger delayMs={sectionDelays.primary}>
-          <Card className="border-warning/40 bg-warning/5">
-            <CardContent className="flex items-start gap-3 py-4">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden />
-              <p className="text-sm text-muted-foreground">
-                Candidate changes are locked while an election is active or paused. Close the
-                current election to add, edit, or remove candidates.
-              </p>
-            </CardContent>
-          </Card>
-        </Stagger>
-      ) : null}
-
-      <Stagger delayMs={showElectionLockedNotice ? sectionDelays.secondary : sectionDelays.primary}>
+      <Stagger delayMs={sectionDelays.primary}>
         <Card className={isRefreshing ? 'opacity-80 transition-opacity' : undefined}>
           <CardContent className="p-4 sm:p-6">
             {isLoading ? (
@@ -429,6 +449,40 @@ export function CandidatesPage() {
                     decoding="async"
                     className="h-12 w-12 rounded-full object-cover"
                   />
+                ) : null}
+              </div>
+            </FormField>
+            <FormField
+              label="Declaration Form (PDF)"
+              error={errors.declaration_file?.message}
+              required
+              hint="Upload the signed candidate declaration document."
+            >
+              <input
+                ref={declarationRef}
+                type="file"
+                accept="application/pdf"
+                className="hidden"
+                onChange={(e) => void handleDeclarationSelect(e)}
+              />
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => declarationRef.current?.click()}
+                  disabled={uploadingDeclaration}
+                >
+                  {uploadingDeclaration ? 'Uploading…' : declarationUrl ? 'Replace PDF' : 'Upload PDF'}
+                </Button>
+                {declarationUrl ? (
+                  <a
+                    href={declarationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium text-primary hover:underline"
+                  >
+                    View uploaded declaration
+                  </a>
                 ) : null}
               </div>
             </FormField>

@@ -4,12 +4,11 @@ from django.db.models import Count
 from accounts.models import User, UserRole
 from candidates.models import Candidate
 from dashboard.services.stats_service import (
-    _resolve_election,
     get_dashboard_summary,
     get_live_stats,
 )
 from positions.models import Position
-from voting.models import Vote
+from voting.models import Election, ElectionStatus, Vote
 
 
 class ReportDataError(Exception):
@@ -19,15 +18,33 @@ class ReportDataError(Exception):
         super().__init__(message)
 
 
-def _require_election(election_id: int | None = None):
-    election = _resolve_election(election_id)
+def _resolve_report_election(election_id: int | None = None) -> Election | None:
+    if election_id:
+        return Election.objects.filter(pk=election_id).first()
+    return (
+        Election.objects.filter(status=ElectionStatus.ARCHIVED)
+        .order_by("-created_at")
+        .first()
+    )
+
+
+def _require_archived_election(election_id: int | None = None) -> Election:
+    election = _resolve_report_election(election_id)
     if election is None:
-        raise ReportDataError("No election found for this report.", code="no_election")
+        raise ReportDataError(
+            "No archived election found. Reports are available after an election is archived.",
+            code="no_election",
+        )
+    if election.status != ElectionStatus.ARCHIVED:
+        raise ReportDataError(
+            "Reports are available only for archived elections.",
+            code="election_not_archived",
+        )
     return election
 
 
 def get_results_report_data(election_id: int | None = None, academic_year: str | None = None) -> dict:
-    election = _require_election(election_id)
+    election = _require_archived_election(election_id)
     stats = get_live_stats(election.id, use_cache=True, academic_year=academic_year)
     rows = []
     for position in stats["positions"]:
@@ -57,10 +74,8 @@ def get_results_report_data(election_id: int | None = None, academic_year: str |
 def get_candidates_report_data(election_id: int | None = None, academic_year: str | None = None) -> dict:
     from django.db.models import Q
 
-    election = _resolve_election(election_id)
-    candidates_qs = Candidate.objects.select_related("position")
-    if election:
-        candidates_qs = candidates_qs.filter(election_id=election.id)
+    election = _require_archived_election(election_id)
+    candidates_qs = Candidate.objects.select_related("position").filter(election_id=election.id)
     if academic_year:
         candidates_qs = candidates_qs.filter(Q(position__academic_year__isnull=True) | Q(position__academic_year=academic_year))
     candidates = candidates_qs.order_by("position__name", "full_name")
@@ -82,15 +97,13 @@ def get_candidates_report_data(election_id: int | None = None, academic_year: st
             "id": election.id,
             "name": election.name,
             "status": election.status,
-        }
-        if election
-        else None,
+        },
         "rows": rows,
     }
 
 
 def get_turnout_report_data(election_id: int | None = None, academic_year: str | None = None) -> dict:
-    election = _require_election(election_id)
+    election = _require_archived_election(election_id)
     summary = get_dashboard_summary(election.id, use_cache=True, academic_year=academic_year)
     rows = [
         {
@@ -121,7 +134,7 @@ def get_turnout_report_data(election_id: int | None = None, academic_year: str |
 
 
 def get_participation_report_data(election_id: int | None = None, academic_year: str | None = None) -> dict:
-    election = _require_election(election_id)
+    election = _require_archived_election(election_id)
     from voting.services.vote_service import count_votable_positions
 
     total_positions = count_votable_positions(

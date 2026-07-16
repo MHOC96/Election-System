@@ -56,7 +56,7 @@ export function PhotoCropDialog({ open, imageSrc, onCancel, onConfirm }: PhotoCr
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="relative h-64 overflow-hidden rounded-lg bg-muted">
+          <div className="relative h-48 overflow-hidden rounded-lg bg-muted sm:h-64">
             {imageSrc ? (
               <Cropper
                 image={imageSrc}

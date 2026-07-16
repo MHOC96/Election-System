@@ -34,7 +34,7 @@ export function CreatorCredit({ className }: CreatorCreditProps) {
       aria-label="Created by @MHOC96 — visit GitHub profile (opens in new tab)"
     >
       <span className="whitespace-nowrap">Created by</span>
-      <GitHubIcon className="h-3.5 w-3.5 text-[#1f2328] dark:text-[#e6edf3]" />
+      <GitHubIcon className="h-3.5 w-3.5 text-foreground/80" />
       <span className="whitespace-nowrap font-semibold text-foreground">@MHOC96</span>
     </a>
   )
@@ -74,7 +74,7 @@ export function CreatorFooter({ className, variant = 'default' }: CreatorFooterP
           )}
           aria-label="Visit MHOC on GitHub (opens in new tab)"
         >
-          <GitHubIcon className="h-4 w-4 text-[#1f2328] transition-transform duration-200 group-hover:scale-110 dark:text-[#e6edf3]" />
+          <GitHubIcon className="h-4 w-4 text-foreground/80 transition-transform duration-200 group-hover:scale-110 group-hover:text-primary" />
           <span className="bg-gradient-to-r from-foreground to-foreground bg-clip-text transition-colors group-hover:from-primary group-hover:to-primary">
             MHOC
           </span>

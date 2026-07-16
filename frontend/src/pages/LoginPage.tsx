@@ -16,7 +16,9 @@ import { getApiErrorMessage } from '@/api/client'
 import { MAIN_CONTENT_ID } from '@/lib/a11y'
 import { loginSchema, type LoginForm } from '@/lib/login-schema'
 import { notifyError } from '@/lib/notify'
+import { brandMarkClass } from '@/lib/design-tokens'
 import { PageLoader } from '@/components/shared/PageLoader'
+import { cn } from '@/lib/utils'
 
 const loginDefaultValues: LoginForm = {
   cpm_number: '',
@@ -71,7 +73,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="bg-grid relative flex min-h-[100dvh] flex-col bg-muted/30">
+    <div className="bg-grid relative flex min-h-[100dvh] flex-col surface-page">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 -z-0 h-72 bg-gradient-to-b from-primary/[0.07] to-transparent"
@@ -87,9 +89,9 @@ export function LoginPage() {
         tabIndex={-1}
         className="relative flex flex-1 flex-col items-center justify-start px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-4 outline-none sm:justify-center sm:py-8"
       >
-        <Card className="w-full max-w-md animate-scale-in border shadow-lg max-sm:scroll-mt-4">
+        <Card className="surface-raised w-full max-w-md animate-scale-in max-sm:scroll-mt-4">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-brand text-white shadow-md">
+            <div className={cn(brandMarkClass, 'mx-auto mb-3 h-14 w-14 rounded-2xl shadow-md')}>
               <Vote className="h-7 w-7" aria-hidden="true" />
             </div>
             <h1 className="text-2xl font-semibold leading-none tracking-tight">
@@ -98,7 +100,7 @@ export function LoginPage() {
             <CardDescription>
               {isSubmitting
                 ? 'Verifying your credentials…'
-                : 'Use your CPM Number and your MC Number (or Password) to access the election portal'}
+                : 'Sign in with your CPM Number. On your first login, use your MC Number as your password.'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -130,11 +132,12 @@ export function LoginPage() {
                 />
               </FormField>
               <FormField
-                label="MC Number / Password"
+                label="Password"
                 htmlFor="mc_number"
                 error={errors.mc_number?.message}
                 valid={Boolean(touchedFields.mc_number && !errors.mc_number)}
                 required
+                hint="First-time sign-in: enter your MC Number. After changing your password, use the new password here."
               >
                 <Controller
                   name="mc_number"
@@ -143,7 +146,6 @@ export function LoginPage() {
                     <PasswordInput
                       {...field}
                       id="mc_number"
-                      placeholder="Enter MC Number or Password"
                       autoComplete="current-password"
                       autoCapitalize="off"
                       autoCorrect="off"

@@ -26,12 +26,12 @@ const PasswordInput = React.forwardRef<HTMLInputElement, React.ComponentProps<ty
           onChange={onChange}
           onBlur={onBlur}
           type={visible ? 'text' : 'password'}
-          className={cn('pr-10', className)}
+          className={cn('pr-11', className)}
           {...props}
         />
         <button
           type="button"
-          className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+          className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-lg text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => setVisible((current) => !current)}
           aria-label={visible ? 'Hide password' : 'Show password'}

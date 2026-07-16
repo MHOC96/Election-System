@@ -54,6 +54,11 @@ export const ONGOING_ELECTION_POLL_MS = 15_000
 /** Keep below poll interval to avoid redundant refetches across member surfaces. */
 export const ONGOING_ELECTION_STALE_MS = 12_000
 
+export const REPORTS_STATUS_QUERY_KEY = ['reports-status'] as const
+
+/** Reports availability changes only after election archive. */
+export const REPORTS_STATUS_STALE_MS = 5 * 60 * 1000
+
 /** Fetch fresh data and write it directly into the query cache (bypasses staleTime). */
 export async function fetchAndSetQueryData<T>(
   queryClient: QueryClient,

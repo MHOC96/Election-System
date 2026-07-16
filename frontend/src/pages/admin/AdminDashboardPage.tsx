@@ -36,7 +36,7 @@ import { QueryErrorState } from '@/components/shared/QueryErrorState'
 
 import { StatCard } from '@/components/shared/StatCard'
 
-import { pageLayoutClass } from '@/lib/design-tokens'
+import { pageLayoutClass, sectionDescriptionClass, sectionHeadingClass, statGridClass, contentGridClass, pageHeaderBlockClass, insetPanelClass } from '@/lib/design-tokens'
 import {
   DASHBOARD_DEFAULT_ACADEMIC_YEAR,
   DASHBOARD_POLL_MS,
@@ -179,31 +179,25 @@ export function AdminDashboardPage() {
   return (
     <div className={pageLayoutClass}>
 
-      {/* ── Header: two-row layout ── */}
       <Stagger delayMs={dashboardDelays.header}>
-        <div className="space-y-3">
-          {/* Row 1: title + year filter tabs */}
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Dashboard</h1>
-              <p className="mt-0.5 text-sm text-muted-foreground">Election overview and live results</p>
-            </div>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="shrink-0">
-              <TabsList>
-                <TabsTrigger value="2nd Year">2nd Year</TabsTrigger>
-                <TabsTrigger value="3rd Year">3rd Year</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-
-          {/* Row 2: live indicator + election badge */}
+        <div className={pageHeaderBlockClass}>
+          <PageHeader
+            title="Dashboard"
+            description="Election overview and live results"
+            action={
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="shrink-0">
+                <TabsList>
+                  <TabsTrigger value="2nd Year">2nd Year</TabsTrigger>
+                  <TabsTrigger value="3rd Year">3rd Year</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            }
+          />
           <div className="flex flex-wrap items-center gap-2">
             <LiveUpdateIndicator
               isActive={isLive}
               updatedAt={dataUpdatedAt}
-              pollIntervalSeconds={
-                (isLive ? LIVE_POLL_INTERVAL_MS : SUMMARY_POLL_INTERVAL_MS) / 1000
-              }
+              pollIntervalSeconds={(isLive ? LIVE_POLL_INTERVAL_MS : SUMMARY_POLL_INTERVAL_MS) / 1000}
             />
             <Badge
               variant={isLive ? 'success' : 'secondary'}
@@ -218,26 +212,21 @@ export function AdminDashboardPage() {
         </div>
       </Stagger>
 
-      {/* ── Stat cards: 2-col mobile / 4-col xl, equal height via items-stretch ── */}
       <Stagger delayMs={dashboardDelays.primary}>
-        <StaggerChildren
-          className="grid grid-cols-2 items-stretch gap-3 sm:gap-4 xl:grid-cols-4"
-          staggerMs={30}
-        >
+        <StaggerChildren className={statGridClass} staggerMs={30}>
           {stats.map((stat) => (
-            <StatCard key={stat.title} {...stat} className="h-full border shadow-sm" />
+            <StatCard key={stat.title} {...stat} className="h-full" />
           ))}
         </StaggerChildren>
       </Stagger>
 
-      {/* ── Live results ── */}
       <Stagger delayMs={dashboardDelays.secondary}>
         <div>
-          <div className="mb-4 flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-warning" aria-hidden="true" />
+          <div className="mb-4 flex items-center gap-2.5">
+            <Trophy className="h-5 w-5 shrink-0 text-warning" aria-hidden="true" />
             <div>
-              <h2 className="text-base font-semibold sm:text-lg">Live results</h2>
-              <p className="text-sm text-muted-foreground">
+              <h2 className={sectionHeadingClass}>Live results</h2>
+              <p className={sectionDescriptionClass}>
                 Position turnout and vote share for leading candidates
               </p>
             </div>
@@ -250,11 +239,7 @@ export function AdminDashboardPage() {
               className="py-8"
             />
           ) : (
-            <StaggerChildren
-              className="grid gap-4 sm:gap-5 lg:grid-cols-2"
-              staggerMs={40}
-              initialDelayMs={0}
-            >
+            <StaggerChildren className={contentGridClass} staggerMs={40} initialDelayMs={0}>
               {positions.map((position) => {
                 const turnout = turnoutByPosition.get(position.position_id)
                 return (
@@ -283,10 +268,9 @@ export function AdminDashboardPage() {
           emptyTitle="No member data"
           emptyDescription="Import members to track participation."
         >
-          <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+          <div className="grid gap-8 lg:grid-cols-2 lg:items-stretch">
 
-            {/* Left: donut chart + summary pills */}
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-4">
               <div className="relative h-60 w-full overflow-hidden rounded-2xl border bg-gradient-to-br from-card via-card to-muted/20 p-3 ring-1 ring-border/60 sm:h-64">
                 <div
                   aria-hidden
@@ -300,7 +284,7 @@ export function AdminDashboardPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-3 sm:gap-2">
                 <div className="flex flex-col items-center justify-center gap-1 rounded-xl border bg-success/5 py-3 text-center ring-1 ring-inset ring-success/15">
                   <p className="text-lg font-bold tabular-nums leading-none text-success sm:text-xl">
                     {formatCount(summary.members_completed_ballot)}
@@ -322,17 +306,22 @@ export function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Right: votes by position */}
-            <div className="flex flex-col gap-3">
+            <div className={cn(insetPanelClass, 'flex min-h-[16rem] flex-col gap-4 lg:min-h-[20rem]')}>
               <div>
                 <h3 className="text-sm font-semibold">Votes by position</h3>
-                <p className="text-xs text-muted-foreground">
+                <p className="mt-1 text-xs text-muted-foreground">
                   Members who voted for each executive position
                 </p>
               </div>
 
               {positionTurnout.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No positions configured yet.</p>
+                <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-border/70 bg-background/40 px-4 py-10 text-center">
+                  <Vote className="mb-3 h-8 w-8 text-muted-foreground/50" aria-hidden="true" />
+                  <p className="text-sm font-medium text-foreground">No positions configured yet</p>
+                  <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+                    Add executive positions to see turnout breakdown by role.
+                  </p>
+                </div>
               ) : (
                 <StaggerChildren className="space-y-2.5" staggerMs={30} initialDelayMs={0}>
                   {positionTurnout.map((item) => (

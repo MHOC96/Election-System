@@ -16,9 +16,18 @@ from reports.services.pdf_style import (
 SUPPORTED_FORMATS = {"csv", "xlsx", "pdf"}
 
 
-def _filename(report_type: str, fmt: str) -> str:
+def _filename(report_type: str, fmt: str, data: dict | None = None) -> str:
     timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    return f"{report_type}_{timestamp}.{fmt}"
+    election_name = "election"
+    if data:
+        election = data.get("election") or {}
+        raw_name = election.get("name")
+        if raw_name:
+            election_name = "".join(
+                char if char.isalnum() or char in ("-", "_") else "_"
+                for char in str(raw_name).strip().replace(" ", "_")
+            )
+    return f"{report_type}_{election_name}_{timestamp}.{fmt}"
 
 
 def _election_header_lines(data: dict) -> list[str]:
@@ -42,7 +51,7 @@ def export_csv(report_type: str, headers: list[str], rows: list[list], data: dic
         writer.writerow(row)
 
     response = HttpResponse(buffer.getvalue(), content_type="text/csv")
-    response["Content-Disposition"] = f'attachment; filename="{_filename(report_type, "csv")}"'
+    response["Content-Disposition"] = f'attachment; filename="{_filename(report_type, "csv", data)}"'
     return response
 
 
@@ -79,7 +88,7 @@ def export_xlsx(
         buffer.read(),
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
-    response["Content-Disposition"] = f'attachment; filename="{_filename(report_type, "xlsx")}"'
+    response["Content-Disposition"] = f'attachment; filename="{_filename(report_type, "xlsx", data)}"'
     return response
 
 
@@ -136,7 +145,7 @@ def export_pdf(
     buffer.seek(0)
 
     response = HttpResponse(buffer.read(), content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="{_filename(report_type, "pdf")}"'
+    response["Content-Disposition"] = f'attachment; filename="{_filename(report_type, "pdf", data)}"'
     return response
 
 
@@ -229,7 +238,7 @@ def export_turnout(fmt: str, data: dict) -> HttpResponse:
         for row in buffer_rows:
             writer.writerow(row)
         response = HttpResponse(buffer.getvalue(), content_type="text/csv")
-        response["Content-Disposition"] = f'attachment; filename="{_filename("turnout", "csv")}"'
+        response["Content-Disposition"] = f'attachment; filename="{_filename("turnout", "csv", data)}"'
         return response
     if fmt == "xlsx":
         return export_xlsx(

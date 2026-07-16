@@ -56,7 +56,6 @@ export function CandidateApplicationPage() {
   const [isSubmittingApplication, setIsSubmittingApplication] = useState(false)
   const submitInFlightRef = useRef(false)
   const { user, isLoading: authLoading, refreshUser } = useAuth()
-  const originalMcNumber = user?.mc_number ?? ''
 
   const { data: ongoingElection, isLoading: loadingElection, isError: electionError, isFetching: fetchingElection, refetch: refetchElection } = useOngoingElection()
 
@@ -318,7 +317,7 @@ export function CandidateApplicationPage() {
       </Stagger>
 
       <Dialog open={!!selectedPosition} onOpenChange={(open) => !open && !isSubmittingApplication && closeDialog()}>
-        <DialogContent className="max-h-[90dvh] w-[calc(100vw-2rem)] max-w-lg overflow-y-auto rounded-xl sm:w-full">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Apply for Position</DialogTitle>
             <DialogDescription>
@@ -330,7 +329,7 @@ export function CandidateApplicationPage() {
               <Input id="full_name" autoComplete="name" disabled={isSubmittingApplication} {...register('full_name')} />
             </FormField>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-1">
               <FormField label="CPM Number" htmlFor="cpm_number" error={errors.cpm_number?.message} required>
                 <Input
                   id="cpm_number"
@@ -338,17 +337,6 @@ export function CandidateApplicationPage() {
                   autoComplete="off"
                   className="bg-muted cursor-not-allowed text-muted-foreground"
                   {...register('cpm_number')}
-                />
-              </FormField>
-
-              <FormField label="MC Number" htmlFor="mc_number_display" hint="Your original institutional MC number">
-                <Input
-                  id="mc_number_display"
-                  readOnly
-                  autoComplete="off"
-                  value={originalMcNumber}
-                  placeholder={authLoading ? 'Loading…' : 'Unavailable'}
-                  className="bg-muted cursor-not-allowed text-muted-foreground"
                 />
               </FormField>
             </div>
@@ -424,7 +412,7 @@ export function CandidateApplicationPage() {
                     type="checkbox"
                     id="declaration_agreed"
                     disabled={isSubmittingApplication}
-                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-brand focus:ring-brand"
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-input text-primary focus:ring-ring"
                     checked={field.value || false}
                     onChange={(e) => field.onChange(e.target.checked)}
                   />

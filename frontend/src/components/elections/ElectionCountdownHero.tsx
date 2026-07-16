@@ -27,6 +27,7 @@ type VariantCopy = {
   countdownLabel: string
   icon: LucideIcon
   centered?: boolean
+  responsiveHorizontal?: boolean
 }
 
 const variantCopy: Record<CountdownVariant, VariantCopy> = {
@@ -56,6 +57,7 @@ const variantCopy: Record<CountdownVariant, VariantCopy> = {
     countdownLabel: 'Opens in',
     icon: Vote,
     centered: true,
+    responsiveHorizontal: true,
   },
   'voting-open': {
     eyebrow: 'Executive election',
@@ -187,6 +189,31 @@ export function ElectionCountdownHero({
   const copy = variantCopy[variant]
   const Icon = copy.icon
   const centered = copy.centered === true
+  const responsiveHorizontal = copy.responsiveHorizontal === true
+
+  const datePill = targetAt ? (
+    <div
+      className={cn(
+        'inline-flex w-full items-center gap-2.5 rounded-2xl border px-4 py-3 text-sm backdrop-blur-sm sm:px-5',
+        responsiveHorizontal ? 'md:w-auto md:min-w-[15rem]' : 'max-w-md sm:w-auto',
+        centered && !responsiveHorizontal && 'justify-center',
+        centered && responsiveHorizontal && 'justify-center md:justify-start',
+      )}
+      style={{
+        background: 'var(--cd-date-bg)',
+        borderColor: 'var(--cd-date-border)',
+        color: 'var(--cd-date-text)',
+      }}
+    >
+      <CalendarClock className="h-4 w-4 shrink-0 opacity-80" aria-hidden="true" />
+      <span className="min-w-0 text-left">
+        <span className="block text-[11px] font-semibold uppercase tracking-wide opacity-70 sm:text-xs">
+          {copy.targetPrefix}
+        </span>
+        <span className="block font-medium leading-snug">{formatDate(targetAt)}</span>
+      </span>
+    </div>
+  ) : null
 
   return (
     <section
@@ -212,13 +239,93 @@ export function ElectionCountdownHero({
       <div
         className={cn(
           'relative space-y-5 sm:space-y-6',
-          centered && 'mx-auto flex max-w-2xl flex-col items-center',
+          centered && !responsiveHorizontal && 'mx-auto flex max-w-2xl flex-col items-center',
+          responsiveHorizontal && 'mx-auto w-full max-w-4xl',
         )}
       >
-        {centered ? (
+        {responsiveHorizontal ? (
+          <>
+            <div className="flex flex-col items-center gap-3 text-center md:hidden">
+              <div
+                className="surface-card flex h-14 w-14 items-center justify-center rounded-2xl"
+                style={{
+                  background: 'var(--cd-chip-bg)',
+                  borderColor: 'var(--cd-chip-border)',
+                  color: 'var(--cd-chip-text)',
+                }}
+              >
+                <Icon className="h-7 w-7" aria-hidden="true" />
+              </div>
+              <div
+                className="inline-flex max-w-full items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold backdrop-blur-sm sm:text-xs"
+                style={{
+                  background: 'var(--cd-chip-bg)',
+                  borderColor: 'var(--cd-chip-border)',
+                  color: 'var(--cd-chip-text)',
+                }}
+              >
+                <span>{copy.eyebrow}</span>
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--cd-title)' }}>
+                  {copy.title}
+                </h2>
+                {copy.description ? (
+                  <p className="mx-auto max-w-lg text-sm leading-relaxed text-balance" style={{ color: 'var(--cd-subtitle)' }}>
+                    {copy.description}
+                  </p>
+                ) : null}
+                <p className="text-sm font-medium text-foreground/75">{electionName}</p>
+              </div>
+              {datePill}
+            </div>
+
+            <div className="hidden md:grid md:grid-cols-[minmax(0,1fr)_auto] md:items-start md:gap-8">
+              <div className="min-w-0 space-y-3">
+                <div className="flex items-start gap-4">
+                  <div
+                    className="surface-card flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl"
+                    style={{
+                      background: 'var(--cd-chip-bg)',
+                      borderColor: 'var(--cd-chip-border)',
+                      color: 'var(--cd-chip-text)',
+                    }}
+                  >
+                    <Icon className="h-7 w-7" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0 space-y-2">
+                    <div
+                      className="inline-flex max-w-full items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold backdrop-blur-sm"
+                      style={{
+                        background: 'var(--cd-chip-bg)',
+                        borderColor: 'var(--cd-chip-border)',
+                        color: 'var(--cd-chip-text)',
+                      }}
+                    >
+                      <span>{copy.eyebrow}</span>
+                    </div>
+                    <h2 className="text-3xl font-bold tracking-tight" style={{ color: 'var(--cd-title)' }}>
+                      {copy.title}
+                    </h2>
+                    {copy.description ? (
+                      <p className="max-w-2xl text-base leading-relaxed" style={{ color: 'var(--cd-subtitle)' }}>
+                        {copy.description}
+                      </p>
+                    ) : null}
+                    <p className="text-sm font-medium text-foreground/75">{electionName}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex shrink-0 flex-col items-stretch gap-4 md:items-end md:pt-1">
+                {datePill}
+                <CountdownDisplay targetAt={targetAt} label={copy.countdownLabel} centered={false} />
+              </div>
+            </div>
+          </>
+        ) : centered ? (
           <div className="flex flex-col items-center gap-3 sm:gap-4">
             <div
-              className="flex h-14 w-14 items-center justify-center rounded-2xl border shadow-sm sm:h-16 sm:w-16"
+              className="surface-card flex h-14 w-14 items-center justify-center rounded-2xl sm:h-16 sm:w-16"
               style={{
                 background: 'var(--cd-chip-bg)',
                 borderColor: 'var(--cd-chip-border)',
@@ -257,24 +364,7 @@ export function ElectionCountdownHero({
               <p className="text-sm font-medium text-foreground/75 sm:text-base">{electionName}</p>
             </div>
 
-            {targetAt ? (
-              <div
-                className="inline-flex w-full max-w-md items-center justify-center gap-2.5 rounded-2xl border px-4 py-3 text-sm backdrop-blur-sm sm:w-auto sm:px-5"
-                style={{
-                  background: 'var(--cd-date-bg)',
-                  borderColor: 'var(--cd-date-border)',
-                  color: 'var(--cd-date-text)',
-                }}
-              >
-                <CalendarClock className="h-4 w-4 shrink-0 opacity-80" aria-hidden="true" />
-                <span className="min-w-0 text-left sm:text-center">
-                  <span className="block text-[11px] font-semibold uppercase tracking-wide opacity-70 sm:text-xs">
-                    {copy.targetPrefix}
-                  </span>
-                  <span className="block font-medium leading-snug">{formatDate(targetAt)}</span>
-                </span>
-              </div>
-            ) : null}
+            {datePill}
           </div>
         ) : (
           <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-start md:justify-between">
@@ -350,11 +440,21 @@ export function ElectionCountdownHero({
 
         {copy.centered ? <VotingTimeline centered /> : null}
 
-        <CountdownDisplay
-          targetAt={targetAt}
-          label={copy.countdownLabel}
-          centered={centered}
-        />
+        {!responsiveHorizontal ? (
+          <CountdownDisplay
+            targetAt={targetAt}
+            label={copy.countdownLabel}
+            centered={centered}
+          />
+        ) : (
+          <div className="md:hidden">
+            <CountdownDisplay
+              targetAt={targetAt}
+              label={copy.countdownLabel}
+              centered
+            />
+          </div>
+        )}
       </div>
     </section>
   )

@@ -1,3 +1,14 @@
+export function joinLocalDateTime(date: string, time: string): string {
+  if (!date) return ''
+  return `${date}T${time || '00:00'}`
+}
+
+export function splitLocalDateTime(value: string | undefined | null): { date: string; time: string } {
+  if (!value) return { date: '', time: '' }
+  const [date, timePart] = value.split('T')
+  return { date: date ?? '', time: (timePart ?? '').slice(0, 5) }
+}
+
 /** Convert `<input type="datetime-local">` value (local wall time) to UTC ISO for the API. */
 export function localInputToIso(value: string | undefined | null): string | undefined {
   if (!value) return undefined

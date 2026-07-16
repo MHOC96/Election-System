@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronRight, Lock, Play, Plus, Trash2, Vote } from 'lucide-react'
@@ -37,6 +37,7 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { sectionDelays, Stagger, StaggerChildren } from '@/components/motion/Stagger'
 import { FormField } from '@/components/design-system/FormField'
+import { DateTimeSplitInput } from '@/components/design-system/DateTimeSplitInput'
 import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import { fetchMembers } from '@/api/members'
@@ -70,6 +71,7 @@ export function ElectionsPage() {
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
@@ -262,11 +264,6 @@ export function ElectionsPage() {
     }
   }
 
-  const requestDeleteFromEdit = () => {
-    if (!editingElection) return
-    setDeleteTarget(editingElection)
-  }
-
   const getDeleteDescription = (election: Election) => {
     if (election.status === 'DRAFT') {
       return `Delete "${election.name}"? This cannot be undone.`
@@ -425,7 +422,9 @@ export function ElectionsPage() {
       </Button>,
     )
     
-    return actions.length ? <div className="flex flex-wrap gap-2">{actions}</div> : null
+    return actions.length ? (
+      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">{actions}</div>
+    ) : null
   }
 
   if (isError && !elections) {
@@ -553,7 +552,11 @@ export function ElectionsPage() {
                       </>
                     ) : null}
                   </div>
-                  <div onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
+                  <div
+                    className="w-full shrink-0 sm:w-auto"
+                    onClick={(event) => event.stopPropagation()}
+                    onKeyDown={(event) => event.stopPropagation()}
+                  >
                     {renderActions(election)}
                   </div>
                 </CardHeader>
@@ -570,32 +573,69 @@ export function ElectionsPage() {
             <DialogTitle>{editingElection ? 'Edit Election' : 'Create Election'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={(e) => void handleSubmit(onCreateSubmit)(e)} className="space-y-4">
-            <FormField
-              label="Election Name"
-              htmlFor="election-name"
-              error={errors.name?.message}
-              required
-            >
-              <Input
-                id="election-name"
-                placeholder="e.g. 2026 Executive Election"
-                {...register('name')}
-              />
-            </FormField>
-            
+            {!editingElection ? (
+              <FormField
+                label="Election Name"
+                htmlFor="election-name"
+                error={errors.name?.message}
+                required
+              >
+                <Input
+                  id="election-name"
+                  placeholder="e.g. 2026 Executive Election"
+                  {...register('name')}
+                />
+              </FormField>
+            ) : (
+              <div className="rounded-lg border border-border/70 bg-muted/20 px-4 py-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Election
+                </p>
+                <p className="mt-1 font-semibold text-foreground">{editingElection.name}</p>
+              </div>
+            )}
+
             {showApplicationFieldsInEdit ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField label="Applications Start" htmlFor="application_start_at" error={errors.application_start_at?.message}>
-                  <Input
-                    id="application_start_at"
-                    type="datetime-local"
-                    disabled={!!editingElection && editingElection.status !== 'DRAFT'}
-                    {...register('application_start_at')}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <FormField
+                  label="Applications Start"
+                  htmlFor="application_start_at"
+                  error={errors.application_start_at?.message}
+                  hint="Select the date and time applications open."
+                >
+                  <Controller
+                    name="application_start_at"
+                    control={control}
+                    render={({ field }) => (
+                      <DateTimeSplitInput
+                        id="application_start_at"
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        disabled={!!editingElection && editingElection.status !== 'DRAFT'}
+                      />
+                    )}
                   />
                 </FormField>
 
-                <FormField label="Applications End" htmlFor="application_end_at" error={errors.application_end_at?.message}>
-                  <Input id="application_end_at" type="datetime-local" {...register('application_end_at')} />
+                <FormField
+                  label="Applications End"
+                  htmlFor="application_end_at"
+                  error={errors.application_end_at?.message}
+                  hint="Select the date and time applications close."
+                >
+                  <Controller
+                    name="application_end_at"
+                    control={control}
+                    render={({ field }) => (
+                      <DateTimeSplitInput
+                        id="application_end_at"
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                      />
+                    )}
+                  />
                 </FormField>
               </div>
             ) : null}
@@ -603,21 +643,46 @@ export function ElectionsPage() {
             {showVotingFieldsInEdit ? (
               <div className="grid grid-cols-1 gap-4 border-t pt-4">
                 {editingElection?.current_phase === 'READY_FOR_VOTING' ? (
-                  // Pre-voting: both fields editable + require toggle
                   <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField label="Voting Start" htmlFor="edit_voting_start_at" error={errors.voting_start_at?.message} required>
-                        <Input
-                          id="edit_voting_start_at"
-                          type="datetime-local"
-                          {...register('voting_start_at')}
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <FormField
+                        label="Voting Start"
+                        htmlFor="edit_voting_start_at"
+                        error={errors.voting_start_at?.message}
+                        required
+                        hint="When members can begin casting votes."
+                      >
+                        <Controller
+                          name="voting_start_at"
+                          control={control}
+                          render={({ field }) => (
+                            <DateTimeSplitInput
+                              id="edit_voting_start_at"
+                              value={field.value ?? ''}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                            />
+                          )}
                         />
                       </FormField>
-                      <FormField label="Voting End" htmlFor="edit_voting_end_at" error={errors.voting_end_at?.message} required>
-                        <Input
-                          id="edit_voting_end_at"
-                          type="datetime-local"
-                          {...register('voting_end_at')}
+                      <FormField
+                        label="Voting End"
+                        htmlFor="edit_voting_end_at"
+                        error={errors.voting_end_at?.message}
+                        required
+                        hint="When voting closes for all members."
+                      >
+                        <Controller
+                          name="voting_end_at"
+                          control={control}
+                          render={({ field }) => (
+                            <DateTimeSplitInput
+                              id="edit_voting_end_at"
+                              value={field.value ?? ''}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                            />
+                          )}
                         />
                       </FormField>
                     </div>
@@ -625,7 +690,7 @@ export function ElectionsPage() {
                       <input
                         id="require-positions-filled"
                         type="checkbox"
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        className="h-4 w-4 rounded border-input text-primary focus:ring-ring"
                         {...register('require_all_positions_filled')}
                       />
                       <label htmlFor="require-positions-filled" className="text-sm font-medium leading-none">
@@ -634,50 +699,57 @@ export function ElectionsPage() {
                     </div>
                   </>
                 ) : (
-                  // Voting in progress: start locked, only end editable
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField label="Voting Start" htmlFor="edit_voting_start_at" error={errors.voting_start_at?.message}>
-                      <Input
-                        id="edit_voting_start_at"
-                        type="datetime-local"
-                        disabled
-                        {...register('voting_start_at')}
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <FormField
+                      label="Voting Start"
+                      htmlFor="edit_voting_start_at"
+                      error={errors.voting_start_at?.message}
+                    >
+                      <Controller
+                        name="voting_start_at"
+                        control={control}
+                        render={({ field }) => (
+                          <DateTimeSplitInput
+                            id="edit_voting_start_at"
+                            value={field.value ?? ''}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            disabled
+                          />
+                        )}
                       />
                     </FormField>
-                    <FormField label="Voting End" htmlFor="edit_voting_end_at" error={errors.voting_end_at?.message}>
-                      <Input
-                        id="edit_voting_end_at"
-                        type="datetime-local"
-                        {...register('voting_end_at')}
+                    <FormField
+                      label="Voting End"
+                      htmlFor="edit_voting_end_at"
+                      error={errors.voting_end_at?.message}
+                      hint="Extend or adjust when voting closes."
+                    >
+                      <Controller
+                        name="voting_end_at"
+                        control={control}
+                        render={({ field }) => (
+                          <DateTimeSplitInput
+                            id="edit_voting_end_at"
+                            value={field.value ?? ''}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                          />
+                        )}
                       />
                     </FormField>
                   </div>
                 )}
               </div>
             ) : null}
-            
-            <DialogFooter className="gap-2 sm:justify-between">
-              {editingElection ? (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  disabled={deleteMutation.isPending}
-                  onClick={requestDeleteFromEdit}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete
-                </Button>
-              ) : (
-                <span />
-              )}
-              <div className="flex gap-2 sm:ml-auto">
+
+            <DialogFooter className="gap-2 sm:justify-end">
               <Button type="button" variant="outline" onClick={closeCreateDialog}>
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting || createMutation.isPending || updateMutation.isPending}>
                 {createMutation.isPending || updateMutation.isPending ? 'Saving...' : 'Save'}
               </Button>
-              </div>
             </DialogFooter>
           </form>
         </DialogContent>

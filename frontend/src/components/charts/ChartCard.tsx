@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { BarChart3 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { iconTileClass, transitionInteractive } from '@/lib/design-tokens'
 import { cn } from '@/lib/utils'
 
 interface ChartCardProps {
@@ -28,12 +29,12 @@ export function ChartCard({
   contentClassName,
 }: ChartCardProps) {
   return (
-    <Card className={cn('overflow-hidden border shadow-sm', className)}>
-      <CardHeader className="border-b bg-muted/30 pb-4">
+    <Card className={cn('overflow-hidden', transitionInteractive, 'hover:shadow-md', className)}>
+      <CardHeader className="border-b border-border/60 bg-muted/20 pb-4">
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-inset ring-primary/15">
+          <span className={iconTileClass}>
             <BarChart3 className="h-4 w-4" aria-hidden="true" />
-          </div>
+          </span>
           <div className="min-w-0 space-y-1">
             <CardTitle className="text-base">{title}</CardTitle>
             {description ? <CardDescription>{description}</CardDescription> : null}

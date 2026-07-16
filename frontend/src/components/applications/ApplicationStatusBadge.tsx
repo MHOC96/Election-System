@@ -14,20 +14,14 @@ export function ApplicationStatusBadge({
   switch (status) {
     case 'PENDING_REVIEW':
       return (
-        <Badge
-          variant="secondary"
-          className={`bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20 dark:text-yellow-400 ${className ?? ''}`}
-        >
+        <Badge variant="warning" className={className}>
           <Clock className="mr-1 h-3 w-3" aria-hidden="true" />
           Pending review
         </Badge>
       )
     case 'APPROVED':
       return (
-        <Badge
-          variant="secondary"
-          className={`bg-green-500/10 text-green-600 hover:bg-green-500/20 dark:text-green-400 ${className ?? ''}`}
-        >
+        <Badge variant="success" className={className}>
           <CheckCircle2 className="mr-1 h-3 w-3" aria-hidden="true" />
           Accepted
         </Badge>

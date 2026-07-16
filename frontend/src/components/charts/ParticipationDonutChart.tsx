@@ -96,12 +96,12 @@ export function ParticipationDonutChart({
           <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
             <defs>
               <linearGradient id="participation-completed" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="hsl(142 65% 44%)" />
-                <stop offset="100%" stopColor="hsl(152 58% 34%)" />
+                <stop offset="0%" stopColor="hsl(var(--success))" />
+                <stop offset="100%" stopColor="hsl(var(--chart-2))" />
               </linearGradient>
               <linearGradient id="participation-partial" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="hsl(38 95% 54%)" />
-                <stop offset="100%" stopColor="hsl(32 92% 44%)" />
+                <stop offset="0%" stopColor="hsl(var(--warning))" />
+                <stop offset="100%" stopColor="hsl(var(--chart-4))" />
               </linearGradient>
               <linearGradient id="participation-none" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0%" stopColor="hsl(var(--muted-foreground) / 0.42)" />

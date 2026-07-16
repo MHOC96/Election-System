@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 import type { ElectionPhase } from '@/types/api'
 
 interface MemberStatusBadgeProps {
@@ -15,9 +16,11 @@ export function MemberStatusBadge({ isActive }: MemberStatusBadgeProps) {
 
 interface ElectionStatusBadgeProps {
   status: ElectionPhase
+  className?: string
+  children?: React.ReactNode
 }
 
-export function ElectionStatusBadge({ status }: ElectionStatusBadgeProps) {
+export function ElectionStatusBadge({ status, className, children }: ElectionStatusBadgeProps) {
   const variant =
     status === 'VOTING_OPEN'
       ? 'success'
@@ -27,6 +30,10 @@ export function ElectionStatusBadge({ status }: ElectionStatusBadgeProps) {
           ? 'secondary'
           : 'outline'
 
-  const label = status.replace(/_/g, ' ')
-  return <Badge variant={variant}>{label}</Badge>
+  const label = children ?? status.replace(/_/g, ' ')
+  return (
+    <Badge variant={variant} className={cn(className)}>
+      {label}
+    </Badge>
+  )
 }

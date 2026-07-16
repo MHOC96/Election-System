@@ -2,19 +2,19 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
-import { AlertTriangle, KeyRound, Pencil, Trash2, Users } from 'lucide-react'
+import { KeyRound, Pencil, Trash2, Users } from 'lucide-react'
 import {
   clearAllMembers,
   fetchMemberDeletionStatus,
   fetchMembers,
   importMembers,
+  MEMBERS_PAGE_SIZE,
   resetMemberPassword,
   updateMember,
 } from '@/api/members'
 import { getApiErrorMessage } from '@/api/client'
 import { MemberImportPanel } from '@/components/members/MemberImportPanel'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -28,12 +28,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { DataTable } from '@/components/shared/DataTable'
+import { getPaginationMeta } from '@/components/shared/DataTablePagination'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { sectionDelays, Stagger } from '@/components/motion/Stagger'
 import { FormField } from '@/components/design-system/FormField'
 import { restoreBodyPointerEvents } from '@/lib/pointer-events'
-import { pageLayoutClass } from '@/lib/design-tokens'
+import { pageLayoutClass, pageHeaderBlockClass } from '@/lib/design-tokens'
+import { PageNotice } from '@/components/shared/PageNotice'
 import { memberEditSchema, type MemberEditForm } from '@/lib/form-schemas'
 import {
   fetchAndSetQueryData,
@@ -192,46 +194,40 @@ export function MembersPage() {
   return (
     <div className={pageLayoutClass}>
       <Stagger delayMs={sectionDelays.header}>
-        <PageHeader
-          title="Members"
-          description="Import and manage voting members"
-          action={
-            showDeletionBlockedNotice ? null : (
-              <Button
-                variant="outline"
-                className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                onClick={() => setClearAllOpen(true)}
-                disabled={
-                  clearAllMutation.isPending || 
-                  deletionStatusLoading || 
-                  isPending || 
-                  totalMembers === 0
-                }
-              >
-                <Trash2 className="h-4 w-4" />
-                <span className="sm:hidden">Clear all</span>
-                <span className="hidden sm:inline">Clear all {activeTab} members</span>
-              </Button>
-            )
-          }
-        />
+        <div className={pageHeaderBlockClass}>
+          <PageHeader
+            title="Members"
+            description="Import and manage voting members"
+            action={
+              showDeletionBlockedNotice ? null : (
+                <Button
+                  variant="outline"
+                  className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => setClearAllOpen(true)}
+                  disabled={
+                    clearAllMutation.isPending ||
+                    deletionStatusLoading ||
+                    isPending ||
+                    totalMembers === 0
+                  }
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span className="sm:hidden">Clear all</span>
+                  <span className="hidden sm:inline">Clear all {activeTab} members</span>
+                </Button>
+              )
+            }
+          />
+          {showDeletionBlockedNotice ? (
+            <PageNotice>
+              Clearing members is disabled while an election is active or paused. Close the
+              current election to remove all members.
+            </PageNotice>
+          ) : null}
+        </div>
       </Stagger>
 
-      {showDeletionBlockedNotice ? (
-        <Stagger delayMs={sectionDelays.primary}>
-          <Card className="border-warning/40 bg-warning/5">
-            <CardContent className="flex items-start gap-3 py-4">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden />
-              <p className="text-sm text-muted-foreground">
-                Clearing members is disabled while an election is active or paused. Close the
-                current election to remove all members.
-              </p>
-            </CardContent>
-          </Card>
-        </Stagger>
-      ) : null}
-
-      <Stagger delayMs={showDeletionBlockedNotice ? sectionDelays.secondary : sectionDelays.primary}>
+      <Stagger delayMs={sectionDelays.primary}>
         <Tabs
           value={activeTab}
           onValueChange={(v) => {
@@ -257,7 +253,7 @@ export function MembersPage() {
         />
       </Stagger>
 
-      <Stagger delayMs={showDeletionBlockedNotice ? sectionDelays.tertiary : sectionDelays.secondary}>
+      <Stagger delayMs={sectionDelays.secondary}>
         <DataTable
         isLoading={tableLoading}
         isRefreshing={tableRefreshing}
@@ -301,15 +297,19 @@ export function MembersPage() {
         }
         pagination={
           data
-            ? {
-                page,
-                totalCount: data.count,
-                hasPrevious: !!data.previous,
-                hasNext: !!data.next,
-                onPrevious: () => setPage((p) => Math.max(1, p - 1)),
-                onNext: () => setPage((p) => p + 1),
-                itemLabel: 'members',
-              }
+            ? (() => {
+                const { totalPages } = getPaginationMeta(page, data.count, MEMBERS_PAGE_SIZE)
+                return {
+                  page,
+                  pageSize: MEMBERS_PAGE_SIZE,
+                  totalCount: data.count,
+                  hasPrevious: !!data.previous,
+                  hasNext: !!data.next,
+                  onPrevious: () => setPage((p) => Math.max(1, p - 1)),
+                  onNext: () => setPage((p) => Math.min(totalPages, p + 1)),
+                  itemLabel: 'members',
+                }
+              })()
             : undefined
         }
       >

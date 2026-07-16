@@ -42,6 +42,7 @@ export async function createCandidate(payload: {
   full_name: string
   academic_year: AcademicYear
   photo_url: string
+  declaration_file: string
   position: number
 }) {
   return apiPost<Candidate>('/candidates/', payload)
@@ -53,6 +54,7 @@ export async function updateCandidate(
     full_name: string
     academic_year: AcademicYear
     photo_url: string
+    declaration_file: string
     position: number
   }>,
 ) {
@@ -74,6 +76,12 @@ export async function uploadCandidatePhoto(file: File) {
   const formData = new FormData()
   formData.append('photo', file)
   return apiUpload<{ photo_url: string; public_id: string }>('/candidates/upload-photo/', formData)
+}
+
+export async function uploadCandidateDeclaration(file: File) {
+  const formData = new FormData()
+  formData.append('document', file)
+  return apiUpload<{ document_url: string }>('/candidates/upload-declaration/', formData)
 }
 
 export async function fetchModificationStatus() {

@@ -14,6 +14,7 @@ class CandidateSerializer(serializers.ModelSerializer):
             "full_name",
             "academic_year",
             "photo_url",
+            "declaration_file",
             "position",
             "position_name",
             "created_at",
@@ -45,6 +46,27 @@ class CandidateSerializer(serializers.ModelSerializer):
         if "res.cloudinary.com" not in value:
             raise serializers.ValidationError("Photo URL must be a Cloudinary URL.")
         return value
+
+    def validate_declaration_file(self, value):
+        if not value:
+            return value
+        if not value.startswith("https://"):
+            raise serializers.ValidationError("Declaration file URL must use HTTPS.")
+        if "res.cloudinary.com" not in value:
+            raise serializers.ValidationError("Declaration file URL must be a Cloudinary URL.")
+        return value
+
+    def validate(self, attrs):
+        is_create = self.instance is None
+        declaration_file = attrs.get(
+            "declaration_file",
+            getattr(self.instance, "declaration_file", "") if self.instance else "",
+        )
+        if is_create and not declaration_file:
+            raise serializers.ValidationError(
+                {"declaration_file": "Declaration file is required."}
+            )
+        return attrs
 
 
 class CandidatePhotoUploadSerializer(serializers.Serializer):
