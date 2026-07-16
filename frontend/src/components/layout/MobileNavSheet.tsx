@@ -36,7 +36,12 @@ export function MobileNavSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="flex h-full w-[min(100vw,20rem)] max-w-none flex-col border-r p-0 sm:max-w-xs">
-        <div className={cn(shellMobileHeaderClass, 'justify-between border-b px-4')}>
+        <div
+          className={cn(
+            shellMobileHeaderClass,
+            'justify-between border-b px-4 pr-14',
+          )}
+        >
           <div className="flex min-w-0 items-center gap-2.5">
             <div className={cn(brandMarkClass, 'h-9 w-9 shrink-0')}>
               <Vote className="h-4 w-4" aria-hidden="true" />
