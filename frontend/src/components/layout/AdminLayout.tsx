@@ -18,6 +18,7 @@ import { AdminSidebarFooter } from '@/components/layout/AdminSidebarFooter'
 import { ShellActions } from '@/components/layout/ShellActions'
 import { SidebarNav } from '@/components/layout/SidebarNav'
 import { SkipToContent } from '@/components/shared/SkipToContent'
+import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import { MAIN_CONTENT_ID } from '@/lib/a11y'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
@@ -99,13 +100,16 @@ export function AdminLayout() {
               <AdminBrandMark />
             </Link>
 
-            <ShellActions
-              compact
-              cpmNumber={user?.cpm_number}
-              onLogout={() => void handleLogout()}
-              isLoggingOut={isLoggingOut}
-              showMenuButton={false}
-            />
+            <div className="flex shrink-0 items-center gap-0.5 rounded-lg border border-border/70 bg-background/70 p-0.5 shadow-sm backdrop-blur">
+              <ThemeToggle />
+              <ShellActions
+                compact
+                cpmNumber={user?.cpm_number}
+                onLogout={() => void handleLogout()}
+                isLoggingOut={isLoggingOut}
+                showMenuButton={false}
+              />
+            </div>
           </div>
 
           <div className={cn(shellHeaderBarClass, 'hidden w-full gap-2 px-8 lg:flex')}>
