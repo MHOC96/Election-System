@@ -1,7 +1,8 @@
 from rest_framework import status
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, Throttled
 from rest_framework.views import exception_handler
 import logging
+import math
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,11 @@ def custom_exception_handler(exc, context):
             extra={"view": repr(context.get("view"))},
         )
         return response
+
+    if isinstance(exc, Throttled):
+        wait_seconds = exc.wait
+        if wait_seconds is not None:
+            response["Retry-After"] = str(max(1, math.ceil(wait_seconds)))
 
     if response.status_code >= status.HTTP_500_INTERNAL_SERVER_ERROR:
         logger.error(

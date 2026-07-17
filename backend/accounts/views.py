@@ -8,7 +8,8 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from accounts.models import User
 from accounts.permissions import IsAdmin, IsMember
 from accounts.serializers import LoginSerializer, LogoutSerializer, MemberProfileSerializer, UserSerializer
-from accounts.throttling import AuthRateThrottle
+from accounts.throttling import AuthRateThrottle, AuthenticatedAuthRateThrottle
+from config.throttling import AUTHENTICATED_API_THROTTLE_CLASSES
 from audit.constants import AuditAction
 from audit.services.audit_service import log_action
 
@@ -135,7 +136,7 @@ class MemberOnlyProbeView(APIView):
 
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
-    throttle_classes = [AuthRateThrottle]
+    throttle_classes = [AuthenticatedAuthRateThrottle, *AUTHENTICATED_API_THROTTLE_CLASSES]
 
     def post(self, request):
         from rest_framework_simplejwt.tokens import RefreshToken

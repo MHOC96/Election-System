@@ -4,10 +4,11 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2, XCircle, ExternalLink, Clock, FileText } from 'lucide-react'
-import { getApiErrorMessage } from '@/api/client'
-import { fetchOngoingElection } from '@/api/elections'
+import { notifyApiError, notifySuccessMessage } from '@/lib/notify'
+import { SUCCESS_MESSAGES } from '@/lib/user-messages'
 import { fetchPositions } from '@/api/positions'
 import { fetchAllApplications, reviewApplication, type CandidateApplication } from '@/api/applications'
+import { fetchOngoingElection } from '@/api/elections'
 import { POSITIONS_QUERY_KEY, POSITIONS_STALE_MS } from '@/lib/query-sync'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -23,7 +24,6 @@ import { sectionDelays, Stagger } from '@/components/motion/Stagger'
 import { getPaginationMeta } from '@/components/shared/DataTablePagination'
 import { pageLayoutClass, responsiveTableDesktopClass, responsiveTableMobileClass, dataTableScrollClass } from '@/lib/design-tokens'
 import { cn } from '@/lib/utils'
-import { notifyError, notifySuccess } from '@/lib/notify'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
@@ -127,14 +127,18 @@ export function ApplicationReviewPage() {
       setPendingId(variables.id)
     },
     onSuccess: (_, variables) => {
-      notifySuccess(`Application ${variables.action.toLowerCase()}d successfully`)
+      notifySuccessMessage(
+        SUCCESS_MESSAGES.applicationReviewed(
+          variables.action === 'APPROVE' ? 'Approved' : 'Rejected',
+        ),
+      )
       void queryClient.invalidateQueries({ queryKey: ['applications', 'all'] })
       void queryClient.invalidateQueries({ queryKey: ['candidates'] })
       if (variables.action === 'REJECT') {
         closeRejectDialog()
       }
     },
-    onError: (error) => notifyError(getApiErrorMessage(error)),
+    onError: (error) => notifyApiError(error, 'general'),
     onSettled: () => {
       setPendingId(null)
     },

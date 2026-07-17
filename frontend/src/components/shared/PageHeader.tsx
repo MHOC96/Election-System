@@ -5,11 +5,12 @@ import { cn } from '@/lib/utils'
 interface PageHeaderProps {
   title: string
   description?: string
+  meta?: string
   action?: ReactNode
   className?: string
 }
 
-export function PageHeader({ title, description, action, className }: PageHeaderProps) {
+export function PageHeader({ title, description, meta, action, className }: PageHeaderProps) {
   return (
     <div
       className={cn(
@@ -22,11 +23,12 @@ export function PageHeader({ title, description, action, className }: PageHeader
         {description ? (
           <p className="mt-1 text-pretty text-sm text-muted-foreground">{description}</p>
         ) : null}
+        {meta ? (
+          <p className="mt-1 text-pretty text-sm font-medium text-foreground/80">{meta}</p>
+        ) : null}
       </div>
       {action ? (
-        <div className="flex w-full min-w-0 shrink-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
-          {action}
-        </div>
+        <div className="flex w-full min-w-0 shrink-0 sm:w-auto sm:justify-end">{action}</div>
       ) : null}
     </div>
   )

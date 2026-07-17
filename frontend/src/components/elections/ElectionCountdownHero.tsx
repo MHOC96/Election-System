@@ -1,7 +1,8 @@
-import { Fragment } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { CalendarClock, CheckCircle2, Circle, Sparkles, Vote } from 'lucide-react'
+import { CalendarClock, Sparkles, Vote } from 'lucide-react'
 import { CountdownDisplay } from '@/components/shared/CountdownDisplay'
+import { CountdownTimeCard, CountdownTimeInline } from '@/components/shared/CountdownTimeCard'
+import { VotingScheduleDetails } from '@/components/voting/VotingScheduleDetails'
 import { formatDate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
@@ -15,7 +16,12 @@ interface ElectionCountdownHeroProps {
   variant: CountdownVariant
   electionName: string
   targetAt: string | null
+  votingEndAt?: string | null
   className?: string
+  /** Bordered centered card for admin election list items. */
+  embedded?: boolean
+  /** Centered countdown only — inside a parent card (member portal). */
+  inline?: boolean
 }
 
 type VariantCopy = {
@@ -28,33 +34,38 @@ type VariantCopy = {
   icon: LucideIcon
   centered?: boolean
   responsiveHorizontal?: boolean
+  /** Countdown + close date only — no title, description, or election name. */
+  minimal?: boolean
 }
 
 const variantCopy: Record<CountdownVariant, VariantCopy> = {
   'applications-upcoming': {
     eyebrow: 'Candidate applications',
     title: 'Applications opening soon',
+    description:
+      'When the countdown ends, members can submit their candidate application for one position.',
     targetPrefix: 'Opens',
     modifier: 'election-countdown--applications-upcoming',
     countdownLabel: 'Time until applications open',
     icon: Sparkles,
   },
   'applications-open': {
-    eyebrow: 'Candidate applications',
-    title: 'Applications are live',
+    eyebrow: '',
+    title: '',
     targetPrefix: 'Closes',
     modifier: 'election-countdown--applications-open',
     countdownLabel: 'Time remaining to apply',
     icon: Sparkles,
+    minimal: true,
   },
   'voting-upcoming': {
     eyebrow: 'Ballot scheduled',
     title: 'Almost time to vote',
     description:
       'Candidates are confirmed. When the countdown ends, return here to choose your representatives.',
-    targetPrefix: 'Voting begins',
+    targetPrefix: 'Opens',
     modifier: 'election-countdown--voting-upcoming',
-    countdownLabel: 'Opens in',
+    countdownLabel: 'Time remaining until voting starts',
     icon: Vote,
     centered: true,
     responsiveHorizontal: true,
@@ -66,130 +77,67 @@ const variantCopy: Record<CountdownVariant, VariantCopy> = {
     modifier: 'election-countdown--voting-open',
     countdownLabel: 'Time remaining to vote',
     icon: Vote,
+    centered: true,
   },
-}
-
-const votingTimelineSteps = [
-  { label: 'Applications reviewed', shortLabel: 'Reviewed', state: 'done' as const },
-  { label: 'Voting opens', shortLabel: 'Voting opens', state: 'active' as const },
-  { label: 'Cast your ballot', shortLabel: 'Cast vote', state: 'upcoming' as const },
-]
-
-function StepIcon({ state }: { state: 'done' | 'active' | 'upcoming' }) {
-  if (state === 'done') {
-    return <CheckCircle2 className="h-4 w-4 text-success sm:h-5 sm:w-5" aria-hidden="true" />
-  }
-  if (state === 'active') {
-    return (
-      <span className="relative flex h-4 w-4 items-center justify-center sm:h-5 sm:w-5" aria-hidden="true">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/30" />
-        <Circle className="relative h-3 w-3 fill-primary text-primary sm:h-3.5 sm:w-3.5" />
-      </span>
-    )
-  }
-  return <Circle className="h-4 w-4 text-muted-foreground/45 sm:h-5 sm:w-5" aria-hidden="true" />
-}
-
-function VotingTimeline({ centered }: { centered?: boolean }) {
-  if (centered) {
-    return (
-      <>
-        <ol
-          className="mx-auto flex w-full max-w-2xl flex-col gap-2 md:hidden"
-          aria-label="Election progress"
-        >
-          {votingTimelineSteps.map((step) => (
-            <li
-              key={step.label}
-              className={cn(
-                'flex items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-sm',
-                step.state === 'done' && 'border-success/25 bg-success/5',
-                step.state === 'active' && 'border-primary/30 bg-primary/5 shadow-sm',
-                step.state === 'upcoming' && 'border-border/80 bg-card/40 text-muted-foreground',
-              )}
-            >
-              <StepIcon state={step.state} />
-              <span className="font-medium leading-snug">{step.label}</span>
-            </li>
-          ))}
-        </ol>
-
-        <ol
-          className="mx-auto hidden w-full max-w-2xl items-center md:flex"
-          aria-label="Election progress"
-        >
-          {votingTimelineSteps.map((step, index) => (
-            <Fragment key={step.label}>
-              <li className="min-w-0 flex-1">
-                <div
-                  className={cn(
-                    'flex flex-col items-center gap-2 rounded-2xl border px-3 py-4 text-center',
-                    step.state === 'done' && 'border-success/25 bg-success/5',
-                    step.state === 'active' && 'border-primary/30 bg-primary/5 shadow-sm',
-                    step.state === 'upcoming' && 'border-border/80 bg-card/40',
-                  )}
-                >
-                  <StepIcon state={step.state} />
-                  <span
-                    className={cn(
-                      'text-xs font-semibold leading-snug sm:text-sm',
-                      step.state === 'upcoming' ? 'text-muted-foreground' : 'text-foreground',
-                    )}
-                  >
-                    {step.shortLabel}
-                  </span>
-                </div>
-              </li>
-              {index < votingTimelineSteps.length - 1 ? (
-                <li aria-hidden="true" className="mx-2 h-px w-8 shrink-0 bg-border/80 sm:mx-3 sm:w-12" />
-              ) : null}
-            </Fragment>
-          ))}
-        </ol>
-      </>
-    )
-  }
-
-  return (
-    <ol className="grid gap-2 sm:grid-cols-3 sm:gap-3" aria-label="Election progress">
-      {votingTimelineSteps.map((step, index) => (
-        <li
-          key={step.label}
-          className={cn(
-            'flex min-w-0 items-center gap-2 rounded-xl border px-3 py-2.5 text-xs sm:flex-col sm:items-start sm:gap-2 sm:px-3.5 sm:py-3 sm:text-sm',
-            step.state === 'done' && 'border-success/25 bg-success/5',
-            step.state === 'active' && 'border-primary/30 bg-primary/5 shadow-sm',
-            step.state === 'upcoming' && 'border-border/80 bg-card/40 opacity-80',
-          )}
-        >
-          <div className="flex items-center gap-2 sm:w-full">
-            <StepIcon state={step.state} />
-            <span
-              className={cn(
-                'font-medium leading-snug',
-                step.state === 'upcoming' ? 'text-muted-foreground' : 'text-foreground',
-              )}
-            >
-              {step.label}
-            </span>
-          </div>
-          {index < votingTimelineSteps.length - 1 ? <span className="sr-only">, then </span> : null}
-        </li>
-      ))}
-    </ol>
-  )
 }
 
 export function ElectionCountdownHero({
   variant,
   electionName,
   targetAt,
+  votingEndAt,
   className,
+  embedded = false,
+  inline = false,
 }: ElectionCountdownHeroProps) {
   const copy = variantCopy[variant]
   const Icon = copy.icon
   const centered = copy.centered === true
   const responsiveHorizontal = copy.responsiveHorizontal === true
+  const minimal = copy.minimal === true
+  const embeddedMeta =
+    variant === 'voting-upcoming'
+      ? 'Voting starts soon'
+      : variant === 'voting-open'
+        ? 'Voting is live'
+        : targetAt
+          ? `${copy.targetPrefix} · ${formatDate(targetAt)}`
+          : undefined
+
+  if (embedded || inline || minimal) {
+    const countdown = <CountdownDisplay targetAt={targetAt} label={copy.countdownLabel} centered />
+
+    if (inline) {
+      return (
+        <CountdownTimeInline ariaLabel={copy.countdownLabel} className={className}>
+          {countdown}
+        </CountdownTimeInline>
+      )
+    }
+
+    return (
+      <CountdownTimeCard
+        modifier={copy.modifier}
+        meta={embeddedMeta}
+        ariaLabel={copy.countdownLabel || copy.title}
+        className={cn('mt-3', className)}
+      >
+        {countdown}
+        {variant === 'voting-upcoming' ? (
+          <VotingScheduleDetails
+            votingStartAt={targetAt}
+            votingEndAt={votingEndAt}
+            className="mt-4 border-t border-border/50 pt-4 text-center"
+          />
+        ) : null}
+        {variant === 'voting-open' && targetAt ? (
+          <p className="mt-4 border-t border-border/50 pt-4 text-center text-sm text-muted-foreground">
+            <span className="font-medium text-foreground/80">Closes</span> · {formatDate(targetAt)}
+          </p>
+        ) : null}
+      </CountdownTimeCard>
+    )
+  }
 
   const datePill = targetAt ? (
     <div
@@ -215,13 +163,16 @@ export function ElectionCountdownHero({
     </div>
   ) : null
 
-  return (
+  const heroSection = (
     <section
       className={cn(
-        'election-countdown relative mt-3 w-full min-w-0 overflow-hidden rounded-2xl p-4 sm:mt-4 sm:rounded-3xl sm:p-6 md:p-8',
+        'election-countdown relative w-full min-w-0 overflow-hidden',
+        embedded
+          ? 'bg-transparent p-0 shadow-none'
+          : 'mt-3 rounded-2xl p-4 sm:mt-4 sm:rounded-3xl sm:p-6 md:p-8',
         copy.modifier,
         centered && 'election-countdown--centered text-center',
-        className,
+        !embedded ? className : undefined,
       )}
       aria-live="polite"
     >
@@ -367,49 +318,76 @@ export function ElectionCountdownHero({
             {datePill}
           </div>
         ) : (
-          <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-start md:justify-between">
-            <div className="min-w-0 space-y-2 sm:space-y-3 md:text-left">
-              <div
-                className="inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm sm:gap-2 sm:px-3 sm:text-xs"
-                style={{
-                  background: 'var(--cd-chip-bg)',
-                  borderColor: 'var(--cd-chip-border)',
-                  color: 'var(--cd-chip-text)',
-                }}
-              >
-                <Icon className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" aria-hidden="true" />
-                <span className="truncate">{copy.eyebrow}</span>
-              </div>
-              <div className="min-w-0 space-y-1.5 sm:space-y-2">
-                <h2
-                  className="text-xl font-bold tracking-tight sm:text-2xl md:text-3xl"
-                  style={{ color: 'var(--cd-title)' }}
-                >
-                  {copy.title}
-                </h2>
-                {copy.description ? (
-                  <p
-                    className="max-w-2xl text-sm leading-relaxed sm:text-base"
-                    style={{ color: 'var(--cd-subtitle)' }}
-                  >
-                    {copy.description}
-                  </p>
-                ) : null}
-                <p
+          <div
+            className={cn(
+              'flex flex-col gap-4 sm:gap-5',
+              embedded ? 'text-left' : 'gap-3 sm:gap-4 md:flex-row md:items-start md:justify-between',
+            )}
+          >
+            <div className={cn('min-w-0 space-y-3', !embedded && 'sm:space-y-3 md:text-left')}>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-3">
+                <div
                   className={cn(
-                    'text-sm sm:text-base',
-                    copy.description ? 'font-medium text-foreground/80' : 'line-clamp-2',
+                    'surface-card flex shrink-0 items-center justify-center rounded-2xl',
+                    embedded ? 'h-11 w-11' : 'h-12 w-12 sm:h-14 sm:w-14',
                   )}
-                  style={copy.description ? undefined : { color: 'var(--cd-subtitle)' }}
+                  style={{
+                    background: 'var(--cd-chip-bg)',
+                    borderColor: 'var(--cd-chip-border)',
+                    color: 'var(--cd-chip-text)',
+                  }}
                 >
-                  {electionName}
-                </p>
+                  <Icon className={cn(embedded ? 'h-5 w-5' : 'h-6 w-6 sm:h-7 sm:w-7')} aria-hidden="true" />
+                </div>
+                <div className="min-w-0 flex-1 space-y-1.5 sm:space-y-2">
+                  <div
+                    className="inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm sm:px-3 sm:text-xs"
+                    style={{
+                      background: 'var(--cd-chip-bg)',
+                      borderColor: 'var(--cd-chip-border)',
+                      color: 'var(--cd-chip-text)',
+                    }}
+                  >
+                    <span>{copy.eyebrow}</span>
+                  </div>
+                  <h2
+                    className={cn(
+                      'font-bold tracking-tight',
+                      embedded ? 'text-lg leading-snug' : 'text-xl sm:text-2xl md:text-3xl',
+                    )}
+                    style={{ color: 'var(--cd-title)' }}
+                  >
+                    {copy.title}
+                  </h2>
+                  {copy.description ? (
+                    <p
+                      className="text-sm leading-relaxed text-muted-foreground"
+                      style={{ color: 'var(--cd-subtitle)' }}
+                    >
+                      {copy.description}
+                    </p>
+                  ) : null}
+                  {!embedded ? (
+                    <p
+                      className={cn(
+                        'text-sm sm:text-base',
+                        copy.description ? 'font-medium text-foreground/80' : 'line-clamp-2',
+                      )}
+                      style={copy.description ? undefined : { color: 'var(--cd-subtitle)' }}
+                    >
+                      {electionName}
+                    </p>
+                  ) : null}
+                </div>
               </div>
             </div>
 
             {targetAt ? (
               <div
-                className="flex w-full min-w-0 items-center gap-2.5 rounded-xl border px-3.5 py-3 text-xs backdrop-blur-sm sm:w-auto sm:min-w-[15rem] sm:max-w-sm sm:self-start sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm"
+                className={cn(
+                  'flex w-full min-w-0 items-center gap-2.5 rounded-xl border px-3.5 py-3 text-xs backdrop-blur-sm sm:px-4 sm:text-sm',
+                  embedded ? 'sm:max-w-none' : 'sm:w-auto sm:min-w-[15rem] sm:max-w-sm sm:self-start sm:rounded-2xl',
+                )}
                 style={{
                   background: 'var(--cd-date-bg)',
                   borderColor: 'var(--cd-date-border)',
@@ -425,7 +403,7 @@ export function ElectionCountdownHero({
                 >
                   <CalendarClock className="h-4 w-4" aria-hidden="true" />
                 </span>
-                <span className="min-w-0">
+                <span className="min-w-0 flex-1">
                   <span className="block text-[11px] font-semibold uppercase tracking-wide opacity-70 sm:text-xs">
                     {copy.targetPrefix}
                   </span>
@@ -438,16 +416,16 @@ export function ElectionCountdownHero({
           </div>
         )}
 
-        {copy.centered ? <VotingTimeline centered /> : null}
-
         {!responsiveHorizontal ? (
-          <CountdownDisplay
-            targetAt={targetAt}
-            label={copy.countdownLabel}
-            centered={centered}
-          />
+          <div className="mx-auto w-full max-w-2xl">
+            <CountdownDisplay
+              targetAt={targetAt}
+              label={copy.countdownLabel}
+              centered={centered}
+            />
+          </div>
         ) : (
-          <div className="md:hidden">
+          <div className="mx-auto w-full max-w-2xl md:hidden">
             <CountdownDisplay
               targetAt={targetAt}
               label={copy.countdownLabel}
@@ -457,5 +435,11 @@ export function ElectionCountdownHero({
         )}
       </div>
     </section>
+  )
+
+  return (
+    <div className={cn('mx-auto w-full max-w-3xl', className)}>
+      {heroSection}
+    </div>
   )
 }

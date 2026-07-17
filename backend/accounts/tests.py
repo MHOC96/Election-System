@@ -206,3 +206,31 @@ class UserModelTestCase(TestCase):
             role=UserRole.MEMBER,
         )
         self.assertEqual(user.cpm_number, "CPM003")
+
+
+class AuthRateLimitTestCase(TestCase):
+    """Verify scoped auth throttling blocks excessive login attempts."""
+
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+
+    def test_auth_throttle_blocks_after_limit(self):
+        from rest_framework.request import Request
+        from rest_framework.test import APIRequestFactory
+
+        from accounts.throttling import AuthRateThrottle
+        from accounts.views import LoginView
+
+        throttle = AuthRateThrottle()
+        throttle.rate = "2/min"
+        throttle.num_requests, throttle.duration = throttle.parse_rate(throttle.rate)
+
+        django_request = APIRequestFactory().post("/api/auth/login/")
+        request = Request(django_request)
+        view = LoginView()
+
+        self.assertTrue(throttle.allow_request(request, view))
+        self.assertTrue(throttle.allow_request(request, view))
+        self.assertFalse(throttle.allow_request(request, view))

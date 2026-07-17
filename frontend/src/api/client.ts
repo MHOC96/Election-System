@@ -1,4 +1,5 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import { formatUserMessage, resolveApiUserMessage, type ApiErrorContext } from '@/lib/user-messages'
 import {
   clearAuth,
   getAccessToken,
@@ -105,23 +106,11 @@ function unwrapApiResponse<T>(response: ApiResponse<T>): T {
   return response.data
 }
 
-export function getApiErrorMessage(error: unknown, fallback = 'Something went wrong.'): string {
-  if (axios.isAxiosError<ApiFailure>(error)) {
-    const apiError = error.response?.data?.error
-    if (apiError?.details && typeof apiError.details === 'object') {
-      const fieldMessages = Object.entries(apiError.details).flatMap(([field, value]) => {
-        if (Array.isArray(value)) {
-          return value.map((item) => `${field}: ${String(item)}`)
-        }
-        return [`${field}: ${String(value)}`]
-      })
-      if (fieldMessages.length) return fieldMessages.join('; ')
-    }
-    if (apiError?.message) return apiError.message
-    return error.message || fallback
-  }
-  if (error instanceof Error) return error.message
-  return fallback
+export function getApiErrorMessage(
+  error: unknown,
+  context: ApiErrorContext = 'general',
+): string {
+  return formatUserMessage(resolveApiUserMessage(error, context))
 }
 
 export async function apiGet<T>(url: string, params?: Record<string, unknown>) {

@@ -70,24 +70,28 @@ export function CountdownExpiryWatcher({
   onExpire?: () => void
 }) {
   const countdownMs = useCountdown(targetAt)
-  const expiredRef = useRef(false)
+  const onExpireRef = useRef(onExpire)
+  const firedTargetsRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
-    if (!targetAt || countdownMs === null) {
-      expiredRef.current = false
-      return
-    }
+    onExpireRef.current = onExpire
+  }, [onExpire])
 
-    if (countdownMs === 0 && !expiredRef.current) {
-      expiredRef.current = true
-      onExpire?.()
-      return
-    }
+  useEffect(() => {
+    if (!targetAt || countdownMs === null) return
 
     if (countdownMs > 0) {
-      expiredRef.current = false
+      firedTargetsRef.current.delete(targetAt)
+      return
     }
-  }, [countdownMs, targetAt, onExpire])
+
+    if (firedTargetsRef.current.has(targetAt)) return
+
+    firedTargetsRef.current.add(targetAt)
+    queueMicrotask(() => {
+      onExpireRef.current?.()
+    })
+  }, [countdownMs, targetAt])
 
   return null
 }
@@ -96,10 +100,12 @@ export function CountdownDisplay({
   targetAt,
   label,
   centered = false,
+  className,
 }: {
   targetAt: string | null
   label: string
   centered?: boolean
+  className?: string
 }) {
   if (!targetAt) return null
 
@@ -108,10 +114,13 @@ export function CountdownDisplay({
       className={cn(
         'w-full space-y-2.5 sm:space-y-3',
         centered && 'mx-auto max-w-xl text-center',
+        className,
       )}
+      aria-live="polite"
+      aria-label={label}
     >
       <p
-        className="text-xs font-semibold uppercase tracking-[0.12em] sm:text-sm sm:tracking-[0.16em]"
+        className="pb-2 text-xs font-semibold uppercase tracking-[0.12em] sm:pb-4 sm:text-sm sm:tracking-[0.16em]"
         style={{ color: 'var(--cd-digit-accent)' }}
       >
         {label}

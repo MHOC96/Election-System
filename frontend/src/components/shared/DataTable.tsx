@@ -46,7 +46,7 @@ export function DataTable({
 }: DataTableProps) {
   return (
     <Card className={cn(dataTableShellClass, className)}>
-      <CardContent className="p-0">
+      <CardContent className="px-4 py-0 sm:px-6">
         {isLoading ? (
           <div className="divide-y">
             <div className="flex items-center gap-4 border-b border-border/60 bg-muted/40 px-0 py-3">

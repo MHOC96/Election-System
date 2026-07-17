@@ -52,6 +52,8 @@
 
     /* Decorative gradients */
     --gradient-brand: linear-gradient(135deg, hsl(224 76% 54%), hsl(262 68% 58%));
+    --surface-highlight: hsl(var(--foreground) / 0.06);
+    --cd-digit-highlight: hsl(var(--foreground) / 0.08);
   }
 
   .dark {
@@ -97,6 +99,8 @@
     --shadow-xl: 0 30px 60px -14px hsl(var(--shadow-color) / 0.78), 0 12px 26px -10px hsl(var(--shadow-color) / 0.6);
 
     --gradient-brand: linear-gradient(135deg, hsl(217 91% 62%), hsl(262 72% 66%));
+    --surface-highlight: hsl(var(--foreground) / 0.04);
+    --cd-digit-highlight: hsl(var(--foreground) / 0.12);
   }
 }
 
@@ -114,8 +118,8 @@
 
   body {
     @apply bg-background font-sans text-foreground antialiased;
-    font-feature-settings: 'cv11', 'ss01', 'liga', 'calt';
-    letter-spacing: -0.011em;
+    font-feature-settings: 'kern', 'liga';
+    letter-spacing: -0.015em;
     text-rendering: optimizeLegibility;
     overflow-x: hidden;
     min-width: 0;
@@ -213,6 +217,31 @@
     background-color: hsl(var(--card) / 0.78);
     backdrop-filter: saturate(160%) blur(14px);
     -webkit-backdrop-filter: saturate(160%) blur(14px);
+  }
+
+  .dark .glass {
+    background-color: hsl(var(--card) / 0.88);
+    backdrop-filter: saturate(140%) blur(16px);
+    -webkit-backdrop-filter: saturate(140%) blur(16px);
+  }
+
+  /* Member hero bands — theme-aware gradients (application status, voting ended, etc.) */
+  .member-hero-surface {
+    background: linear-gradient(
+      152deg,
+      hsl(var(--card)) 0%,
+      hsl(var(--primary) / 0.04) 48%,
+      hsl(var(--chart-3) / 0.06) 100%
+    );
+  }
+
+  .dark .member-hero-surface {
+    background: linear-gradient(
+      152deg,
+      hsl(var(--card)) 0%,
+      hsl(var(--primary) / 0.1) 50%,
+      hsl(var(--chart-3) / 0.08) 100%
+    );
   }
 
   /* Gradient brand text (logos, hero numbers) */
@@ -373,7 +402,7 @@
     border: 1px solid var(--cd-digit-border);
     box-shadow:
       var(--shadow-xs),
-      inset 0 1px 0 hsl(0 0% 100% / 0.65);
+      inset 0 1px 0 var(--cd-digit-highlight);
     transition:
       background 0.45s ease,
       border-color 0.45s ease,
@@ -542,7 +571,8 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    padding: 0.75rem;
+    padding-block: 0.75rem;
+    padding-inline: 0;
   }
 
   .mobile-card-list > .mobile-card-item {

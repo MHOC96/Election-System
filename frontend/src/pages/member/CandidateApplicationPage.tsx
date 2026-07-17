@@ -4,13 +4,12 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Clock } from 'lucide-react'
-import { getApiErrorMessage } from '@/api/client'
-import { fetchPositions } from '@/api/positions'
+import { notifyApiError, notifyError, notifySuccessMessage } from '@/lib/notify'
+import { SUCCESS_MESSAGES } from '@/lib/user-messages'
 import { fetchMyApplications, submitApplication, uploadDeclarationForm, uploadApplicationPhoto } from '@/api/applications'
 import { useOngoingElection } from '@/hooks/useOngoingElection'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -21,19 +20,22 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { sectionDelays, Stagger } from '@/components/motion/Stagger'
 import { MemberPage } from '@/components/layout/MemberPage'
+import { PositionApplyCard } from '@/components/applications/PositionApplyCard'
 import {
   memberCardHeaderTintClass,
-  memberCardSurfaceClass,
-  memberGridClass,
+  electionCountdownCardClass,
   memberHeroSpacingClass,
+  memberPositionGridClass,
+  memberSectionHeadingClass,
+  memberSectionIntroClass,
 } from '@/lib/design-tokens'
 import { ONGOING_ELECTION_QUERY_KEY, APPLICATIONS_STALE_MS, POSITIONS_QUERY_KEY, POSITIONS_STALE_MS } from '@/lib/query-sync'
-import { notifyError, notifySuccess } from '@/lib/notify'
-import { cn } from '@/lib/utils'
-import { ApplicationStatusBadge } from '@/components/applications/ApplicationStatusBadge'
+import { fetchPositions } from '@/api/positions'
 import { PhotoCropDialog } from '@/components/shared/PhotoCropDialog'
+import { ApplicationsStartsSoonCard } from '@/components/applications/ApplicationsStartsSoonCard'
 import { ElectionCountdownHero } from '@/components/elections/ElectionCountdownHero'
 import { CountdownExpiryWatcher } from '@/components/shared/CountdownDisplay'
+import { cn, formatDate } from '@/lib/utils'
 
 const applicationSchema = z.object({
   full_name: z.string().trim().min(1, 'Full Name is required'),
@@ -108,11 +110,11 @@ export function CandidateApplicationPage() {
   const submitMutation = useMutation({
     mutationFn: submitApplication,
     onSuccess: () => {
-      notifySuccess('Application submitted successfully')
+      notifySuccessMessage(SUCCESS_MESSAGES.applicationSubmitted)
       void queryClient.invalidateQueries({ queryKey: ['applications', 'me'] })
       closeDialog()
     },
-    onError: (error) => notifyError(getApiErrorMessage(error)),
+    onError: (error) => notifyApiError(error, 'application'),
   })
 
   const openApply = (positionId: number) => {
@@ -134,7 +136,10 @@ export function CandidateApplicationPage() {
     if (!selectedPosition || submitInFlightRef.current) return
 
     if (!isApplicationsOpen) {
-      notifyError('Applications are not currently open.')
+      notifyError(
+        'Applications closed',
+        'Applications are not open right now. Check back when the election enters the application phase.',
+      )
       return
     }
 
@@ -148,7 +153,10 @@ export function CandidateApplicationPage() {
       ])
 
       if (!uploadDocRes.document_url || !uploadPhotoRes.photo_url) {
-        notifyError('Failed to upload files. Please try again.')
+        notifyError(
+          'Upload failed',
+          'One or more files could not be uploaded. Check the photo and PDF, then try again.',
+        )
         return
       }
 
@@ -161,7 +169,7 @@ export function CandidateApplicationPage() {
         declaration_file: uploadDocRes.document_url,
       })
     } catch (error) {
-      notifyError(getApiErrorMessage(error))
+      notifyApiError(error, 'application')
     } finally {
       submitInFlightRef.current = false
       setIsSubmittingApplication(false)
@@ -191,7 +199,7 @@ export function CandidateApplicationPage() {
 
   if (electionInitialLoad) {
     return (
-      <MemberPage>
+      <MemberPage className="space-y-4 sm:space-y-8">
         <Skeleton className="h-12 w-64" />
         <Skeleton className="h-64 w-full" />
       </MemberPage>
@@ -200,7 +208,7 @@ export function CandidateApplicationPage() {
 
   if (queryError) {
     return (
-      <MemberPage>
+      <MemberPage className="space-y-4 sm:space-y-8">
         <PageHeader title="Candidate Application" description="Apply for executive committee positions" />
         <QueryErrorState
           onRetry={() => {
@@ -215,7 +223,7 @@ export function CandidateApplicationPage() {
 
   if (!ongoingElection || !showApplySection) {
     return (
-      <MemberPage>
+      <MemberPage className="space-y-4 sm:space-y-8">
         <PageHeader title="Candidate Application" description="Apply for executive committee positions" />
         <EmptyState
           icon={Clock}
@@ -234,30 +242,64 @@ export function CandidateApplicationPage() {
   const positionSkeletonCount = 6
 
   return (
-    <MemberPage>
+    <MemberPage className="space-y-4 sm:space-y-8">
       <Stagger delayMs={sectionDelays.header}>
-        <PageHeader
-          title="Candidate Application"
-          description={`Apply for positions in: ${ongoingElection.name}`}
-        />
         <CountdownExpiryWatcher targetAt={countdownTarget} onExpire={handleCountdownExpire} />
-        <ElectionCountdownHero
-          variant={isScheduled ? 'applications-upcoming' : 'applications-open'}
-          electionName={ongoingElection.name}
-          targetAt={isScheduled ? appStart : appEnd}
-          className={memberHeroSpacingClass}
-        />
+        {isScheduled ? (
+          <>
+            <PageHeader
+              title="Candidate Application"
+              description={`Apply for positions in: ${ongoingElection.name}`}
+            />
+            <ApplicationsStartsSoonCard
+              electionName={ongoingElection.name}
+              targetAt={appStart}
+              className={memberHeroSpacingClass}
+            />
+          </>
+        ) : (
+          <div
+            className={cn(
+              electionCountdownCardClass,
+              'election-countdown--applications-open',
+            )}
+          >
+            <div className={cn(memberCardHeaderTintClass, 'space-y-3 px-3 py-3 sm:space-y-5 sm:px-6 sm:py-5')}>
+              <PageHeader
+                title="Candidate Application"
+                description={`Apply for positions in: ${ongoingElection.name}`}
+                meta={appEnd ? `Closes ${formatDate(appEnd)}` : undefined}
+              />
+              <div className="border-t border-border/60 pt-3 pb-3 sm:pt-5 sm:pb-6">
+                <ElectionCountdownHero
+                  variant="applications-open"
+                  electionName={ongoingElection.name}
+                  targetAt={appEnd}
+                  inline
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </Stagger>
 
       <Stagger delayMs={sectionDelays.primary}>
+        <div className="space-y-3 sm:space-y-4">
+          <div>
+            <h2 className={memberSectionHeadingClass}>Available positions</h2>
+            <p className={memberSectionIntroClass}>
+              Choose one position to apply for. You can only submit one application per election.
+            </p>
+          </div>
+
         {loadingPositions && !positions ? (
-          <div className={memberGridClass}>
+          <div className={memberPositionGridClass}>
             {Array.from({ length: positionSkeletonCount }, (_, index) => (
-              <Skeleton key={index} className="h-44 w-full rounded-xl" />
+              <Skeleton key={index} className="min-h-[8.5rem] w-full rounded-2xl sm:min-h-[9.5rem]" />
             ))}
           </div>
         ) : (
-          <div className={memberGridClass}>
+          <div className={memberPositionGridClass}>
             {positions?.map((position) => {
               const isMyPosition = myApplication?.position === position.id
               const isEligibleYear =
@@ -271,56 +313,39 @@ export function CandidateApplicationPage() {
               else if (hasApplied) buttonLabel = 'Already applied'
               else if (!isEligibleYear) buttonLabel = 'Not eligible'
 
+              let bodyText: string | undefined
+              let bodyTone: 'default' | 'destructive' = 'default'
+
+              if (hasApplied && !isMyPosition) {
+                bodyText = 'You already applied for another position in this election.'
+              } else if (isMyPosition && myApplication?.status === 'REJECTED') {
+                bodyText = myApplication.rejection_reason
+                  ? `Not approved. ${myApplication.rejection_reason}`
+                  : 'Your application for this position was not approved.'
+                bodyTone = 'destructive'
+              } else if (!isEligibleYear && user?.academic_year) {
+                bodyText = `You are not eligible for this position. It requires ${position.academic_year}.`
+                bodyTone = 'destructive'
+              }
+
               return (
-                <Card key={position.id} className={cn(memberCardSurfaceClass, 'flex flex-col')}>
-                  <CardHeader className={memberCardHeaderTintClass}>
-                    <CardTitle className="break-words">{position.name}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex-grow pt-0">
-                    {isMyPosition && myApplication ? (
-                      <div className="flex flex-col items-start gap-2">
-                        <Label className="text-muted-foreground">My application status</Label>
-                        <ApplicationStatusBadge
-                          status={myApplication.status}
-                          reason={myApplication.rejection_reason}
-                        />
-                      </div>
-                    ) : hasApplied ? (
-                      <p className="text-sm text-muted-foreground">
-                        You already applied for another position in this election.
-                      </p>
-                    ) : !isEligibleYear && user?.academic_year ? (
-                      <p className="text-sm text-destructive">
-                        You are not eligible for this position. It requires {position.academic_year}.
-                      </p>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        You can apply for one position in this election.
-                      </p>
-                    )}
-                  </CardContent>
-                  <CardFooter className="pt-0">
-                    {isMyPosition && myApplication ? (
-                      <Button disabled variant="secondary" className="w-full">
-                        Application submitted
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        onClick={() => openApply(position.id)}
-                        className="w-full"
-                        disabled={!canApplyForThisPosition}
-                        aria-busy={!applicationStatusKnown || authLoading}
-                      >
-                        {buttonLabel}
-                      </Button>
-                    )}
-                  </CardFooter>
-                </Card>
+                <PositionApplyCard
+                  key={position.id}
+                  positionName={position.name}
+                  academicYear={position.academic_year}
+                  bodyText={bodyText}
+                  bodyTone={bodyTone}
+                  buttonLabel={buttonLabel}
+                  buttonDisabled={!canApplyForThisPosition}
+                  buttonBusy={!applicationStatusKnown || authLoading}
+                  onApply={() => openApply(position.id)}
+                  showSubmittedState={Boolean(isMyPosition && myApplication)}
+                />
               )
             })}
           </div>
         )}
+        </div>
       </Stagger>
 
       <Dialog open={!!selectedPosition} onOpenChange={(open) => !open && !isSubmittingApplication && closeDialog()}>

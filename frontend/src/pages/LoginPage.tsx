@@ -12,10 +12,9 @@ import { SkipToContent } from '@/components/shared/SkipToContent'
 
 import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import { useAuth } from '@/context/AuthContext'
-import { getApiErrorMessage } from '@/api/client'
 import { MAIN_CONTENT_ID } from '@/lib/a11y'
 import { loginSchema, type LoginForm } from '@/lib/login-schema'
-import { notifyError } from '@/lib/notify'
+import { notifyApiError } from '@/lib/notify'
 import { brandMarkClass } from '@/lib/design-tokens'
 import { PageLoader } from '@/components/shared/PageLoader'
 import { cn } from '@/lib/utils'
@@ -68,7 +67,7 @@ export function LoginPage() {
         navigate('/')
       }
     } catch (error) {
-      notifyError(getApiErrorMessage(error, 'Invalid credentials'))
+      notifyApiError(error, 'login')
     }
   }
 
@@ -76,7 +75,7 @@ export function LoginPage() {
     <div className="bg-grid relative flex min-h-[100dvh] flex-col surface-page">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 -z-0 h-72 bg-gradient-to-b from-primary/[0.07] to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-0 h-72 bg-gradient-to-b from-primary/[0.07] to-transparent dark:from-primary/[0.12]"
       />
       <SkipToContent />
 

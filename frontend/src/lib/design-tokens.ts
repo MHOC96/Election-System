@@ -19,7 +19,11 @@ export const pageHeaderBlockClass = 'space-y-4'
 
 /** Inset panel for nested dashboard / chart sections */
 export const insetPanelClass =
-  'rounded-xl border border-border/60 bg-muted/10 p-4 sm:p-5'
+  'rounded-xl border border-border/60 bg-muted/10 p-4 dark:bg-muted/20 sm:p-5'
+
+/** Election / countdown hero cards — let `.election-countdown` own surface styling */
+export const electionCountdownCardClass =
+  'election-countdown relative mx-auto w-full max-w-3xl overflow-hidden rounded-2xl !border-0 !bg-transparent !shadow-none ring-0 sm:rounded-3xl'
 
 /** Admin / wide content shell */
 export const shellContentClass = 'mx-auto w-full max-w-7xl'
@@ -77,23 +81,27 @@ export const memberShellHeaderClass =
 export const memberShellMainClass =
   'min-w-0 flex-1 overflow-x-hidden px-3 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-8'
 
-export const memberShellContentClass = 'mx-auto w-full min-w-0 max-w-3xl'
+export const memberShellContentClass = 'mx-auto w-full min-w-0 max-w-4xl'
 
 export const memberPageLayoutClass = 'w-full min-w-0 space-y-5 sm:space-y-8'
 
 export const memberCardSurfaceClass =
-  'overflow-hidden border border-border/70 shadow-md ring-1 ring-primary/10'
+  'overflow-hidden border border-border/70 bg-card shadow-md ring-1 ring-primary/10 dark:ring-primary/20'
 
 export const memberCardHeaderTintClass =
-  'border-b bg-gradient-to-br from-muted/30 via-card to-primary/[0.04]'
+  'border-b bg-gradient-to-br from-muted/30 via-card to-primary/[0.04] dark:from-muted/20 dark:via-card dark:to-primary/[0.08]'
 
 export const memberCardPaddingClass = 'p-5 sm:p-6'
 
-export const memberSectionStackClass = 'space-y-4'
+/** Application position cards — polished interactive surface */
+export const memberPositionCardClass =
+  'overflow-hidden border border-border/70 bg-card shadow-md ring-1 ring-primary/10 dark:ring-primary/20 flex min-w-0 flex-col rounded-2xl'
 
-/** Position / results grids inside the member content column */
-export const memberGridClass =
-  'grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3'
+/** Application position cards grid */
+export const memberPositionGridClass =
+  'grid grid-cols-1 items-start gap-3 sm:grid-cols-2 sm:gap-5'
+
+export const memberSectionStackClass = 'space-y-4'
 
 export const memberHeroSpacingClass = 'mt-4 sm:mt-6'
 
@@ -105,7 +113,10 @@ export const memberSectionHeaderRowClass =
   'flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3'
 
 export const memberCalloutClass =
-  'rounded-xl border border-primary/15 bg-primary/[0.05] px-4 py-4 text-sm leading-relaxed text-muted-foreground sm:px-6 sm:py-5'
+  'rounded-xl border border-primary/15 bg-primary/[0.05] px-4 py-4 text-sm leading-relaxed text-muted-foreground dark:border-primary/25 dark:bg-primary/[0.08] sm:px-6 sm:py-5'
+
+/** Theme-aware hero gradient shell for member status pages */
+export const memberHeroSurfaceClass = 'member-hero-surface'
 
 /** Member empty / waiting states — tighter on phones */
 export const memberEmptyStateClass = 'p-8 sm:p-12'

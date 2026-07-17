@@ -1,30 +1,28 @@
-import { Vote } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { CountdownDisplay } from '@/components/shared/CountdownDisplay'
 import { CountdownTimeInline } from '@/components/shared/CountdownTimeCard'
-import { VotingScheduleDetails } from '@/components/voting/VotingScheduleDetails'
 import { electionCountdownCardClass } from '@/lib/design-tokens'
+import { formatDate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
-interface VotingStartsSoonCardProps {
+interface ApplicationsStartsSoonCardProps {
   electionName: string
   targetAt: string | null
-  votingEndAt?: string | null
   className?: string
 }
 
-/** Compact member card — countdown until voting opens, with schedule shown separately. */
-export function VotingStartsSoonCard({
+/** Compact member card while applications are scheduled but not yet open. */
+export function ApplicationsStartsSoonCard({
   electionName,
   targetAt,
-  votingEndAt,
   className,
-}: VotingStartsSoonCardProps) {
+}: ApplicationsStartsSoonCardProps) {
   return (
     <Card
       className={cn(
         electionCountdownCardClass,
-        'election-countdown--voting-upcoming',
+        'election-countdown--applications-upcoming',
         className,
       )}
       aria-live="polite"
@@ -51,33 +49,33 @@ export function VotingStartsSoonCard({
                 color: 'var(--cd-chip-text)',
               }}
             >
-              <Vote className="h-6 w-6 sm:h-7 sm:w-7" aria-hidden="true" />
+              <Sparkles className="h-6 w-6 sm:h-7 sm:w-7" aria-hidden="true" />
             </div>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs">
+              Candidate applications
+            </p>
             <h2
               className="text-lg font-bold tracking-tight sm:text-xl"
               style={{ color: 'var(--cd-title, inherit)' }}
             >
-              Voting starts soon
+              Applications opening soon
             </h2>
             <p className="text-sm leading-relaxed text-muted-foreground">{electionName}</p>
+            {targetAt ? (
+              <p className="text-sm font-medium text-foreground/80">
+                Opens · {formatDate(targetAt)}
+              </p>
+            ) : null}
           </div>
 
-          <CountdownTimeInline
-            ariaLabel="Time remaining until voting starts"
-            className="w-full pt-1"
-          >
-            <CountdownDisplay
-              targetAt={targetAt}
-              label="Time remaining until voting starts"
-              centered
-            />
-          </CountdownTimeInline>
+          <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
+            When the countdown ends, you can apply for one position. Have your photo and declaration PDF
+            ready.
+          </p>
 
-          <VotingScheduleDetails
-            votingStartAt={targetAt}
-            votingEndAt={votingEndAt}
-            className="w-full border-t border-border/50 pt-4"
-          />
+          <CountdownTimeInline ariaLabel="Time until applications open" className="w-full pt-1">
+            <CountdownDisplay targetAt={targetAt} label="Time until applications open" centered />
+          </CountdownTimeInline>
         </div>
       </CardContent>
     </Card>

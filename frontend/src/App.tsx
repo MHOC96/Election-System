@@ -22,6 +22,7 @@ import {
   ApplicationReviewPage,
 } from '@/routes/adminPages'
 import { AppToaster } from '@/components/shared/AppToaster'
+import { RouteSeo } from '@/components/shared/RouteSeo'
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { AuthSessionBridge } from '@/components/auth/AuthSessionBridge'
 import { initTabCoordinator } from '@/lib/tab-coordinator'
@@ -57,6 +58,7 @@ export default function App() {
         <ThemeProvider>
           <AuthProvider>
             <BrowserRouter>
+            <RouteSeo />
             <AuthSessionBridge />
             <Routes>
               <Route path="/login" element={<LoginPage />} />

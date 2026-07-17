@@ -9,9 +9,9 @@ export function AppToaster() {
   return (
     <Toaster
       theme={theme}
-      richColors
       closeButton
-      position="top-right"
+      position="top-center"
+      className="sm:!top-auto sm:!right-4 sm:!left-auto"
       duration={TOAST_DURATION_MS}
       visibleToasts={3}
       offset={16}
@@ -33,6 +33,12 @@ export function AppToaster() {
           actionButton: 'rounded-md bg-primary text-primary-foreground',
           cancelButton: 'rounded-md bg-muted text-muted-foreground',
           closeButton: 'rounded-md border-border bg-card text-muted-foreground hover:text-foreground',
+          error:
+            'group !border-destructive/30 !bg-destructive/10 [&_[data-title]]:text-destructive dark:!bg-destructive/15',
+          success:
+            'group !border-success/30 !bg-success/10 [&_[data-title]]:text-success dark:!bg-success/15',
+          warning:
+            'group !border-warning/30 !bg-warning/10 [&_[data-title]]:text-warning dark:!bg-warning/15',
         },
       }}
     />

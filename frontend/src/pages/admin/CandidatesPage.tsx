@@ -15,7 +15,7 @@ import {
   uploadCandidateDeclaration,
 } from '@/api/candidates'
 import { fetchPositions } from '@/api/positions'
-import { getApiErrorMessage } from '@/api/client'
+import { notifyApiError, notifyError, notifyInfo, notifyWarning } from '@/lib/notify'
 import {
   buildPositionCandidateGroups,
   CandidatePositionGroups,
@@ -47,7 +47,6 @@ import { candidateSchema, type CandidateForm } from '@/lib/form-schemas'
 import { markQueriesStale, refreshDashboard, POSITIONS_QUERY_KEY, POSITIONS_STALE_MS } from '@/lib/query-sync'
 import { readFileAsObjectUrl } from '@/lib/image-crop'
 import type { AcademicYear, Candidate } from '@/types/api'
-import { notifyError, notifyInfo, notifyWarning } from '@/lib/notify'
 
 export function CandidatesPage() {
   const queryClient = useQueryClient()
@@ -130,7 +129,7 @@ export function CandidatesPage() {
       refreshDashboard(queryClient)
       closeDialog()
     },
-    onError: (error) => notifyError(getApiErrorMessage(error)),
+    onError: (error) => notifyApiError(error, 'upload'),
   })
 
   const deleteMutation = useMutation({
@@ -152,7 +151,7 @@ export function CandidatesPage() {
       if (context?.previous) {
         queryClient.setQueryData(['candidates'], context.previous)
       }
-      notifyError(getApiErrorMessage(error))
+      notifyApiError(error, 'upload')
     },
   })
 
@@ -169,10 +168,11 @@ export function CandidatesPage() {
       markQueriesStale(queryClient, ['candidates'])
       refreshDashboard(queryClient)
       if (result.deleted === 0 && result.skipped.length === 0) {
-        notifyInfo('No candidates to remove')
+        notifyInfo('Nothing to remove', 'There are no candidates on the list right now.')
       } else if (result.skipped.length > 0) {
         notifyWarning(
-          `Removed ${result.deleted} candidate${result.deleted === 1 ? '' : 's'}. ${result.skipped.length} skipped because they have votes.`,
+          'Some candidates were skipped',
+          `Removed ${result.deleted} candidate${result.deleted === 1 ? '' : 's'}. ${result.skipped.length} could not be removed because they already have votes.`,
         )
       }
     },
@@ -180,17 +180,21 @@ export function CandidatesPage() {
       if (context?.previous) {
         queryClient.setQueryData(['candidates'], context.previous)
       }
-      notifyError(getApiErrorMessage(error))
+      notifyApiError(error, 'upload')
     },
   })
 
   const openCreate = (preferredPositionId?: number) => {
     if (!canModifyCandidates) {
-      notifyError(getCandidateModificationNotice(modificationStatus?.reason))
+      notifyError(
+        'Candidates locked',
+        getCandidateModificationNotice(modificationStatus?.reason) ??
+          'Candidate changes are not allowed during this election phase.',
+      )
       return
     }
     if (!positions?.length) {
-      notifyError('Create a position first')
+      notifyError('No positions yet', 'Create at least one position before adding candidates.')
       return
     }
     setEditing(null)
@@ -206,7 +210,11 @@ export function CandidatesPage() {
 
   const openEdit = (candidate: Candidate) => {
     if (!canModifyCandidates) {
-      notifyError(getCandidateModificationNotice(modificationStatus?.reason))
+      notifyError(
+        'Candidates locked',
+        getCandidateModificationNotice(modificationStatus?.reason) ??
+          'Candidate changes are not allowed during this election phase.',
+      )
       return
     }
     setEditing(candidate)
@@ -231,14 +239,14 @@ export function CandidatesPage() {
     e.target.value = ''
     if (!file) return
     if (!file.type.startsWith('image/')) {
-      notifyError('Please choose an image file')
+      notifyError('Invalid file type', 'Please choose an image file for the candidate photo.')
       return
     }
     try {
       const objectUrl = await readFileAsObjectUrl(file)
       setCropImageSrc(objectUrl)
     } catch {
-      notifyError('Could not read the selected image')
+      notifyError('Could not read image', 'The selected image could not be loaded. Try another file.')
     }
   }
 
@@ -247,7 +255,7 @@ export function CandidatesPage() {
     e.target.value = ''
     if (!file) return
     if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-      notifyError('Please choose a PDF file')
+      notifyError('Invalid file type', 'Please choose a PDF file for the declaration form.')
       return
     }
     setUploadingDeclaration(true)
@@ -255,7 +263,7 @@ export function CandidatesPage() {
       const result = await uploadCandidateDeclaration(file)
       setValue('declaration_file', result.document_url, { shouldValidate: true })
     } catch (error) {
-      notifyError(getApiErrorMessage(error))
+      notifyApiError(error, 'upload')
     } finally {
       setUploadingDeclaration(false)
     }
@@ -267,7 +275,7 @@ export function CandidatesPage() {
       const result = await uploadCandidatePhoto(file)
       setValue('photo_url', result.photo_url, { shouldValidate: true })
     } catch (error) {
-      notifyError(getApiErrorMessage(error))
+      notifyApiError(error, 'upload')
       throw error
     } finally {
       setUploading(false)

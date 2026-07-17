@@ -3,21 +3,21 @@ import { ClipboardList, Flag, Hourglass, Sparkles } from 'lucide-react'
 import { fetchMyApplications, type CandidateApplication } from '@/api/applications'
 import { useOngoingElection } from '@/hooks/useOngoingElection'
 import { ApplicationStatusBadge } from '@/components/applications/ApplicationStatusBadge'
+import { ApplicationRejectionNotice } from '@/components/applications/ApplicationRejectionNotice'
 import { CountdownExpiryWatcher } from '@/components/shared/CountdownDisplay'
 import { VotingStartsSoonCard } from '@/components/voting/VotingStartsSoonCard'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { sectionDelays, Stagger } from '@/components/motion/Stagger'
 import { MemberPage } from '@/components/layout/MemberPage'
 import {
-  insetPanelClass,
   memberCalloutClass,
-  memberCardHeaderTintClass,
   memberCardSurfaceClass,
   memberHeroSpacingClass,
+  memberHeroSurfaceClass,
 } from '@/lib/design-tokens'
 import { isVotingStartPending } from '@/lib/election-lifecycle-ui'
 import { ONGOING_ELECTION_QUERY_KEY } from '@/lib/query-sync'
@@ -61,9 +61,7 @@ function getApplicationFootnote(
   }
 
   if (status === 'REJECTED') {
-    return phase === 'VOTING_CLOSED'
-      ? 'Your application was not approved, so you were not placed on the ballot for this election.'
-      : 'Your application was not approved for this election.'
+    return null
   }
 
   if (status === 'APPROVED') {
@@ -89,7 +87,7 @@ function VotingEndedHero({
 }) {
   return (
     <section className={cn(memberCardSurfaceClass, 'overflow-hidden rounded-2xl sm:rounded-3xl')}>
-      <div className="bg-gradient-to-br from-card via-primary/[0.04] to-chart-3/[0.06] px-5 py-6 text-center sm:px-6 sm:py-8">
+      <div className={cn('px-5 py-6 text-center sm:px-6 sm:py-8', memberHeroSurfaceClass)}>
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary shadow-sm sm:h-16 sm:w-16">
           <Flag className="h-7 w-7 sm:h-8 sm:w-8" aria-hidden="true" />
         </div>
@@ -127,8 +125,8 @@ function PostVotingOutcomeCard({ application }: { application: CandidateApplicat
         className={cn(
           'border-b px-5 py-6 text-center sm:px-6 sm:py-8',
           isApproved
-            ? 'bg-gradient-to-br from-primary/[0.08] via-card to-success/[0.06]'
-            : 'bg-muted/30',
+            ? 'bg-gradient-to-br from-primary/[0.08] via-card to-success/[0.06] dark:from-primary/[0.12] dark:via-card dark:to-success/[0.1]'
+            : 'bg-muted/30 dark:bg-muted/20',
         )}
       >
         <img
@@ -142,7 +140,7 @@ function PostVotingOutcomeCard({ application }: { application: CandidateApplicat
         <h3 className="mt-1 text-lg font-bold tracking-tight sm:text-xl md:text-2xl">{application.full_name}</h3>
         <p className="mt-1 text-sm text-muted-foreground sm:text-base">{application.position_name}</p>
         <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-          <ApplicationStatusBadge status={application.status} reason={application.rejection_reason} />
+          <ApplicationStatusBadge status={application.status} />
           {isApproved ? (
             <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/15">
               <Sparkles className="mr-1 h-3 w-3" aria-hidden="true" />
@@ -164,10 +162,7 @@ function PostVotingOutcomeCard({ application }: { application: CandidateApplicat
             </p>
           </>
         ) : application.status === 'REJECTED' ? (
-          <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Your application was reviewed but not approved for this election, so you were not included on
-            the ballot.
-          </p>
+          <ApplicationRejectionNotice reason={application.rejection_reason} />
         ) : (
           <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
             Your application status is shown above. Contact the election committee if you have questions.
@@ -192,53 +187,40 @@ function ActiveApplicationCard({
 
   return (
     <Card className={memberCardSurfaceClass}>
-      <CardHeader className={memberCardHeaderTintClass}>
-        <CardTitle className="text-lg sm:text-xl">{election.name}</CardTitle>
-        <CardDescription>Your candidate application</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start sm:gap-6">
-          <img
-            src={optimizeCloudinaryUrl(application.photo_url, 96)}
-            alt=""
-            className="h-28 w-28 shrink-0 rounded-2xl border-2 border-background object-cover shadow-md ring-1 ring-border/60 sm:h-32 sm:w-32"
+      <div className="border-b bg-muted/30 px-5 py-7 text-center sm:px-8 sm:py-9">
+        <p className="text-base font-semibold text-foreground sm:text-lg">{election.name}</p>
+        <p className="mt-1 text-sm text-muted-foreground sm:text-base">Your candidate application</p>
+        <img
+          src={optimizeCloudinaryUrl(application.photo_url, 128)}
+          alt=""
+          className="mx-auto mt-5 h-24 w-24 rounded-2xl border-2 border-background object-cover shadow-md sm:mt-6 sm:h-28 sm:w-28 md:h-32 md:w-32"
+        />
+        <p className="mt-5 text-sm font-medium text-muted-foreground sm:mt-6 sm:text-base">Position</p>
+        <h3 className="mt-1 text-balance text-xl font-bold leading-tight tracking-tight sm:text-2xl md:text-3xl">
+          {application.position_name}
+        </h3>
+        <p className="mt-3 text-base font-medium text-foreground sm:text-lg">{application.full_name}</p>
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-2 sm:mt-6">
+          <ApplicationStatusBadge
+            status={application.status}
+            className={cn(
+              'h-auto gap-2 px-3.5 py-1.5 text-sm sm:text-base [&_svg]:size-4',
+              application.status === 'REJECTED' && 'mx-auto',
+            )}
           />
-          <div className="grid w-full min-w-0 gap-3 sm:gap-4">
-            <div className={cn(insetPanelClass, 'px-4 py-4 sm:px-5 sm:py-4')}>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Position applied for
-              </p>
-              <p className="mt-1.5 text-base font-semibold leading-snug sm:text-lg">
-                {application.position_name}
-              </p>
-            </div>
-            <div className={cn(insetPanelClass, 'px-4 py-4 sm:px-5 sm:py-4')}>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Applicant name
-              </p>
-              <p className="mt-1.5 text-base font-medium leading-snug">{application.full_name}</p>
-            </div>
-            <div className={cn(insetPanelClass, 'px-4 py-4 sm:px-5 sm:py-4')}>
-              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Decision
-              </p>
-              <div className="flex justify-center sm:justify-start">
-                <ApplicationStatusBadge
-                  status={application.status}
-                  reason={application.rejection_reason}
-                />
-              </div>
-            </div>
-          </div>
         </div>
+      </div>
 
-        {footnote ? (
-          <div className={cn(memberCalloutClass, 'text-center sm:text-left')}>
+      <CardContent className="space-y-4 py-6 text-center sm:py-8 sm:text-left">
+        {application.status === 'REJECTED' ? (
+          <ApplicationRejectionNotice reason={application.rejection_reason} />
+        ) : footnote ? (
+          <div className={cn(memberCalloutClass, 'text-base leading-relaxed')}>
             <p>{footnote}</p>
           </div>
         ) : null}
 
-        <p className="border-t border-border/60 pt-4 text-center text-xs text-muted-foreground sm:text-left">
+        <p className="text-sm text-muted-foreground">
           Submitted {formatDate(application.submitted_at)}
         </p>
       </CardContent>
@@ -307,6 +289,7 @@ export function MemberApplicationStatusPage() {
             <VotingStartsSoonCard
               electionName={election.name}
               targetAt={election.voting_start_at}
+              votingEndAt={election.voting_end_at}
             />
           </div>
         ) : null}

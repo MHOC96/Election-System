@@ -150,8 +150,13 @@ REST_FRAMEWORK = {
         "anon": "60/min",
         "user": "120/min",
         "auth": "10/min",
+        "auth_user": "5/min",
         "vote": "30/min",
         "application_upload": "15/min",
+        "admin_upload": "15/min",
+        "member_import": "5/min",
+        "report_export": "10/min",
+        "dashboard_poll": "180/min",
     },
     "EXCEPTION_HANDLER": "config.exceptions.custom_exception_handler",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
@@ -160,11 +165,18 @@ REST_FRAMEWORK = {
 
 if "test" in sys.argv:
     REST_FRAMEWORK["DEFAULT_THROTTLE_CLASSES"] = []
-    REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {
-        "auth": "10000/min",
-        "vote": "10000/min",
-        "application_upload": "10000/min",
-    }
+    REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"].update(
+        {
+            "auth": "10000/min",
+            "auth_user": "10000/min",
+            "vote": "10000/min",
+            "application_upload": "10000/min",
+            "admin_upload": "10000/min",
+            "member_import": "10000/min",
+            "report_export": "10000/min",
+            "dashboard_poll": "10000/min",
+        }
+    )
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=env("JWT_ACCESS_TOKEN_LIFETIME")),

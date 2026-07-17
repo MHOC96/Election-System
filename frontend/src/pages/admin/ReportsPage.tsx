@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Archive, Download, FileText, Inbox, Loader2 } from 'lucide-react'
 import { exportReport, fetchReportsStatus, getDefaultReportElection } from '@/api/reports'
-import { getApiErrorMessage } from '@/api/client'
+import { notifyApiError, notifySuccessMessage } from '@/lib/notify'
+import { SUCCESS_MESSAGES } from '@/lib/user-messages'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -22,7 +23,6 @@ import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { sectionDelays, Stagger, StaggerChildren } from '@/components/motion/Stagger'
 import { pageHeaderBlockClass, pageLayoutClass } from '@/lib/design-tokens'
 import { REPORTS_STATUS_QUERY_KEY, REPORTS_STATUS_STALE_MS } from '@/lib/query-sync'
-import { notifyError } from '@/lib/notify'
 
 const reports: { type: ReportType; title: string; description: string }[] = [
   { type: 'results', title: 'Election Results', description: 'Vote counts and winners per position' },
@@ -71,8 +71,9 @@ export function ReportsPage() {
     setLoading(type)
     try {
       await exportReport(type, format, selectedElection.id, activeTab)
+      notifySuccessMessage(SUCCESS_MESSAGES.reportDownloaded)
     } catch (error) {
-      notifyError(getApiErrorMessage(error))
+      notifyApiError(error, 'report')
     } finally {
       setLoading(null)
     }

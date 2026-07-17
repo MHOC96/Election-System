@@ -58,9 +58,9 @@ export function ElectionLifecycleRail({ phase, className }: ElectionLifecycleRai
               key={step.label}
               className={cn(
                 'rounded-xl border px-3 py-2.5',
-                isCurrent && 'border-primary/30 bg-primary/5',
-                isComplete && 'border-success/25 bg-success/5',
-                !isComplete && !isCurrent && 'border-border/80 bg-card/40',
+                isCurrent && 'border-primary/30 bg-primary/5 dark:bg-primary/10',
+                isComplete && 'border-success/25 bg-success/5 dark:bg-success/10',
+                !isComplete && !isCurrent && 'border-border/80 bg-card/40 dark:bg-card/50',
               )}
             >
               <RailStep

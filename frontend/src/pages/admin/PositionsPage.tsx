@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ClipboardList, Pencil, Plus, Trash2 } from 'lucide-react'
 import { createPosition, deletePosition, fetchPositions, updatePosition } from '@/api/positions'
-import { getApiErrorMessage } from '@/api/client'
+import { notifyApiError } from '@/lib/notify'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -28,7 +28,6 @@ import { pageLayoutClass, responsiveTableDesktopClass, responsiveTableMobileClas
 import { POSITIONS_QUERY_KEY, POSITIONS_STALE_MS } from '@/lib/query-sync'
 import { positionSchema, type PositionForm } from '@/lib/form-schemas'
 import type { Position } from '@/types/api'
-import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 
@@ -71,7 +70,7 @@ export function PositionsPage() {
       void queryClient.invalidateQueries({ queryKey: POSITIONS_QUERY_KEY })
       closeDialog()
     },
-    onError: (error) => notifyError(getApiErrorMessage(error)),
+    onError: (error) => notifyApiError(error, 'general'),
   })
 
   const deleteMutation = useMutation({
@@ -80,7 +79,7 @@ export function PositionsPage() {
       void queryClient.invalidateQueries({ queryKey: POSITIONS_QUERY_KEY })
       setDeleteTarget(null)
     },
-    onError: (error) => notifyError(getApiErrorMessage(error)),
+    onError: (error) => notifyApiError(error, 'general'),
   })
 
   const openCreate = () => {
@@ -131,7 +130,7 @@ export function PositionsPage() {
 
       <Stagger delayMs={sectionDelays.primary}>
       <Card className={dataTableShellClass}>
-        <CardContent className="p-0">
+        <CardContent className="px-4 py-0 sm:px-6">
           {isLoading ? (
             <div className="space-y-2 p-6">
               <Skeleton className="h-10 w-full" />

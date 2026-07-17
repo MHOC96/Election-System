@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -13,7 +13,7 @@ import {
   publishElectionResults,
   updateElection,
 } from '@/api/elections'
-import { getApiErrorMessage } from '@/api/client'
+import { notifyApiError, notifyError } from '@/lib/notify'
 import { ElectionResultsSheet } from '@/components/elections/ElectionResultsSheet'
 import { ElectionCountdownHero } from '@/components/elections/ElectionCountdownHero'
 import { ElectionLifecycleRail } from '@/components/elections/ElectionLifecycleRail'
@@ -37,7 +37,7 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { sectionDelays, Stagger, StaggerChildren } from '@/components/motion/Stagger'
 import { FormField } from '@/components/design-system/FormField'
-import { DateTimeSplitInput } from '@/components/design-system/DateTimeSplitInput'
+import { DateTimeField } from '@/components/design-system/DateTimeField'
 import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass } from '@/lib/design-tokens'
 import { fetchMembers } from '@/api/members'
@@ -59,7 +59,6 @@ import {
   getElectionCountdown,
   getElectionNextStep,
 } from '@/lib/election-lifecycle-ui'
-import { notifyError } from '@/lib/notify'
 
 export function ElectionsPage() {
   const queryClient = useQueryClient()
@@ -82,6 +81,11 @@ export function ElectionsPage() {
 
   // State to hold editing election
   const [editingElection, setEditingElection] = useState<Election | null>(null)
+
+  const handleElectionCountdownExpire = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ['elections'] })
+    refreshDashboard(queryClient)
+  }, [queryClient])
 
   const { data: elections, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ['elections'],
@@ -124,7 +128,7 @@ export function ElectionsPage() {
       refreshDashboard(queryClient)
       closeCreateDialog()
     },
-    onError: (error) => notifyError(getApiErrorMessage(error)),
+    onError: (error) => notifyApiError(error, 'election'),
   })
 
   const updateMutation = useMutation({
@@ -134,7 +138,7 @@ export function ElectionsPage() {
       refreshDashboard(queryClient)
       closeCreateDialog()
     },
-    onError: (error) => notifyError(getApiErrorMessage(error)),
+    onError: (error) => notifyApiError(error, 'election'),
   })
 
   const actionMutation = useMutation({
@@ -161,7 +165,7 @@ export function ElectionsPage() {
       if (variables.action === 'archive') {
         void queryClient.invalidateQueries({ queryKey: ['elections'] })
       }
-      notifyError(getApiErrorMessage(error))
+      notifyApiError(error, 'election')
     },
   })
 
@@ -176,7 +180,7 @@ export function ElectionsPage() {
       )
       refreshDashboard(queryClient)
     },
-    onError: (error) => notifyError(getApiErrorMessage(error)),
+    onError: (error) => notifyApiError(error, 'election'),
   })
 
   const deleteMutation = useMutation({
@@ -199,13 +203,16 @@ export function ElectionsPage() {
       if (context?.previous) {
         queryClient.setQueryData(['elections'], context.previous)
       }
-      notifyError(getApiErrorMessage(error))
+      notifyApiError(error, 'election')
     },
   })
 
   const openCreateDialog = () => {
     if (!canCreate) {
-      notifyError(createElectionHint ?? 'Cannot create a new election right now.')
+      notifyError(
+        'Cannot create election',
+        createElectionHint ?? 'Finish or archive the current election before creating a new one.',
+      )
       return
     }
     reset({ name: '' })
@@ -447,17 +454,20 @@ export function ElectionsPage() {
           title="Elections"
           description="Create and manage election lifecycle"
           action={
-            <div className="flex flex-col items-end gap-1">
+            <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:items-end">
               <Button
                 onClick={openCreateDialog}
                 disabled={readinessLoading || !canCreate}
                 title={createElectionHint ?? undefined}
+                className="w-full sm:w-auto"
               >
                 <Plus className="h-4 w-4" />
                 New Election
               </Button>
               {!readinessLoading && createElectionHint ? (
-                <p className="text-xs text-muted-foreground">{createElectionHint}</p>
+                <p className="w-full text-left text-xs leading-relaxed text-muted-foreground sm:max-w-[16rem] sm:text-right">
+                  {createElectionHint}
+                </p>
               ) : null}
             </div>
           }
@@ -533,23 +543,25 @@ export function ElectionsPage() {
                       <ElectionLifecycleRail phase={election.current_phase} />
                     ) : null}
 
-                    {!isClosed && nextStep ? <ElectionNextStepBanner step={nextStep} /> : null}
+                    {!isClosed && nextStep && !countdown ? (
+                      <ElectionNextStepBanner step={nextStep} />
+                    ) : null}
 
                     {!isClosed && countdown ? (
-                      <>
+                      <div className="flex w-full justify-center">
                         <CountdownExpiryWatcher
                           targetAt={countdown.targetAt}
-                          onExpire={() => {
-                            void queryClient.invalidateQueries({ queryKey: ['elections'] })
-                            refreshDashboard(queryClient)
-                          }}
+                          onExpire={handleElectionCountdownExpire}
                         />
                         <ElectionCountdownHero
                           variant={countdown.variant}
                           electionName={election.name}
                           targetAt={countdown.targetAt}
+                          votingEndAt={countdown.scheduleEndAt ?? election.voting_end_at}
+                          embedded
+                          className="w-full"
                         />
-                      </>
+                      </div>
                     ) : null}
                   </div>
                   <div
@@ -596,18 +608,18 @@ export function ElectionsPage() {
             )}
 
             {showApplicationFieldsInEdit ? (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4">
                 <FormField
                   label="Applications Start"
                   htmlFor="application_start_at"
                   error={errors.application_start_at?.message}
-                  hint="Select the date and time applications open."
+                  hint="When members can begin submitting applications."
                 >
                   <Controller
                     name="application_start_at"
                     control={control}
                     render={({ field }) => (
-                      <DateTimeSplitInput
+                      <DateTimeField
                         id="application_start_at"
                         value={field.value ?? ''}
                         onChange={field.onChange}
@@ -622,13 +634,13 @@ export function ElectionsPage() {
                   label="Applications End"
                   htmlFor="application_end_at"
                   error={errors.application_end_at?.message}
-                  hint="Select the date and time applications close."
+                  hint="When the application window closes."
                 >
                   <Controller
                     name="application_end_at"
                     control={control}
                     render={({ field }) => (
-                      <DateTimeSplitInput
+                      <DateTimeField
                         id="application_end_at"
                         value={field.value ?? ''}
                         onChange={field.onChange}
@@ -644,7 +656,7 @@ export function ElectionsPage() {
               <div className="grid grid-cols-1 gap-4 border-t pt-4">
                 {editingElection?.current_phase === 'READY_FOR_VOTING' ? (
                   <>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-4">
                       <FormField
                         label="Voting Start"
                         htmlFor="edit_voting_start_at"
@@ -656,7 +668,7 @@ export function ElectionsPage() {
                           name="voting_start_at"
                           control={control}
                           render={({ field }) => (
-                            <DateTimeSplitInput
+                            <DateTimeField
                               id="edit_voting_start_at"
                               value={field.value ?? ''}
                               onChange={field.onChange}
@@ -676,7 +688,7 @@ export function ElectionsPage() {
                           name="voting_end_at"
                           control={control}
                           render={({ field }) => (
-                            <DateTimeSplitInput
+                            <DateTimeField
                               id="edit_voting_end_at"
                               value={field.value ?? ''}
                               onChange={field.onChange}
@@ -699,7 +711,7 @@ export function ElectionsPage() {
                     </div>
                   </>
                 ) : (
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4">
                     <FormField
                       label="Voting Start"
                       htmlFor="edit_voting_start_at"
@@ -709,7 +721,7 @@ export function ElectionsPage() {
                         name="voting_start_at"
                         control={control}
                         render={({ field }) => (
-                          <DateTimeSplitInput
+                          <DateTimeField
                             id="edit_voting_start_at"
                             value={field.value ?? ''}
                             onChange={field.onChange}
@@ -729,7 +741,7 @@ export function ElectionsPage() {
                         name="voting_end_at"
                         control={control}
                         render={({ field }) => (
-                          <DateTimeSplitInput
+                          <DateTimeField
                             id="edit_voting_end_at"
                             value={field.value ?? ''}
                             onChange={field.onChange}

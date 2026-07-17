@@ -17,6 +17,9 @@ from reports.services.report_data import (
     get_results_report_data,
     get_turnout_report_data,
 )
+from reports.throttling import ReportExportRateThrottle
+from dashboard.throttling import DashboardPollRateThrottle
+from config.throttling import AUTHENTICATED_API_THROTTLE_CLASSES
 from voting.models import Election, ElectionStatus
 
 
@@ -32,6 +35,7 @@ def _serialize_report_election(election: Election) -> dict:
 
 class ReportsStatusView(APIView):
     permission_classes = [IsAdmin]
+    throttle_classes = [DashboardPollRateThrottle, *AUTHENTICATED_API_THROTTLE_CLASSES]
 
     def get(self, request):
         active_election = (
@@ -64,6 +68,7 @@ class ReportsStatusView(APIView):
 
 class BaseReportView(APIView):
     permission_classes = [IsAdmin]
+    throttle_classes = [ReportExportRateThrottle, *AUTHENTICATED_API_THROTTLE_CLASSES]
 
     def fetch_report_data(self, election_id: int | None, academic_year: str | None = None) -> dict:
         raise NotImplementedError

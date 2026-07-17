@@ -13,5 +13,7 @@ createRoot(document.getElementById('root')!).render(
   ),
 )
 
-void import('@fontsource/inter/latin-400.css')
-void import('@fontsource/inter/latin-600.css')
+void import('@fontsource/plus-jakarta-sans/latin-400.css')
+void import('@fontsource/plus-jakarta-sans/latin-500.css')
+void import('@fontsource/plus-jakarta-sans/latin-600.css')
+void import('@fontsource/plus-jakarta-sans/latin-700.css')

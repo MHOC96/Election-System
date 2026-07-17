@@ -12,6 +12,7 @@ from candidates.models import CandidateApplication, ApplicationStatus, Candidate
 from candidates.serializers import CandidateApplicationSerializer, ApplicationReviewSerializer, CandidateApplicationDocumentUploadSerializer, CandidatePhotoUploadSerializer
 from candidates.services.cloudinary_service import upload_candidate_document, upload_candidate_photo
 from candidates.throttling import ApplicationUploadRateThrottle
+from config.throttling import AUTHENTICATED_API_THROTTLE_CLASSES
 from dashboard.services.stats_service import invalidate_dashboard_cache
 from audit.constants import AuditAction
 from audit.services.audit_service import log_action
@@ -219,7 +220,7 @@ class AdminApplicationReviewView(APIView):
 
 class CandidateApplicationDocumentUploadView(APIView):
     permission_classes = [IsAuthenticated, IsMember]
-    throttle_classes = [ApplicationUploadRateThrottle]
+    throttle_classes = [ApplicationUploadRateThrottle, *AUTHENTICATED_API_THROTTLE_CLASSES]
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
@@ -262,7 +263,7 @@ class CandidateApplicationDocumentUploadView(APIView):
 
 class CandidateApplicationPhotoUploadView(APIView):
     permission_classes = [IsAuthenticated, IsMember]
-    throttle_classes = [ApplicationUploadRateThrottle]
+    throttle_classes = [ApplicationUploadRateThrottle, *AUTHENTICATED_API_THROTTLE_CLASSES]
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):

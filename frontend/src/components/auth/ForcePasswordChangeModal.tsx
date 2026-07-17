@@ -5,8 +5,8 @@ import { z } from 'zod'
 import { useMutation } from '@tanstack/react-query'
 import { AlertCircle } from 'lucide-react'
 import { changePassword } from '@/api/auth'
-import { getApiErrorMessage } from '@/api/client'
-import { notifyError, notifySuccess } from '@/lib/notify'
+import { notifyApiError, notifySuccessMessage } from '@/lib/notify'
+import { SUCCESS_MESSAGES } from '@/lib/user-messages'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { PasswordInput } from '@/components/ui/password-input'
@@ -144,10 +144,10 @@ export function ForcePasswordChangeModal({ open, onSuccess }: ForcePasswordChang
   const mutation = useMutation({
     mutationFn: changePassword,
     onSuccess: () => {
-      notifySuccess('Password changed successfully!')
+      notifySuccessMessage(SUCCESS_MESSAGES.passwordChanged)
       onSuccess()
     },
-    onError: (error) => notifyError(getApiErrorMessage(error)),
+    onError: (error) => notifyApiError(error, 'password'),
     onSettled: () => setIsSubmitting(false),
   })
 

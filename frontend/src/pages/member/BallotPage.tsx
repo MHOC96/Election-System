@@ -2,7 +2,6 @@ import { memo, useCallback, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarCheck, CheckCircle2, Vote } from 'lucide-react'
 import { fetchBallot, submitVote } from '@/api/votes'
-import { getApiErrorMessage } from '@/api/client'
 import { ElectionCountdownHero } from '@/components/elections/ElectionCountdownHero'
 import { CountdownExpiryWatcher } from '@/components/shared/CountdownDisplay'
 import { ElectionProgressCard } from '@/components/voting/ElectionProgressCard'
@@ -32,7 +31,8 @@ import { isVotingStartPending } from '@/lib/election-lifecycle-ui'
 import { handleRadioGroupKeyDown } from '@/lib/a11y'
 import { cn } from '@/lib/utils'
 import type { BallotItem, Candidate } from '@/types/api'
-import { notifyError } from '@/lib/notify'
+import { notifyApiError, notifySuccessMessage } from '@/lib/notify'
+import { SUCCESS_MESSAGES } from '@/lib/user-messages'
 
 interface PendingVote {
   positionId: number
@@ -88,10 +88,11 @@ export function BallotPage() {
       submitVote(positionId, candidateId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: BALLOT_QUERY_KEY })
+      notifySuccessMessage(SUCCESS_MESSAGES.voteRecorded)
       setPendingVote(null)
     },
     onError: (err) => {
-      notifyError(getApiErrorMessage(err))
+      notifyApiError(err, 'vote')
       setPendingVote(null)
     },
   })
@@ -186,6 +187,7 @@ export function BallotPage() {
           <VotingStartsSoonCard
             electionName={ballot.election.name}
             targetAt={countdownTarget}
+            votingEndAt={votingEndAt}
             className={memberHeroSpacingClass}
           />
         </Stagger>

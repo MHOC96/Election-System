@@ -71,7 +71,7 @@ export type ElectionCountdownVariant = Exclude<ElectionCountdownKind, null>
 
 export function getElectionCountdown(
   election: Election,
-): { variant: ElectionCountdownVariant; targetAt: string } | null {
+): { variant: ElectionCountdownVariant; targetAt: string; scheduleEndAt?: string } | null {
   if (isApplicationsOpeningSoon(election) && election.application_start_at) {
     return { variant: 'applications-upcoming', targetAt: election.application_start_at }
   }
@@ -79,7 +79,11 @@ export function getElectionCountdown(
     return { variant: 'applications-open', targetAt: election.application_end_at }
   }
   if (isVotingStartPending(election) && election.voting_start_at) {
-    return { variant: 'voting-upcoming', targetAt: election.voting_start_at }
+    return {
+      variant: 'voting-upcoming',
+      targetAt: election.voting_start_at,
+      scheduleEndAt: election.voting_end_at ?? undefined,
+    }
   }
   if (isVotingClosingSoon(election) && election.voting_end_at) {
     return { variant: 'voting-open', targetAt: election.voting_end_at }

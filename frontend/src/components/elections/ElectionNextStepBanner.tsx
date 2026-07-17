@@ -18,10 +18,8 @@ export function ElectionNextStepBanner({ step, className }: ElectionNextStepBann
         <Sparkles className="h-4 w-4" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-foreground">{step.title}</p>
-        <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground sm:text-sm">
-          {step.detail}
-        </p>
+        <p className="text-sm font-semibold leading-snug text-foreground">{step.title}</p>
+        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{step.detail}</p>
       </div>
       {step.href ? (
         <ArrowRight className="h-4 w-4 shrink-0 text-primary opacity-80" aria-hidden="true" />
@@ -30,7 +28,7 @@ export function ElectionNextStepBanner({ step, className }: ElectionNextStepBann
   )
 
   const classNames = cn(
-    'flex items-start gap-3 rounded-xl border border-primary/15 bg-gradient-to-br from-primary/5 via-transparent to-accent/30 px-3.5 py-3 sm:px-4 sm:py-3.5',
+    'flex w-full min-w-0 flex-col gap-2.5 rounded-xl border border-primary/15 bg-gradient-to-br from-primary/5 via-transparent to-accent/30 px-3.5 py-3.5 sm:flex-row sm:items-start sm:gap-3 sm:px-4 sm:py-3.5',
     step.href && 'transition-colors hover:border-primary/25 hover:bg-primary/8',
     className,
   )

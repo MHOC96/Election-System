@@ -15,11 +15,25 @@ function getInitialTheme(): Theme {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
+const THEME_COLOR: Record<Theme, string> = {
+  light: '#2563eb',
+  dark: '#0b1220',
+}
+
 function applyTheme(theme: Theme) {
   const root = document.documentElement
   root.classList.add('theme-transition-disabled')
   root.classList.toggle('dark', theme === 'dark')
   localStorage.setItem('election_theme', theme)
+
+  let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"][data-dynamic]')
+  if (!meta) {
+    meta = document.createElement('meta')
+    meta.name = 'theme-color'
+    meta.dataset.dynamic = 'true'
+    document.head.appendChild(meta)
+  }
+  meta.content = THEME_COLOR[theme]
 
   void root.offsetHeight
 

@@ -30,6 +30,7 @@ from voting.services.vote_service import (
     get_member_vote_status,
     submit_vote,
 )
+from config.throttling import AUTHENTICATED_API_THROTTLE_CLASSES
 from voting.throttling import VoteRateThrottle
 from audit.constants import AuditAction
 from audit.services.audit_service import log_action
@@ -333,7 +334,7 @@ class DraftElectionView(APIView):
 
 class VoteSubmitView(APIView):
     permission_classes = [IsVoter]
-    throttle_classes = [VoteRateThrottle]
+    throttle_classes = [VoteRateThrottle, *AUTHENTICATED_API_THROTTLE_CLASSES]
 
     def post(self, request):
         serializer = VoteSubmitSerializer(data=request.data)

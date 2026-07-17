@@ -20,6 +20,8 @@ from positions.models import Position
 from dashboard.services.stats_service import invalidate_dashboard_cache
 from voting.services.ongoing_election_cache import get_cached_ongoing_election
 from voting.services.election_guard import ElectionGuardError, assert_candidate_changes_allowed
+from candidates.throttling import AdminUploadRateThrottle
+from config.throttling import AUTHENTICATED_API_THROTTLE_CLASSES
 from audit.constants import AuditAction
 from audit.services.audit_service import log_action
 
@@ -211,6 +213,7 @@ class CandidateClearAllView(APIView):
 class CandidatePhotoUploadView(APIView):
     permission_classes = [IsAdmin]
     parser_classes = [MultiPartParser, FormParser]
+    throttle_classes = [AdminUploadRateThrottle, *AUTHENTICATED_API_THROTTLE_CLASSES]
 
     def post(self, request):
         serializer = CandidatePhotoUploadSerializer(data=request.data)
@@ -259,6 +262,7 @@ class CandidatePhotoUploadView(APIView):
 class CandidateDeclarationUploadView(APIView):
     permission_classes = [IsAdmin]
     parser_classes = [MultiPartParser, FormParser]
+    throttle_classes = [AdminUploadRateThrottle, *AUTHENTICATED_API_THROTTLE_CLASSES]
 
     def post(self, request):
         serializer = CandidateApplicationDocumentUploadSerializer(data=request.data)

@@ -60,7 +60,7 @@ export function AdminLayout() {
       await logout()
       navigate('/login', { replace: true })
     } catch {
-      notifyError('Failed to log out')
+      notifyError('Sign-out failed', 'We could not sign you out. Please refresh the page and try again.')
       navigate('/login', { replace: true })
     } finally {
       setIsLoggingOut(false)

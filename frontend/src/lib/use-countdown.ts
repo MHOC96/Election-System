@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react'
+import { useCallback, useSyncExternalStore } from 'react'
 
 type Listener = () => void
 
@@ -64,12 +64,19 @@ function getSnapshot(targetIso: string | null | undefined): number | null {
   return targetRemaining.get(targetIso) ?? null
 }
 
+function subscribeToCountdown(listener: Listener, targetIso: string | null | undefined) {
+  if (!targetIso) return () => {}
+  return subscribeToTarget(targetIso, listener)
+}
+
 export function useCountdown(targetIso: string | null | undefined): number | null {
-  return useSyncExternalStore(
-    (listener) => (targetIso ? subscribeToTarget(targetIso, listener) : () => {}),
-    () => getSnapshot(targetIso),
-    () => null,
+  const subscribe = useCallback(
+    (listener: Listener) => subscribeToCountdown(listener, targetIso),
+    [targetIso],
   )
+  const getClientSnapshot = useCallback(() => getSnapshot(targetIso), [targetIso])
+
+  return useSyncExternalStore(subscribe, getClientSnapshot, () => null)
 }
 
 /** Test helper: reset shared countdown ticker state. */

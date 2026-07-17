@@ -31,6 +31,8 @@ from members.services.import_job_service import (
 )
 from members.services.import_service import import_members, import_result_to_dict
 from members.services.password_reset_service import MemberPasswordResetError, reset_member_password
+from members.throttling import MemberImportRateThrottle
+from config.throttling import AUTHENTICATED_API_THROTTLE_CLASSES
 from audit.constants import AuditAction
 from audit.services.audit_service import log_action
 
@@ -58,6 +60,7 @@ def _import_result_response(result, *, async_job: bool = False) -> dict:
 class MemberImportView(APIView):
     permission_classes = [IsAdmin]
     parser_classes = [MultiPartParser, FormParser]
+    throttle_classes = [MemberImportRateThrottle, *AUTHENTICATED_API_THROTTLE_CLASSES]
 
     def post(self, request):
         serializer = MemberImportSerializer(data=request.data)

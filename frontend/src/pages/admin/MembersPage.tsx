@@ -12,7 +12,8 @@ import {
   resetMemberPassword,
   updateMember,
 } from '@/api/members'
-import { getApiErrorMessage } from '@/api/client'
+import { notifyApiError, notifyInfo, notifySuccessMessage, notifyWarning } from '@/lib/notify'
+import { SUCCESS_MESSAGES } from '@/lib/user-messages'
 import { MemberImportPanel } from '@/components/members/MemberImportPanel'
 import { Button } from '@/components/ui/button'
 import {
@@ -44,7 +45,6 @@ import {
   refreshDashboard,
 } from '@/lib/query-sync'
 import type { AcademicYear, Member, MemberImportResult } from '@/types/api'
-import { notifyError, notifyInfo, notifySuccess, notifyWarning } from '@/lib/notify'
 
 
 async function refreshMembersPage(queryClient: QueryClient, academicYear: AcademicYear, page = 1) {
@@ -105,10 +105,13 @@ export function MembersPage() {
       setImportResult(result)
 
       if (result.failed_rows.length > 0 || result.duplicates.length > 0) {
-        notifyWarning('Import completed with some rows skipped — review the summary below.')
+        notifyWarning(
+          'Import finished with issues',
+          'Some rows were skipped. Review the import summary below for details.',
+        )
       }
     },
-    onError: (error) => notifyError(getApiErrorMessage(error)),
+    onError: (error) => notifyApiError(error, 'import'),
   })
 
   const clearAllMutation = useMutation({
@@ -120,7 +123,7 @@ export function MembersPage() {
     },
     onSuccess: (result) => {
       if (result.deleted === 0) {
-        notifyInfo('No members to remove')
+        notifyInfo('Nothing to remove', 'There are no member records to delete right now.')
       }
 
       markQueriesStale(queryClient, ['members', activeTab])
@@ -129,7 +132,7 @@ export function MembersPage() {
     },
     onError: (error) => {
       void queryClient.invalidateQueries({ queryKey: ['members', activeTab] })
-      notifyError(getApiErrorMessage(error))
+      notifyApiError(error, 'import')
     },
   })
 
@@ -143,16 +146,16 @@ export function MembersPage() {
       closeEditDialog()
       void refreshMembersPage(queryClient, activeTab, page)
     },
-    onError: (error) => notifyError(getApiErrorMessage(error)),
+    onError: (error) => notifyApiError(error, 'import'),
   })
 
   const resetPasswordMutation = useMutation({
     mutationFn: (id: number) => resetMemberPassword(id),
     onSuccess: (result) => {
       setResetTarget(null)
-      notifySuccess(result.message)
+      notifySuccessMessage(SUCCESS_MESSAGES.memberImport(result.message))
     },
-    onError: (error) => notifyError(getApiErrorMessage(error)),
+    onError: (error) => notifyApiError(error, 'import'),
   })
 
   const tableLoading = isPending && !data

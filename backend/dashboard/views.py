@@ -3,16 +3,19 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.permissions import IsAdmin
+from dashboard.throttling import DashboardPollRateThrottle
 from dashboard.services.stats_service import (
     get_dashboard_overview,
     get_dashboard_summary,
     get_live_stats,
     get_position_rankings,
 )
+from config.throttling import AUTHENTICATED_API_THROTTLE_CLASSES
 
 
 class DashboardSummaryView(APIView):
     permission_classes = [IsAdmin]
+    throttle_classes = [DashboardPollRateThrottle, *AUTHENTICATED_API_THROTTLE_CLASSES]
 
     def get(self, request):
         election_id = request.query_params.get("election_id")
@@ -24,6 +27,7 @@ class DashboardSummaryView(APIView):
 
 class DashboardOverviewView(APIView):
     permission_classes = [IsAdmin]
+    throttle_classes = [DashboardPollRateThrottle, *AUTHENTICATED_API_THROTTLE_CLASSES]
 
     def get(self, request):
         election_id = request.query_params.get("election_id")
@@ -35,6 +39,7 @@ class DashboardOverviewView(APIView):
 
 class LiveStatsView(APIView):
     permission_classes = [IsAdmin]
+    throttle_classes = [DashboardPollRateThrottle, *AUTHENTICATED_API_THROTTLE_CLASSES]
 
     def get(self, request):
         election_id = request.query_params.get("election_id")
@@ -46,6 +51,7 @@ class LiveStatsView(APIView):
 
 class PositionRankingsView(APIView):
     permission_classes = [IsAdmin]
+    throttle_classes = [DashboardPollRateThrottle, *AUTHENTICATED_API_THROTTLE_CLASSES]
 
     def get(self, request, position_id):
         election_id = request.query_params.get("election_id")

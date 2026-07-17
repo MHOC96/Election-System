@@ -209,7 +209,6 @@ export function MemberImportPanel({
             <div className="space-y-1">
               <CardTitle 
                 className="text-xl font-semibold tracking-tight text-foreground"
-                style={{ fontFamily: "'Outfit', sans-serif" }}
               >
                 Import {academicYear} Members
               </CardTitle>
