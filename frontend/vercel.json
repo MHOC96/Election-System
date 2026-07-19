@@ -1,4 +1,6 @@
 {
+  "buildCommand": "npm run build",
+  "installCommand": "npm ci",
   "rewrites": [
     {
       "source": "/((?!assets/|robots\\.txt|sitemap\\.xml|manifest\\.json|favicon\\.svg|icons\\.svg).*)",
