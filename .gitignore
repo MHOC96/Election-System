@@ -52,3 +52,5 @@ Thumbs.db
 
 # Cursor
 .cursor/
+.vercel
+.env*

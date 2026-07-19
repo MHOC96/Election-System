@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.urls import path
+import sys
 
 from accounts.views import (
     AdminOnlyProbeView,
@@ -19,7 +20,7 @@ urlpatterns = [
     path("change-password/", ChangePasswordView.as_view(), name="auth-change-password"),
 ]
 
-if settings.DEBUG:
+if settings.DEBUG or "test" in sys.argv:
     urlpatterns += [
         path("probe/admin/", AdminOnlyProbeView.as_view(), name="auth-probe-admin"),
         path("probe/member/", MemberOnlyProbeView.as_view(), name="auth-probe-member"),
