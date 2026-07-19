@@ -9,7 +9,6 @@ import {
   PublishedResultsPage,
 } from '@/routes/memberPages'
 import { EmptyState } from '@/components/shared/EmptyState'
-import { PageHeader } from '@/components/shared/PageHeader'
 import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MemberPage } from '@/components/layout/MemberPage'
@@ -27,10 +26,6 @@ function PhasePageSkeleton() {
 function MemberHomeWaiting({ election }: { election: Election | null | undefined }) {
   return (
     <MemberPage>
-      <PageHeader
-        title={election?.name ?? 'Executive Election'}
-        description="Member portal"
-      />
       <EmptyState
         icon={Clock}
         title={election ? 'Nothing to do right now' : 'No active election'}

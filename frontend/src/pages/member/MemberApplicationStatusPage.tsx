@@ -261,7 +261,7 @@ export function MemberApplicationStatusPage() {
   if (!election) {
     return (
       <MemberPage>
-        <PageHeader title="Application status" description="Member portal" />
+        <PageHeader title="Application status" />
         <EmptyState
           icon={ClipboardList}
           title="No active election"

@@ -13,7 +13,6 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/shared/EmptyState'
-import { PageHeader } from '@/components/shared/PageHeader'
 import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { MemberPage } from '@/components/layout/MemberPage'
 import { sectionDelays, Stagger, StaggerChildren } from '@/components/motion/Stagger'
@@ -110,7 +109,6 @@ export function BallotPage() {
   if (ballotQuery.isError) {
     return (
       <MemberPage>
-        <PageHeader title="Executive Election" description="Member voting portal" />
         <QueryErrorState
           onRetry={() => void ballotQuery.refetch()}
           isRetrying={ballotQuery.isFetching}
@@ -126,7 +124,6 @@ export function BallotPage() {
   if (electionEnded) {
     return (
       <MemberPage>
-        <PageHeader title="Executive Election" description="Member voting portal" />
         <EmptyState
           icon={CalendarCheck}
           title="This election has ended"
@@ -139,7 +136,6 @@ export function BallotPage() {
   if (!ballot?.election) {
     return (
       <MemberPage>
-        <PageHeader title="Executive Election" description="Member voting portal" />
         <EmptyState
           icon={Vote}
           title="No election in progress"
@@ -158,7 +154,6 @@ export function BallotPage() {
   if (positions.length === 0) {
     return (
       <MemberPage>
-        <PageHeader title="Executive Election" description="Member voting portal" />
         <EmptyState
           icon={Vote}
           title="No candidates yet"
@@ -170,17 +165,6 @@ export function BallotPage() {
 
   return (
     <MemberPage>
-      <Stagger delayMs={sectionDelays.header}>
-        <PageHeader
-          title="Executive Election"
-          description={
-            isVotingUpcoming
-              ? 'Voting opens soon — preview the ballot below'
-              : 'View election details and submit your votes'
-          }
-        />
-      </Stagger>
-
       {ballot.election && isVotingUpcoming ? (
         <Stagger delayMs={sectionDelays.primary}>
           <CountdownExpiryWatcher targetAt={countdownTarget} onExpire={handleCountdownExpire} />
