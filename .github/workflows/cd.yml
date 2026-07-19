@@ -56,9 +56,6 @@ jobs:
       needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     environment: production
-    defaults:
-      run:
-        working-directory: frontend
 
     steps:
       - uses: actions/checkout@v4
@@ -72,6 +69,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
+        working-directory: frontend
         run: npm ci
 
       - name: Install Vercel CLI
@@ -85,6 +83,7 @@ jobs:
         run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
 
       - name: Validate production build
+        working-directory: frontend
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
           VITE_SITE_URL: ${{ secrets.VITE_SITE_URL }}
@@ -110,9 +109,6 @@ jobs:
       needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     environment: production
-    defaults:
-      run:
-        working-directory: backend
 
     steps:
       - uses: actions/checkout@v4
