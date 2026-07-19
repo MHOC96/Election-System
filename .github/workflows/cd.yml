@@ -123,6 +123,10 @@ jobs:
         with:
           python-version-file: backend/.python-version
 
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
 
