@@ -84,21 +84,23 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
 
-      - name: Build project
+      - name: Validate production build
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
           VITE_SITE_URL: ${{ secrets.VITE_SITE_URL }}
-        run: vercel build --prod --token="$VERCEL_TOKEN"
+        run: npm run build
 
       - name: Deploy to production
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_SITE_URL: ${{ secrets.VITE_SITE_URL }}
+        run: |
+          vercel deploy --prod --yes --token="$VERCEL_TOKEN" \
+            --build-env "VITE_API_URL=${VITE_API_URL}" \
+            --build-env "VITE_SITE_URL=${VITE_SITE_URL}"
 
   deploy-backend:
     name: Deploy backend (Vercel)
@@ -120,6 +122,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: backend/.python-version
 
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
