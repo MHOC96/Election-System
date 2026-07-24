@@ -621,6 +621,14 @@ class ApplicationReviewAPITestCase(TestCase):
         self.assertEqual(self.application.rejection_reason, "Incomplete documents")
         self.assertEqual(Candidate.objects.count(), 0)
 
+    def test_admin_application_list_includes_member_mc(self):
+        self._login_admin()
+        response = self.client.get(reverse("applications-all"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        first = response.data["data"]["results"][0]
+        self.assertEqual(first["member_mc"], "member-pass")
+        self.assertEqual(first["member_cpm"], "CPM400")
+
 
 class CandidateModelTestCase(TestCase):
     def test_full_name_stripped(self):

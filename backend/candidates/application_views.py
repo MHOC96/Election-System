@@ -130,6 +130,7 @@ class AdminApplicationListView(generics.ListAPIView):
             queryset = queryset.filter(
                 Q(full_name__icontains=search)
                 | Q(cpm_number__icontains=search)
+                | Q(member__mc_number__icontains=search)
                 | Q(position__name__icontains=search)
             )
 

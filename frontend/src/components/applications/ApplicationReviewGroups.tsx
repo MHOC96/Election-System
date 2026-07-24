@@ -1,4 +1,4 @@
-import { CalendarClock, CheckCircle2, ExternalLink, FileText, Loader2, Phone, UserRound, XCircle } from 'lucide-react'
+import { CalendarClock, CheckCircle2, CreditCard, ExternalLink, FileText, Loader2, Phone, UserRound, XCircle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { CandidateApplication } from '@/api/applications'
@@ -53,7 +53,6 @@ function ApplicantCard({ app, pendingId, onApprove, onReject }: ApplicantCardPro
 
         <div className="min-w-0 flex-1">
           <h4 className="truncate text-sm font-semibold leading-snug sm:text-base">{app.full_name}</h4>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">CPM {app.cpm_number}</p>
         </div>
 
         {app.status === 'APPROVED' ? <Badge variant="success">Approved</Badge> : null}
@@ -61,6 +60,20 @@ function ApplicantCard({ app, pendingId, onApprove, onReject }: ApplicantCardPro
       </header>
 
       <dl className="space-y-1.5 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <dt className="sr-only">CPM number</dt>
+          <CreditCard className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden="true" />
+          <dd className="truncate">CPM {app.member_cpm || app.cpm_number}</dd>
+        </div>
+
+        {app.member_mc ? (
+          <div className="flex items-center gap-2">
+            <dt className="sr-only">MC number</dt>
+            <CreditCard className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden="true" />
+            <dd className="truncate">MC {app.member_mc}</dd>
+          </div>
+        ) : null}
+
         {app.member_academic_year ? (
           <div className="flex items-center gap-2">
             <dt className="sr-only">Academic year</dt>

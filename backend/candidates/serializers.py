@@ -88,6 +88,7 @@ from candidates.models import CandidateApplication, ApplicationStatus
 class CandidateApplicationSerializer(serializers.ModelSerializer):
     position_name = serializers.CharField(source="position.name", read_only=True)
     member_cpm = serializers.CharField(source="member.cpm_number", read_only=True)
+    member_mc = serializers.CharField(source="member.mc_number", read_only=True)
     member_academic_year = serializers.CharField(source="member.academic_year", read_only=True)
     election_name = serializers.CharField(source="election.name", read_only=True)
 
@@ -99,6 +100,7 @@ class CandidateApplicationSerializer(serializers.ModelSerializer):
             "election_name",
             "member",
             "member_cpm",
+            "member_mc",
             "member_academic_year",
             "position",
             "position_name",
@@ -113,7 +115,7 @@ class CandidateApplicationSerializer(serializers.ModelSerializer):
             "approved_at",
             "approved_by",
         )
-        read_only_fields = ("id", "election", "member", "status", "rejection_reason", "submitted_at", "approved_at", "approved_by", "position_name", "member_cpm", "member_academic_year", "election_name")
+        read_only_fields = ("id", "election", "member", "status", "rejection_reason", "submitted_at", "approved_at", "approved_by", "position_name", "member_cpm", "member_mc", "member_academic_year", "election_name")
 
     def validate_full_name(self, value):
         name = value.strip()

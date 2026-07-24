@@ -273,7 +273,7 @@ export function ApplicationReviewPage() {
                   <Input
                     id="application-search"
                     type="search"
-                    placeholder="Search by name or CPM…"
+                    placeholder="Search by name, CPM, or MC…"
                     value={searchQuery}
                     onChange={(e) => {
                       setSearchQuery(e.target.value)
