@@ -6,7 +6,7 @@ interface MemberPageProps {
   className?: string
 }
 
-/** Consistent vertical rhythm for all member portal pages. */
+/** Consistent vertical rhythm and width for all member portal pages. */
 export function MemberPage({ children, className }: MemberPageProps) {
   return (
     <div className={cn(memberPageLayoutClass, 'overflow-x-hidden', className)}>{children}</div>

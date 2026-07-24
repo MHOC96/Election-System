@@ -97,26 +97,33 @@ export const applicationFilterRowClass =
 
 /** Member portal — shell, page rhythm, and surfaces */
 export const memberShellHeaderClass =
-  'glass sticky top-0 z-40 w-full border-b pt-[env(safe-area-inset-top)]'
+  'glass sticky top-0 z-40 w-full border-b border-border/60 pt-[env(safe-area-inset-top)]'
 
 /** Aligns member header content with the main page column */
 export const memberShellHeaderInnerClass =
   'mx-auto w-full min-w-0 max-w-4xl lg:max-w-5xl xl:max-w-6xl'
 
 export const memberShellMainClass =
-  'min-w-0 flex-1 overflow-x-hidden px-3 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-8 lg:px-8 lg:py-10 xl:px-10'
+  'member-portal-canvas relative min-w-0 flex-1 overflow-x-hidden px-3 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-8 lg:px-8 lg:py-10 xl:px-10'
 
 export const memberShellContentClass = memberShellHeaderInnerClass
 
-export const memberPageLayoutClass = 'w-full min-w-0 space-y-5 sm:space-y-8 lg:space-y-10'
+export const memberPageLayoutClass = 'w-full min-w-0 space-y-6 sm:space-y-8 lg:space-y-10'
+
+/** Shared card radius across member surfaces */
+export const memberCardRadiusClass = 'rounded-2xl sm:rounded-3xl'
 
 export const memberCardSurfaceClass =
-  'overflow-hidden border border-border/70 bg-card shadow-md ring-1 ring-primary/10 dark:ring-primary/20'
+  'overflow-hidden border border-border/70 bg-card shadow-md ring-1 ring-primary/10 dark:ring-primary/20 rounded-2xl sm:rounded-3xl'
 
 export const memberCardHeaderTintClass =
-  'border-b bg-gradient-to-br from-muted/30 via-card to-primary/[0.04] dark:from-muted/20 dark:via-card dark:to-primary/[0.08]'
+  'border-b bg-gradient-to-br from-muted/35 via-card to-primary/[0.05] dark:from-muted/25 dark:via-card dark:to-primary/[0.1]'
 
-export const memberCardPaddingClass = 'p-5 sm:p-6'
+export const memberCardPaddingClass = 'p-5 sm:p-6 lg:p-7'
+
+/** Elevated inset panel inside member cards */
+export const memberInsetPanelClass =
+  'rounded-xl border border-border/60 bg-muted/15 p-4 dark:bg-muted/25 sm:rounded-2xl sm:p-5'
 
 /** Application position cards — polished interactive surface */
 export const memberPositionCardClass =
@@ -141,12 +148,21 @@ export const memberSectionStackClass = 'space-y-4'
 
 export const memberHeroSpacingClass = 'mt-4 sm:mt-6'
 
-export const memberSectionHeadingClass = 'text-base font-semibold tracking-tight sm:text-lg'
+export const memberSectionHeadingClass =
+  'text-base font-semibold tracking-tight sm:text-lg lg:text-xl'
 
-export const memberSectionIntroClass = 'mt-1 text-sm leading-relaxed text-muted-foreground'
+export const memberSectionIntroClass =
+  'mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-[0.9375rem]'
 
 export const memberSectionHeaderRowClass =
-  'flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3'
+  'flex min-w-0 flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4'
+
+/** Member page title block */
+export const memberPageTitleClass =
+  'text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl'
+
+export const memberPageDescriptionClass =
+  'mt-1.5 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base'
 
 export const memberCalloutClass =
   'rounded-xl border border-primary/15 bg-primary/[0.05] px-4 py-4 text-sm leading-relaxed text-muted-foreground dark:border-primary/25 dark:bg-primary/[0.08] sm:px-6 sm:py-5'

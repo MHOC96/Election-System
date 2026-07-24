@@ -487,6 +487,33 @@
     background-image: radial-gradient(hsl(var(--muted-foreground) / 0.12) 1px, transparent 1px);
     background-size: 22px 22px;
   }
+
+  /* Member portal main canvas — soft gradient + grid */
+  .member-portal-canvas {
+    background-color: hsl(var(--muted) / 0.2);
+    background-image:
+      radial-gradient(hsl(var(--muted-foreground) / 0.07) 1px, transparent 1px),
+      linear-gradient(
+        180deg,
+        hsl(var(--primary) / 0.03) 0%,
+        transparent 28%,
+        transparent 100%
+      );
+    background-size: 24px 24px, 100% 100%;
+    background-position: center top;
+  }
+
+  .dark .member-portal-canvas {
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(hsl(var(--muted-foreground) / 0.08) 1px, transparent 1px),
+      linear-gradient(
+        180deg,
+        hsl(var(--primary) / 0.06) 0%,
+        transparent 32%,
+        transparent 100%
+      );
+  }
 }
 
 @layer utilities {

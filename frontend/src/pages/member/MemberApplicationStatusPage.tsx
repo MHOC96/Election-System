@@ -7,7 +7,7 @@ import { ApplicationRejectionNotice } from '@/components/applications/Applicatio
 import { CountdownExpiryWatcher } from '@/components/shared/CountdownDisplay'
 import { VotingStartsSoonCard } from '@/components/voting/VotingStartsSoonCard'
 import { EmptyState } from '@/components/shared/EmptyState'
-import { PageHeader } from '@/components/shared/PageHeader'
+import { MemberPageHeader } from '@/components/member/MemberPageHeader'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -15,6 +15,7 @@ import { sectionDelays, Stagger } from '@/components/motion/Stagger'
 import { MemberPage } from '@/components/layout/MemberPage'
 import {
   memberCalloutClass,
+  memberCardPaddingClass,
   memberCardSurfaceClass,
   memberHeroSpacingClass,
   memberHeroSurfaceClass,
@@ -87,8 +88,8 @@ function VotingEndedHero({
   votingEndAt: string | null | undefined
 }) {
   return (
-    <section className={cn(memberCardSurfaceClass, 'overflow-hidden rounded-2xl sm:rounded-3xl')}>
-      <div className={cn('px-5 py-6 text-center sm:px-6 sm:py-8', memberHeroSurfaceClass)}>
+    <section className={cn(memberCardSurfaceClass, 'overflow-hidden')}>
+      <div className={cn(memberCardPaddingClass, 'text-center', memberHeroSurfaceClass)}>
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary shadow-sm sm:h-16 sm:w-16">
           <Flag className="h-7 w-7 sm:h-8 sm:w-8" aria-hidden="true" />
         </div>
@@ -124,7 +125,7 @@ function PostVotingOutcomeCard({ application }: { application: CandidateApplicat
     <Card className={memberCardSurfaceClass}>
       <div
         className={cn(
-          'border-b px-5 py-6 text-center sm:px-6 sm:py-8',
+          'border-b px-5 py-7 text-center sm:px-8 sm:py-9 lg:px-10',
           isApproved
             ? 'bg-gradient-to-br from-primary/[0.08] via-card to-success/[0.06] dark:from-primary/[0.12] dark:via-card dark:to-success/[0.1]'
             : 'bg-muted/30 dark:bg-muted/20',
@@ -151,7 +152,7 @@ function PostVotingOutcomeCard({ application }: { application: CandidateApplicat
         </div>
       </div>
 
-      <CardContent className="space-y-4 py-6 text-center sm:py-8">
+      <CardContent className={cn(memberCardPaddingClass, 'space-y-4 text-center')}>
         {isApproved ? (
           <>
             <p className="text-sm leading-relaxed text-foreground sm:text-base">
@@ -188,7 +189,7 @@ function ActiveApplicationCard({
 
   return (
     <Card className={memberCardSurfaceClass}>
-      <div className="border-b bg-muted/30 px-5 py-7 text-center sm:px-8 sm:py-9">
+      <div className={cn('border-b bg-muted/30 px-5 py-8 text-center sm:px-8 sm:py-10 lg:px-10')}>
         <p className="text-base font-semibold text-foreground sm:text-lg">{election.name}</p>
         <p className="mt-1 text-sm text-muted-foreground sm:text-base">Your candidate application</p>
         <img
@@ -212,7 +213,7 @@ function ActiveApplicationCard({
         </div>
       </div>
 
-      <CardContent className="space-y-4 py-6 text-center sm:py-8 sm:text-left">
+      <CardContent className={cn(memberCardPaddingClass, 'space-y-4 text-center sm:text-left')}>
         {application.status === 'REJECTED' ? (
           <ApplicationRejectionNotice reason={application.rejection_reason} />
         ) : footnote ? (
@@ -253,8 +254,8 @@ export function MemberApplicationStatusPage() {
   if (isLoading) {
     return (
       <MemberPage>
-        <Skeleton className="h-12 w-64" />
-        <Skeleton className="h-48 w-full" />
+        <Skeleton className="h-12 w-64 rounded-2xl" />
+        <Skeleton className="h-52 w-full rounded-3xl" />
       </MemberPage>
     )
   }
@@ -262,7 +263,7 @@ export function MemberApplicationStatusPage() {
   if (!election) {
     return (
       <MemberPage>
-        <PageHeader title="Application status" />
+        <MemberPageHeader title="Application status" />
         <EmptyState
           icon={ClipboardList}
           title="No active election"
@@ -275,7 +276,7 @@ export function MemberApplicationStatusPage() {
   return (
     <MemberPage>
       <Stagger delayMs={sectionDelays.header}>
-        <PageHeader title={phaseCopy.title} description={phaseCopy.description} />
+        <MemberPageHeader title={phaseCopy.title} description={phaseCopy.description} />
         {isPostVoting ? (
           <div className={memberHeroSpacingClass}>
             <VotingEndedHero electionName={election.name} votingEndAt={election.voting_end_at} />

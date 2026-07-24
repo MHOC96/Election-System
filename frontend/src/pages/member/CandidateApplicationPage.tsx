@@ -16,18 +16,17 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Label } from '@/components/ui/label'
 import { FormField } from '@/components/design-system/FormField'
 import { EmptyState } from '@/components/shared/EmptyState'
-import { PageHeader } from '@/components/shared/PageHeader'
 import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { sectionDelays, Stagger } from '@/components/motion/Stagger'
 import { MemberPage } from '@/components/layout/MemberPage'
+import { MemberPageHeader } from '@/components/member/MemberPageHeader'
+import { MemberSection } from '@/components/member/MemberSection'
 import { PositionApplyCard } from '@/components/applications/PositionApplyCard'
 import {
   memberCardHeaderTintClass,
   electionCountdownCardClass,
   memberHeroSpacingClass,
   memberPositionGridClass,
-  memberSectionHeadingClass,
-  memberSectionIntroClass,
 } from '@/lib/design-tokens'
 import { ONGOING_ELECTION_QUERY_KEY, APPLICATIONS_STALE_MS, POSITIONS_QUERY_KEY, POSITIONS_STALE_MS } from '@/lib/query-sync'
 import { fetchPositions } from '@/api/positions'
@@ -199,17 +198,18 @@ export function CandidateApplicationPage() {
 
   if (electionInitialLoad) {
     return (
-      <MemberPage className="space-y-4 sm:space-y-8">
-        <Skeleton className="h-12 w-64" />
-        <Skeleton className="h-64 w-full" />
+      <MemberPage>
+        <Skeleton className="h-12 w-64 rounded-2xl" />
+        <Skeleton className="h-44 w-full rounded-3xl" />
+        <Skeleton className="h-64 w-full rounded-3xl" />
       </MemberPage>
     )
   }
 
   if (queryError) {
     return (
-      <MemberPage className="space-y-4 sm:space-y-8">
-        <PageHeader title="Candidate Application" description="Apply for executive committee positions" />
+      <MemberPage>
+        <MemberPageHeader title="Candidate Application" description="Apply for executive committee positions" />
         <QueryErrorState
           onRetry={() => {
             if (electionError) void refetchElection()
@@ -223,8 +223,8 @@ export function CandidateApplicationPage() {
 
   if (!ongoingElection || !showApplySection) {
     return (
-      <MemberPage className="space-y-4 sm:space-y-8">
-        <PageHeader title="Candidate Application" description="Apply for executive committee positions" />
+      <MemberPage>
+        <MemberPageHeader title="Candidate Application" description="Apply for executive committee positions" />
         <EmptyState
           icon={Clock}
           title="Applications are not open"
@@ -242,12 +242,12 @@ export function CandidateApplicationPage() {
   const positionSkeletonCount = 6
 
   return (
-    <MemberPage className="space-y-4 sm:space-y-8">
+    <MemberPage>
       <Stagger delayMs={sectionDelays.header}>
         <CountdownExpiryWatcher targetAt={countdownTarget} onExpire={handleCountdownExpire} />
         {isScheduled ? (
           <>
-            <PageHeader
+            <MemberPageHeader
               title="Candidate Application"
               description={`Apply for positions in: ${ongoingElection.name}`}
             />
@@ -264,13 +264,13 @@ export function CandidateApplicationPage() {
               'election-countdown--applications-open',
             )}
           >
-            <div className={cn(memberCardHeaderTintClass, 'space-y-3 px-3 py-3 sm:space-y-5 sm:px-6 sm:py-5')}>
-              <PageHeader
+            <div className={cn(memberCardHeaderTintClass, 'space-y-3 px-4 py-4 sm:space-y-5 sm:px-6 sm:py-5 lg:px-8')}>
+              <MemberPageHeader
                 title="Candidate Application"
                 description={`Apply for positions in: ${ongoingElection.name}`}
                 meta={appEnd ? `Closes ${formatDate(appEnd)}` : undefined}
               />
-              <div className="border-t border-border/60 pt-3 pb-3 sm:pt-5 sm:pb-6">
+              <div className="border-t border-border/60 pt-4 pb-2 sm:pt-5 sm:pb-4">
                 <ElectionCountdownHero
                   variant="applications-open"
                   electionName={ongoingElection.name}
@@ -284,14 +284,10 @@ export function CandidateApplicationPage() {
       </Stagger>
 
       <Stagger delayMs={sectionDelays.primary}>
-        <div className="space-y-3 sm:space-y-4">
-          <div>
-            <h2 className={memberSectionHeadingClass}>Available positions</h2>
-            <p className={memberSectionIntroClass}>
-              Choose one position to apply for. You can only submit one application per election.
-            </p>
-          </div>
-
+        <MemberSection
+          title="Available positions"
+          description="Choose one position to apply for. You can only submit one application per election."
+        >
         {loadingPositions && !positions ? (
           <div className={memberPositionGridClass}>
             {Array.from({ length: positionSkeletonCount }, (_, index) => (
@@ -345,7 +341,7 @@ export function CandidateApplicationPage() {
             })}
           </div>
         )}
-        </div>
+        </MemberSection>
       </Stagger>
 
       <Dialog open={!!selectedPosition} onOpenChange={(open) => !open && !isSubmittingApplication && closeDialog()}>

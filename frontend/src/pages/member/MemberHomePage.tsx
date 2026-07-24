@@ -12,13 +12,15 @@ import { EmptyState } from '@/components/shared/EmptyState'
 import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MemberPage } from '@/components/layout/MemberPage'
+import { memberEmptyStateClass } from '@/lib/design-tokens'
 import type { Election } from '@/types/api'
 
 function PhasePageSkeleton() {
   return (
     <MemberPage>
+      <Skeleton className="h-12 w-56 rounded-2xl" />
       <Skeleton className="h-44 w-full rounded-3xl" />
-      <Skeleton className="h-64 w-full" />
+      <Skeleton className="h-64 w-full rounded-3xl" />
     </MemberPage>
   )
 }
@@ -30,6 +32,7 @@ function MemberHomeWaiting({ election }: { election: Election | null | undefined
         icon={Clock}
         title={election ? 'Nothing to do right now' : 'No active election'}
         description="Check back when the next election phase begins."
+        className={memberEmptyStateClass}
       />
     </MemberPage>
   )

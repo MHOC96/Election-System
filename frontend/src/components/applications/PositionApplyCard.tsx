@@ -1,7 +1,11 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { memberPositionCardClass, transitionInteractive } from '@/lib/design-tokens'
+import {
+  memberCardRadiusClass,
+  memberPositionCardClass,
+  transitionInteractive,
+} from '@/lib/design-tokens'
 import { cn } from '@/lib/utils'
 
 interface PositionApplyCardProps {
@@ -27,7 +31,8 @@ export function PositionApplyCard({
   onApply,
   showSubmittedState = false,
 }: PositionApplyCardProps) {
-  const isLocked = buttonLabel === 'Opens soon' || buttonLabel === 'Already applied' || buttonLabel === 'Not eligible'
+  const isLocked =
+    buttonLabel === 'Opens soon' || buttonLabel === 'Already applied' || buttonLabel === 'Not eligible'
   const isActionable = !buttonDisabled && !showSubmittedState && Boolean(onApply)
   const showMessage = Boolean(bodyText)
 
@@ -35,20 +40,21 @@ export function PositionApplyCard({
     <Card
       className={cn(
         memberPositionCardClass,
+        memberCardRadiusClass,
         transitionInteractive,
-        isActionable && 'hover:border-primary/35 hover:shadow-lg hover:ring-primary/20',
-        showSubmittedState && 'border-success/30 ring-success/15',
-        bodyTone === 'destructive' && !showSubmittedState && 'border-destructive/25',
+        isActionable && 'hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-lg hover:ring-primary/20',
+        showSubmittedState && 'border-success/35 ring-success/20',
+        bodyTone === 'destructive' && !showSubmittedState && 'border-destructive/30',
         isLocked && !showSubmittedState && 'opacity-95',
       )}
     >
-      <div className="relative overflow-hidden p-4 sm:p-5">
+      <div className="relative overflow-hidden p-4 sm:p-5 lg:p-6">
         <div
-          className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-primary/10 blur-2xl"
+          className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-primary/10 blur-2xl"
           aria-hidden="true"
         />
 
-        <div className="relative min-w-0 space-y-2">
+        <div className="relative min-w-0 space-y-2.5">
           <div className="flex flex-wrap items-start gap-2">
             <h3 className="min-w-0 flex-1 text-base font-semibold leading-snug tracking-tight text-foreground sm:text-lg">
               {positionName}
@@ -63,9 +69,9 @@ export function PositionApplyCard({
           {showMessage ? (
             <div
               className={cn(
-                'rounded-xl border px-3 py-2 text-sm leading-relaxed sm:py-2.5',
-                bodyTone === 'destructive' && 'border-destructive/20 bg-destructive/5 text-destructive',
-                bodyTone !== 'destructive' && 'border-border/60 bg-muted/20 text-muted-foreground',
+                'rounded-xl border px-3 py-2.5 text-sm leading-relaxed',
+                bodyTone === 'destructive' && 'border-destructive/25 bg-destructive/5 text-destructive',
+                bodyTone !== 'destructive' && 'border-border/60 bg-muted/25 text-muted-foreground',
               )}
             >
               {bodyText}
@@ -74,9 +80,11 @@ export function PositionApplyCard({
         </div>
 
         {showSubmittedState ? (
-          <p className="mt-3 text-center text-sm font-semibold text-success sm:mt-4">Application submitted</p>
+          <div className="mt-4 flex items-center justify-center gap-2 rounded-xl border border-success/25 bg-success/8 px-3 py-2.5 text-sm font-semibold text-success sm:mt-5">
+            Application submitted
+          </div>
         ) : (
-          <div className={cn('mt-3 sm:mt-4', showMessage && 'sm:mt-5')}>
+          <div className={cn('mt-4 sm:mt-5', showMessage && 'sm:mt-6')}>
             <Button
               type="button"
               onClick={onApply}

@@ -15,16 +15,14 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { MemberPage } from '@/components/layout/MemberPage'
+import { MemberSection } from '@/components/member/MemberSection'
 import { sectionDelays, Stagger, StaggerChildren } from '@/components/motion/Stagger'
 import {
   memberCardHeaderTintClass,
+  memberCardPaddingClass,
   memberCardSurfaceClass,
   memberCandidateGridClass,
   memberHeroSpacingClass,
-  memberSectionHeadingClass,
-  memberSectionIntroClass,
-  memberSectionHeaderRowClass,
-  memberSectionStackClass,
 } from '@/lib/design-tokens'
 import { BALLOT_QUERY_KEY, BALLOT_STALE_MS, ONGOING_ELECTION_QUERY_KEY } from '@/lib/query-sync'
 import { isVotingStartPending } from '@/lib/election-lifecycle-ui'
@@ -100,9 +98,9 @@ export function BallotPage() {
   if (ballotQuery.isPending && !ballotQuery.data) {
     return (
       <MemberPage>
-        <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-36 w-full" />
-        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-44 w-full rounded-3xl" />
+        <Skeleton className="h-36 w-full rounded-3xl" />
+        <Skeleton className="h-64 w-full rounded-3xl" />
       </MemberPage>
     )
   }
@@ -204,65 +202,58 @@ export function BallotPage() {
 
       {selections.length > 0 && (
         <Stagger delayMs={sectionDelays.secondary}>
-          <section aria-labelledby="my-selections-heading" className={memberSectionStackClass}>
-          <div className={memberSectionHeaderRowClass}>
-            <div className="min-w-0">
-              <h2 id="my-selections-heading" className={memberSectionHeadingClass}>
-                Your selections
-              </h2>
-              <p className={memberSectionIntroClass}>
-                Only you can see who you voted for
-              </p>
-            </div>
-            <Badge
-              variant={voteStatus?.all_positions_voted ? 'success' : 'secondary'}
-              className="w-fit shrink-0 self-start sm:self-center"
-            >
-              {votedCount}/{total}
-            </Badge>
-          </div>
-          <StaggerChildren className={memberCandidateGridClass} staggerMs={60}>
-            {selections.map((vote) => (
-              <MemberSelectionItem
-                key={vote.position_id}
-                positionName={vote.position_name}
-                candidateName={vote.candidate_name}
-                votedAt={vote.voted_at}
-              />
-            ))}
-          </StaggerChildren>
-          </section>
+          <MemberSection
+            id="my-selections"
+            title="Your selections"
+            description="Only you can see who you voted for"
+            badge={
+              <Badge
+                variant={voteStatus?.all_positions_voted ? 'success' : 'secondary'}
+                className="w-fit shrink-0"
+              >
+                {votedCount}/{total}
+              </Badge>
+            }
+          >
+            <StaggerChildren className={memberCandidateGridClass} staggerMs={60}>
+              {selections.map((vote) => (
+                <MemberSelectionItem
+                  key={vote.position_id}
+                  positionName={vote.position_name}
+                  candidateName={vote.candidate_name}
+                  votedAt={vote.voted_at}
+                />
+              ))}
+            </StaggerChildren>
+          </MemberSection>
         </Stagger>
       )}
 
       <Stagger delayMs={selections.length > 0 ? sectionDelays.tertiary : sectionDelays.secondary}>
-        <section aria-labelledby="vote-positions-heading" className={memberSectionStackClass}>
-        <div>
-          <h2 id="vote-positions-heading" className={memberSectionHeadingClass}>
-            {canVote ? 'Cast your votes' : isVotingUpcoming ? 'Ballot preview' : 'Election positions'}
-          </h2>
-          <p className={memberSectionIntroClass}>
-            {canVote
+        <MemberSection
+          id="vote-positions"
+          title={canVote ? 'Cast your votes' : isVotingUpcoming ? 'Ballot preview' : 'Election positions'}
+          description={
+            canVote
               ? 'Select one candidate for each position. Each choice is final once submitted.'
               : isVotingUpcoming
                 ? 'Review candidates below. Voting opens when the timer above reaches zero.'
-                : 'Voting is not open. You can review candidates and your recorded selections.'}
-          </p>
-        </div>
-
-        <StaggerChildren className="space-y-5" staggerMs={80} initialDelayMs={40}>
-          {positions.map((item, index) => (
-            <PositionSection
-              key={item.position.id}
-              item={item}
-              index={index}
-              canVote={canVote}
-              isVotingUpcoming={isVotingUpcoming}
-              onSelectCandidate={handleSelectCandidate}
-            />
-          ))}
-        </StaggerChildren>
-        </section>
+                : 'Voting is not open. You can review candidates and your recorded selections.'
+          }
+        >
+          <StaggerChildren className="space-y-5 lg:space-y-6" staggerMs={80} initialDelayMs={40}>
+            {positions.map((item, index) => (
+              <PositionSection
+                key={item.position.id}
+                item={item}
+                index={index}
+                canVote={canVote}
+                isVotingUpcoming={isVotingUpcoming}
+                onSelectCandidate={handleSelectCandidate}
+              />
+            ))}
+          </StaggerChildren>
+        </MemberSection>
       </Stagger>
 
       {pendingVote && (
@@ -318,10 +309,10 @@ const PositionSection = memo(function PositionSection({
         item.has_voted && 'border-success/30 bg-success/[0.03]',
       )}
     >
-      <CardHeader className={cn(memberCardHeaderTintClass, 'px-5 sm:px-6 lg:px-8')}>
+      <CardHeader className={cn(memberCardHeaderTintClass, memberCardPaddingClass)}>
         <div className="flex min-w-0 flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
           <div className="min-w-0">
-            <h3 id={sectionId} className="text-base font-semibold leading-snug tracking-tight sm:text-lg">
+            <h3 id={sectionId} className="text-base font-semibold leading-snug tracking-tight sm:text-lg lg:text-xl">
               {item.position.name}
             </h3>
             <CardDescription className="mt-1.5">
@@ -342,7 +333,7 @@ const PositionSection = memo(function PositionSection({
           )}
         </div>
       </CardHeader>
-      <CardContent className="pt-5 sm:pt-6 lg:px-8 lg:pt-7">
+      <CardContent className={cn(memberCardPaddingClass, 'pt-0')}>
         <div
           role="radiogroup"
           aria-labelledby={sectionId}
