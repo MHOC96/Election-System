@@ -77,6 +77,12 @@ export const responsiveTableMobileClass = 'lg:hidden'
 export const dataTableShellClass = 'overflow-hidden'
 export const dataTableScrollClass = 'table-scroll-wrapper w-full overflow-x-auto'
 
+/** Application review — padded position panels and inset tables */
+export const applicationReviewSectionHeaderClass =
+  'flex items-center justify-between gap-3 border-b bg-muted/40 px-4 py-3.5 sm:px-5 sm:py-4 lg:px-6'
+export const applicationReviewPanelPaddingClass = 'px-4 sm:px-5 lg:px-6'
+export const applicationReviewTableClass = 'application-review-table'
+
 /** Member portal — shell, page rhythm, and surfaces */
 export const memberShellHeaderClass =
   'glass sticky top-0 z-40 w-full border-b pt-[env(safe-area-inset-top)]'

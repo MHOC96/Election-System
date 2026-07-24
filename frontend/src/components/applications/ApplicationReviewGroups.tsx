@@ -4,6 +4,9 @@ import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { CandidateApplication } from '@/api/applications'
 import {
+  applicationReviewPanelPaddingClass,
+  applicationReviewSectionHeaderClass,
+  applicationReviewTableClass,
   dataTableScrollClass,
   responsiveTableDesktopClass,
   responsiveTableMobileClass,
@@ -37,7 +40,7 @@ function ApplicationMobileCard({
   onReject: (app: CandidateApplication) => void
 }) {
   return (
-    <div className="space-y-3 px-4 py-3.5 sm:px-5">
+    <div className="space-y-3 py-4">
       <div className="flex items-center gap-3">
         {app.photo_url ? (
           <img
@@ -113,7 +116,7 @@ export function ApplicationReviewGroups({
     <div className="space-y-6">
       {groups.map(({ positionName, applications }) => (
         <section key={positionName} className="overflow-hidden rounded-xl border border-border/80">
-          <header className="flex items-center justify-between gap-3 border-b bg-muted/40 px-4 py-3 sm:px-5">
+          <header className={applicationReviewSectionHeaderClass}>
             <h3 className="min-w-0 truncate text-base font-semibold sm:text-lg">{positionName}</h3>
             <Badge variant="outline" className="shrink-0 tabular-nums">
               {applications.length}
@@ -121,7 +124,7 @@ export function ApplicationReviewGroups({
           </header>
 
           <div className={responsiveTableMobileClass}>
-            <div className="divide-y divide-border/70">
+            <div className={cn('divide-y divide-border/70', applicationReviewPanelPaddingClass)}>
               {applications.map((app) => (
                 <ApplicationMobileCard
                   key={app.id}
@@ -135,8 +138,8 @@ export function ApplicationReviewGroups({
             </div>
           </div>
 
-          <div className={cn(dataTableScrollClass, responsiveTableDesktopClass)}>
-            <Table className="min-w-[760px] table-auto">
+          <div className={cn(dataTableScrollClass, applicationReviewTableClass, responsiveTableDesktopClass)}>
+            <Table className="min-w-[720px] table-auto lg:min-w-[760px]">
               <TableHeader>
                 <TableRow>
                   <TableHead className="min-w-[240px]">Candidate Name</TableHead>

@@ -272,7 +272,7 @@ export function ApplicationReviewPage() {
 
       <Stagger delayMs={sectionDelays.tertiary}>
         <Card className={dataTableShellClass}>
-          <CardContent className="px-4 py-4 sm:px-6 sm:py-6">
+          <CardContent className="px-3 py-4 sm:px-4 sm:py-6 lg:px-6">
             {!applications.length ? (
               <EmptyState
                 icon={CheckCircle2}
