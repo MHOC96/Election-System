@@ -77,11 +77,19 @@ export const responsiveTableMobileClass = 'lg:hidden'
 export const dataTableShellClass = 'overflow-hidden'
 export const dataTableScrollClass = 'table-scroll-wrapper w-full overflow-x-auto'
 
-/** Application review — padded position panels and inset tables */
+/** Application review — position panels with a fluid applicant card grid */
 export const applicationReviewSectionHeaderClass =
-  'flex items-center justify-between gap-3 border-b bg-muted/40 px-4 py-3.5 sm:px-5 sm:py-4 lg:px-6'
-export const applicationReviewPanelPaddingClass = 'px-4 sm:px-5 lg:px-6'
-export const applicationReviewTableClass = 'application-review-table'
+  'flex items-center justify-between gap-3 border-b bg-muted/40 px-4 py-3 sm:px-5 sm:py-3.5'
+export const applicationReviewSectionBodyClass = 'bg-card p-3 sm:p-4'
+export const applicationReviewGridClass =
+  'grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3'
+export const applicationReviewCardClass =
+  'flex h-full min-w-0 flex-col gap-3 rounded-xl border border-border/80 bg-card p-3.5 shadow-xs transition-shadow duration-150 hover:shadow-md sm:p-4'
+
+/** Application review — filter toolbar */
+export const applicationFilterBarClass = 'flex flex-col gap-3 sm:gap-4'
+export const applicationFilterRowClass =
+  'flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3'
 
 /** Member portal — shell, page rhythm, and surfaces */
 export const memberShellHeaderClass =

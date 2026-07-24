@@ -578,53 +578,6 @@
     border-radius: 9999px;
   }
 
-  /* Application review — inset tables inside position panels */
-  .application-review-table.table-scroll-wrapper {
-    padding: 0.25rem 1rem 1rem;
-  }
-
-  @media (min-width: 640px) {
-    .application-review-table.table-scroll-wrapper {
-      padding: 0.25rem 1.25rem 1.25rem;
-    }
-  }
-
-  @media (min-width: 1024px) {
-    .application-review-table.table-scroll-wrapper {
-      padding: 0.5rem 1.5rem 1.5rem;
-    }
-  }
-
-  .application-review-table.table-scroll-wrapper:has(thead)::before {
-    left: 1rem;
-    right: 1rem;
-    border-radius: calc(var(--radius) - 2px);
-  }
-
-  @media (min-width: 640px) {
-    .application-review-table.table-scroll-wrapper:has(thead)::before {
-      left: 1.25rem;
-      right: 1.25rem;
-    }
-  }
-
-  @media (min-width: 1024px) {
-    .application-review-table.table-scroll-wrapper:has(thead)::before {
-      left: 1.5rem;
-      right: 1.5rem;
-    }
-  }
-
-  .application-review-table.table-scroll-wrapper thead th:first-child,
-  .application-review-table.table-scroll-wrapper tbody td:first-child {
-    padding-left: 0.25rem !important;
-  }
-
-  .application-review-table.table-scroll-wrapper thead th:last-child,
-  .application-review-table.table-scroll-wrapper tbody td:last-child {
-    padding-right: 0.25rem !important;
-  }
-
   /* Mobile card list for table alternatives */
   .mobile-card-list {
     display: flex;
