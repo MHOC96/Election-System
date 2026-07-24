@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as SelectPrimitive from '@radix-ui/react-select'
 import { Check, ChevronDown } from 'lucide-react'
+import { formControlClass } from '@/lib/design-tokens'
 import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { cn } from '@/lib/utils'
 
@@ -15,7 +16,8 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      'flex h-10 w-full items-center justify-between rounded-lg border border-input bg-card px-3 py-2 text-sm shadow-xs ring-offset-background transition-colors placeholder:text-muted-foreground hover:border-border focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1',
+      'flex h-11 w-full items-center justify-between border border-input bg-card px-3 py-2 text-base shadow-xs ring-offset-background transition-colors placeholder:text-muted-foreground hover:border-border focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 md:h-10 md:text-sm [&>span]:line-clamp-1',
+      formControlClass,
       className,
     )}
     {...props}

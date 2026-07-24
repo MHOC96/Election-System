@@ -454,7 +454,7 @@ export function CandidateApplicationPage() {
                     type="checkbox"
                     id="declaration_agreed"
                     disabled={isSubmittingApplication}
-                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-input text-primary focus:ring-ring"
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded-md border-input text-primary focus:ring-ring"
                     checked={field.value || false}
                     onChange={(e) => field.onChange(e.target.checked)}
                   />

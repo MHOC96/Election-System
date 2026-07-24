@@ -702,7 +702,7 @@ export function ElectionsPage() {
                       <input
                         id="require-positions-filled"
                         type="checkbox"
-                        className="h-4 w-4 rounded border-input text-primary focus:ring-ring"
+                        className="h-4 w-4 rounded-md border-input text-primary focus:ring-ring"
                         {...register('require_all_positions_filled')}
                       />
                       <label htmlFor="require-positions-filled" className="text-sm font-medium leading-none">

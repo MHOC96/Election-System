@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { ChevronDown } from 'lucide-react'
+import { formControlClass } from '@/lib/design-tokens'
 import { cn } from '@/lib/utils'
 
 interface NativeSelectProps extends React.ComponentProps<'select'> {
@@ -12,7 +13,8 @@ const NativeSelect = React.forwardRef<HTMLSelectElement, NativeSelectProps>(
       <select
         ref={ref}
         className={cn(
-          'flex h-10 w-full appearance-none rounded-lg border border-input bg-card py-2 pl-3 pr-9 text-sm text-foreground shadow-xs transition-colors hover:border-border',
+          'flex h-11 w-full appearance-none border border-input bg-card py-2 pl-3 pr-9 text-base text-foreground shadow-xs transition-colors hover:border-border md:h-10 md:text-sm',
+          formControlClass,
           'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background',
           'disabled:cursor-not-allowed disabled:opacity-50',
           'aria-[invalid=true]:border-destructive aria-[invalid=true]:focus:ring-destructive/30',

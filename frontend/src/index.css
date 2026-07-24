@@ -136,6 +136,18 @@
     letter-spacing: -0.02em;
   }
 
+  /* Consistent rounded corners on form controls (native mobile browsers included) */
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='hidden']):not(.sr-only),
+  select,
+  textarea {
+    border-radius: var(--radius);
+  }
+
+  input[type='checkbox'],
+  input[type='radio'] {
+    border-radius: calc(var(--radius) - 4px);
+  }
+
   /* Consistent, accessible focus ring across custom/interactive elements */
   :focus-visible {
     outline: none;

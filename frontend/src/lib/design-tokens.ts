@@ -62,9 +62,12 @@ export const iconTileClass =
 export const brandMarkClass =
   'flex items-center justify-center rounded-xl bg-gradient-brand text-primary-foreground shadow-sm'
 
+/** Shared border radius for text inputs, selects, and similar form controls */
+export const formControlClass = 'rounded-lg'
+
 /** Shared responsive classes for modal / sheet panels */
 export const overlayPanelClass =
-  'w-[calc(100vw-2rem)] max-w-lg max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem))] overflow-x-hidden overflow-y-auto p-4 sm:p-6'
+  'w-[calc(100vw-2rem)] max-w-lg max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem))] overflow-x-hidden overflow-y-auto rounded-xl p-4 sm:p-6'
 
 /** Breakpoint at which data tables switch to desktop layout (card fallback below) */
 export const responsiveTableDesktopClass = 'hidden lg:block'
