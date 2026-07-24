@@ -187,7 +187,7 @@ Base path: `/api/`. All endpoints except login and refresh require `Authorizatio
 
 ### Reports (`/api/reports/`)
 
-All accept `?export_format=csv|xlsx|pdf` and optional `?election_id=`, `?academic_year=`.
+All accept `?export_format=csv|xlsx|pdf` and optional `?election_id=`, `?academic_year=`
 
 | Method | Path | Description |
 |--------|------|-------------|
