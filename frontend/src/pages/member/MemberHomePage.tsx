@@ -12,7 +12,6 @@ import { EmptyState } from '@/components/shared/EmptyState'
 import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MemberPage } from '@/components/layout/MemberPage'
-import { memberEmptyStateClass } from '@/lib/design-tokens'
 import type { Election } from '@/types/api'
 
 function PhasePageSkeleton() {
@@ -30,9 +29,9 @@ function MemberHomeWaiting({ election }: { election: Election | null | undefined
     <MemberPage>
       <EmptyState
         icon={Clock}
+        variant="member"
         title={election ? 'Nothing to do right now' : 'No active election'}
         description="Check back when the next election phase begins."
-        className={memberEmptyStateClass}
       />
     </MemberPage>
   )

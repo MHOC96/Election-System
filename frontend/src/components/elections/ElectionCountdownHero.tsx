@@ -3,6 +3,7 @@ import { CalendarClock, Sparkles, Vote } from 'lucide-react'
 import { CountdownDisplay } from '@/components/shared/CountdownDisplay'
 import { CountdownTimeCard, CountdownTimeInline } from '@/components/shared/CountdownTimeCard'
 import { VotingScheduleDetails } from '@/components/voting/VotingScheduleDetails'
+import { portalCountdownInnerClass } from '@/lib/design-tokens'
 import { formatDate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
@@ -177,21 +178,10 @@ export function ElectionCountdownHero({
       aria-live="polite"
     >
       <div
-        className="pointer-events-none absolute -right-6 -top-6 h-32 w-32 rounded-full blur-3xl sm:-right-8 sm:-top-8 sm:h-44 sm:w-44"
-        style={{ background: 'var(--cd-glow-a)' }}
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute -bottom-16 left-1/4 h-40 w-40 rounded-full blur-3xl sm:h-52 sm:w-52"
-        style={{ background: 'var(--cd-glow-b)' }}
-        aria-hidden="true"
-      />
-
-      <div
         className={cn(
           'relative space-y-5 sm:space-y-6',
-          centered && !responsiveHorizontal && 'mx-auto flex max-w-2xl flex-col items-center',
-          responsiveHorizontal && 'mx-auto w-full max-w-4xl',
+          centered && !responsiveHorizontal && cn(portalCountdownInnerClass, 'flex flex-col items-center'),
+          responsiveHorizontal && cn(portalCountdownInnerClass, 'w-full'),
         )}
       >
         {responsiveHorizontal ? (

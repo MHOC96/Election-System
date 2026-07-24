@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { portalCountdownInnerClass } from '@/lib/design-tokens'
 import { cn } from '@/lib/utils'
 
 interface CountdownTimeCardProps {
@@ -20,7 +21,8 @@ export function CountdownTimeCard({
   return (
     <div
       className={cn(
-        'election-countdown mx-auto mt-3 w-full min-w-0 max-w-2xl overflow-hidden rounded-xl',
+        'election-countdown mx-auto mt-3 w-full min-w-0 overflow-hidden rounded-xl',
+        portalCountdownInnerClass,
         modifier,
         className,
       )}
@@ -50,7 +52,8 @@ export function CountdownTimeInline({ children, className, ariaLabel }: Countdow
   return (
     <div
       className={cn(
-        'mx-auto flex w-full max-w-2xl flex-col items-center justify-center px-1 py-2 text-center sm:px-4 sm:py-4',
+        portalCountdownInnerClass,
+        'flex flex-col items-center justify-center px-1 py-2 text-center sm:px-4 sm:py-4',
         className,
       )}
       aria-live="polite"

@@ -21,9 +21,12 @@ export const pageHeaderBlockClass = 'space-y-4'
 export const insetPanelClass =
   'rounded-xl border border-border/60 bg-muted/10 p-4 dark:bg-muted/20 sm:p-5'
 
-/** Election / countdown hero cards — let `.election-countdown` own surface styling */
+/** Election / countdown hero cards — shared portal surface styling */
 export const electionCountdownCardClass =
-  'election-countdown relative mx-auto w-full max-w-3xl overflow-hidden rounded-2xl !border-0 !bg-transparent !shadow-none ring-0 sm:rounded-3xl lg:max-w-4xl xl:max-w-5xl'
+  'election-countdown member-surface portal-countdown-shell relative mx-auto w-full min-w-0 overflow-hidden rounded-2xl !border-0 !bg-transparent !shadow-none ring-0 sm:rounded-3xl'
+
+/** Inner countdown content width */
+export const portalCountdownInnerClass = 'portal-countdown-inner mx-auto w-full'
 
 /** Admin / wide content shell */
 export const shellContentClass = 'mx-auto w-full max-w-7xl'
@@ -113,21 +116,29 @@ export const memberPageLayoutClass = 'w-full min-w-0 space-y-6 sm:space-y-8 lg:s
 /** Shared card radius across member surfaces */
 export const memberCardRadiusClass = 'rounded-2xl sm:rounded-3xl'
 
-export const memberCardSurfaceClass =
-  'overflow-hidden border border-border/70 bg-card shadow-md ring-1 ring-primary/10 dark:ring-primary/20 rounded-2xl sm:rounded-3xl'
+/** Base portal surface — matches election countdown gradient system */
+export const memberSurfaceClass =
+  'member-surface !border-0 !bg-transparent !shadow-none ring-0'
 
-export const memberCardHeaderTintClass =
-  'border-b bg-gradient-to-br from-muted/35 via-card to-primary/[0.05] dark:from-muted/25 dark:via-card dark:to-primary/[0.1]'
+export const memberCardSurfaceClass =
+  'member-surface overflow-hidden rounded-2xl sm:rounded-3xl !border-0 !bg-transparent !shadow-none ring-0'
+
+/** Header band inside member surfaces */
+export const memberCardHeaderTintClass = 'member-surface__header'
 
 export const memberCardPaddingClass = 'p-5 sm:p-6 lg:p-7'
 
 /** Elevated inset panel inside member cards */
 export const memberInsetPanelClass =
-  'rounded-xl border border-border/60 bg-muted/15 p-4 dark:bg-muted/25 sm:rounded-2xl sm:p-5'
+  'member-surface member-surface--inset rounded-xl p-4 sm:rounded-2xl sm:p-5'
 
-/** Application position cards — polished interactive surface */
+/** Interactive tile surfaces (candidate cards, selection items) */
+export const memberSurfaceTileClass =
+  'member-surface member-surface--tile overflow-hidden !border-0 !bg-transparent !shadow-none ring-0'
+
+/** Application position cards */
 export const memberPositionCardClass =
-  'overflow-hidden border border-border/70 bg-card shadow-md ring-1 ring-primary/10 dark:ring-primary/20 flex min-w-0 flex-col rounded-2xl'
+  'member-surface flex min-w-0 flex-col overflow-hidden !border-0 !bg-transparent !shadow-none ring-0 rounded-2xl'
 
 /** Application position cards grid */
 export const memberPositionGridClass =
@@ -165,10 +176,11 @@ export const memberPageDescriptionClass =
   'mt-1.5 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base'
 
 export const memberCalloutClass =
-  'rounded-xl border border-primary/15 bg-primary/[0.05] px-4 py-4 text-sm leading-relaxed text-muted-foreground dark:border-primary/25 dark:bg-primary/[0.08] sm:px-6 sm:py-5'
+  'member-surface member-surface--inset rounded-xl px-4 py-4 text-sm leading-relaxed text-muted-foreground sm:px-6 sm:py-5'
 
 /** Theme-aware hero gradient shell for member status pages */
-export const memberHeroSurfaceClass = 'member-hero-surface'
+export const memberHeroSurfaceClass = 'member-surface member-surface--hero'
 
-/** Member empty / waiting states — tighter on phones */
-export const memberEmptyStateClass = 'p-8 sm:p-12'
+/** Member empty / waiting states */
+export const memberEmptyStateClass =
+  'member-surface member-surface--inset flex flex-col items-center justify-center p-8 text-center sm:p-12'

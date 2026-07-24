@@ -104,7 +104,7 @@ export function MemberLayout() {
         <div
           className={cn(
             memberShellHeaderInnerClass,
-            'border-b border-border/40 bg-gradient-to-b from-card/90 via-card/80 to-transparent px-3 py-2.5 sm:px-6 sm:py-3 lg:px-8 xl:px-10',
+            'border-b border-[var(--cd-surface-border,hsl(var(--border)/0.6))] bg-gradient-to-b from-card/95 via-card/85 to-transparent px-3 py-2.5 sm:px-6 sm:py-3 lg:px-8 xl:px-10',
           )}
         >
           {/* Mobile header */}

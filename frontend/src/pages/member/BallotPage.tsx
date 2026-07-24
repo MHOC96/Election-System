@@ -125,6 +125,7 @@ export function BallotPage() {
       <MemberPage>
         <EmptyState
           icon={CalendarCheck}
+          variant="member"
           title="This election has ended"
           description="Election details and your selections are no longer shown after an election closes."
         />
@@ -137,6 +138,7 @@ export function BallotPage() {
       <MemberPage>
         <EmptyState
           icon={Vote}
+          variant="member"
           title="No election in progress"
           description="When an election starts, you will be able to view details and cast your votes here."
         />
@@ -155,6 +157,7 @@ export function BallotPage() {
       <MemberPage>
         <EmptyState
           icon={Vote}
+          variant="member"
           title="No candidates yet"
           description="Positions will appear here once candidates are registered for the election."
         />
@@ -306,7 +309,7 @@ const PositionSection = memo(function PositionSection({
     <Card
       className={cn(
         memberCardSurfaceClass,
-        item.has_voted && 'border-success/30 bg-success/[0.03]',
+        item.has_voted && 'member-surface--success',
       )}
     >
       <CardHeader className={cn(memberCardHeaderTintClass, memberCardPaddingClass)}>

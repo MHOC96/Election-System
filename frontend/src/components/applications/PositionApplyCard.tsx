@@ -42,18 +42,13 @@ export function PositionApplyCard({
         memberPositionCardClass,
         memberCardRadiusClass,
         transitionInteractive,
-        isActionable && 'hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-lg hover:ring-primary/20',
-        showSubmittedState && 'border-success/35 ring-success/20',
+        isActionable && 'hover:-translate-y-0.5 hover:shadow-lg',
+        showSubmittedState && 'member-surface--success',
         bodyTone === 'destructive' && !showSubmittedState && 'border-destructive/30',
         isLocked && !showSubmittedState && 'opacity-95',
       )}
     >
       <div className="relative overflow-hidden p-4 sm:p-5 lg:p-6">
-        <div
-          className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-primary/10 blur-2xl"
-          aria-hidden="true"
-        />
-
         <div className="relative min-w-0 space-y-2.5">
           <div className="flex flex-wrap items-start gap-2">
             <h3 className="min-w-0 flex-1 text-base font-semibold leading-snug tracking-tight text-foreground sm:text-lg">

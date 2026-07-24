@@ -64,6 +64,7 @@ export function PublishedResultsPage() {
         <MemberPageHeader title="Election Results" description="Published winners and vote counts" />
         <EmptyState
           icon={Trophy}
+          variant="member"
           title="No results published yet"
           description="Results will appear here after the admin publishes them."
         />

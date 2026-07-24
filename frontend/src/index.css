@@ -237,25 +237,6 @@
     -webkit-backdrop-filter: saturate(140%) blur(16px);
   }
 
-  /* Member hero bands — theme-aware gradients (application status, voting ended, etc.) */
-  .member-hero-surface {
-    background: linear-gradient(
-      152deg,
-      hsl(var(--card)) 0%,
-      hsl(var(--primary) / 0.04) 48%,
-      hsl(var(--chart-3) / 0.06) 100%
-    );
-  }
-
-  .dark .member-hero-surface {
-    background: linear-gradient(
-      152deg,
-      hsl(var(--card)) 0%,
-      hsl(var(--primary) / 0.1) 50%,
-      hsl(var(--chart-3) / 0.08) 100%
-    );
-  }
-
   /* Gradient brand text (logos, hero numbers) */
   .text-gradient {
     background: var(--gradient-brand);
@@ -268,8 +249,9 @@
     background: var(--gradient-brand);
   }
 
-  /* Election countdown — uses app tokens: primary, accent, chart-3, card */
-  .election-countdown {
+  /* Election countdown + member portal — shared gradient surface system */
+  .election-countdown,
+  .member-surface {
     --cd-title: hsl(var(--foreground));
     --cd-subtitle: hsl(var(--muted-foreground));
     --cd-label: hsl(var(--muted-foreground));
@@ -285,23 +267,69 @@
     --cd-glow-a: hsl(var(--primary) / 0.1);
     --cd-glow-b: hsl(var(--chart-3) / 0.08);
     --cd-shadow: hsl(var(--shadow-color) / 0.08);
+    --cd-surface-border: hsl(var(--primary) / 0.12);
+    --cd-header-from: hsl(var(--card) / 0.92);
+    --cd-header-via: hsl(var(--accent) / 0.28);
+    --cd-header-to: hsl(var(--primary) / 0.06);
 
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    color: hsl(var(--foreground));
     background: linear-gradient(
       152deg,
       hsl(var(--card)) 0%,
       hsl(var(--accent) / 0.32) 52%,
       hsl(var(--primary) / 0.05) 100%
     );
-    border: 1px solid hsl(var(--primary) / 0.1);
+    border: 1px solid var(--cd-surface-border);
     box-shadow: var(--shadow-md);
     transition:
-      background 0.45s ease,
-      border-color 0.45s ease,
-      box-shadow 0.45s ease,
-      color 0.45s ease;
+      background 0.5s ease,
+      border-color 0.5s ease,
+      box-shadow 0.5s ease,
+      color 0.4s ease;
   }
 
-  .dark .election-countdown {
+  .election-countdown::before,
+  .member-surface::before,
+  .election-countdown::after,
+  .member-surface::after {
+    content: '';
+    position: absolute;
+    pointer-events: none;
+    border-radius: 50%;
+    filter: blur(48px);
+    z-index: 0;
+    transition: background 0.5s ease, opacity 0.5s ease;
+  }
+
+  .election-countdown::before,
+  .member-surface::before {
+    top: -2rem;
+    right: -2rem;
+    width: 9rem;
+    height: 9rem;
+    background: var(--cd-glow-a);
+  }
+
+  .election-countdown::after,
+  .member-surface::after {
+    bottom: -3rem;
+    left: 22%;
+    width: 8rem;
+    height: 8rem;
+    background: var(--cd-glow-b);
+  }
+
+  .election-countdown > *,
+  .member-surface > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .dark .election-countdown,
+  .dark .member-surface {
     --cd-digit-bg: hsl(var(--secondary) / 0.65);
     --cd-digit-border: hsl(var(--border));
     --cd-chip-bg: hsl(var(--primary) / 0.12);
@@ -312,6 +340,10 @@
     --cd-glow-a: hsl(var(--primary) / 0.18);
     --cd-glow-b: hsl(var(--chart-3) / 0.14);
     --cd-shadow: hsl(var(--shadow-color) / 0.35);
+    --cd-surface-border: hsl(var(--border));
+    --cd-header-from: hsl(var(--card));
+    --cd-header-via: hsl(var(--primary) / 0.1);
+    --cd-header-to: hsl(var(--chart-3) / 0.08);
 
     background: linear-gradient(
       152deg,
@@ -319,8 +351,118 @@
       hsl(var(--primary) / 0.1) 45%,
       hsl(var(--chart-3) / 0.08) 100%
     );
-    border-color: hsl(var(--border));
     box-shadow: var(--shadow-lg);
+  }
+
+  .member-surface__header {
+    border-bottom: 1px solid var(--cd-surface-border);
+    background: linear-gradient(
+      135deg,
+      var(--cd-header-from) 0%,
+      var(--cd-header-via) 55%,
+      var(--cd-header-to) 100%
+    );
+    transition:
+      background 0.5s ease,
+      border-color 0.5s ease;
+  }
+
+  .member-surface--inset {
+    --cd-glow-a: hsl(var(--primary) / 0.06);
+    --cd-glow-b: hsl(var(--chart-3) / 0.05);
+    background: linear-gradient(
+      152deg,
+      hsl(var(--muted) / 0.35) 0%,
+      hsl(var(--accent) / 0.22) 55%,
+      hsl(var(--primary) / 0.04) 100%
+    );
+    border-color: hsl(var(--primary) / 0.1);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .dark .member-surface--inset {
+    background: linear-gradient(
+      152deg,
+      hsl(var(--secondary) / 0.55) 0%,
+      hsl(var(--primary) / 0.08) 55%,
+      hsl(var(--chart-3) / 0.06) 100%
+    );
+    border-color: hsl(var(--border));
+  }
+
+  .member-surface--inset::before,
+  .member-surface--inset::after {
+    opacity: 0.45;
+    transform: scale(0.75);
+  }
+
+  .member-surface--tile::before,
+  .member-surface--tile::after {
+    opacity: 0.35;
+    transform: scale(0.6);
+  }
+
+  .member-surface--success {
+    --cd-glow-a: hsl(var(--success) / 0.12);
+    --cd-glow-b: hsl(var(--primary) / 0.08);
+    --cd-chip-bg: hsl(var(--success) / 0.1);
+    --cd-chip-border: hsl(var(--success) / 0.22);
+    --cd-chip-text: hsl(var(--success));
+    --cd-surface-border: hsl(var(--success) / 0.22);
+    --cd-header-via: hsl(var(--success) / 0.12);
+    --cd-header-to: hsl(var(--success) / 0.06);
+    border-color: hsl(var(--success) / 0.22);
+  }
+
+  .dark .member-surface--success {
+    --cd-chip-bg: hsl(var(--success) / 0.14);
+    --cd-surface-border: hsl(var(--success) / 0.3);
+    border-color: hsl(var(--success) / 0.3);
+  }
+
+  .member-surface--hero {
+    --cd-glow-a: hsl(var(--primary) / 0.14);
+    --cd-glow-b: hsl(var(--chart-3) / 0.1);
+  }
+
+  .portal-countdown-inner {
+    width: 100%;
+    max-width: 36rem;
+  }
+
+  @media (min-width: 1024px) {
+    .portal-countdown-inner {
+      max-width: 44rem;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .portal-countdown-inner {
+      max-width: 52rem;
+    }
+  }
+
+  .portal-countdown-shell {
+    width: 100%;
+    max-width: 48rem;
+  }
+
+  @media (min-width: 1024px) {
+    .portal-countdown-shell {
+      max-width: 56rem;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .portal-countdown-shell {
+      max-width: 64rem;
+    }
+  }
+
+  @media (min-width: 1536px) {
+    .portal-countdown-shell {
+      max-width: 72rem;
+    }
   }
 
   .election-countdown--applications-upcoming {
@@ -488,29 +630,37 @@
     background-size: 22px 22px;
   }
 
-  /* Member portal main canvas — soft gradient + grid */
+  /* Member portal main canvas — blends with portal surface gradients */
   .member-portal-canvas {
-    background-color: hsl(var(--muted) / 0.2);
+    background-color: hsl(var(--muted) / 0.18);
     background-image:
-      radial-gradient(hsl(var(--muted-foreground) / 0.07) 1px, transparent 1px),
+      radial-gradient(hsl(var(--primary) / 0.06) 1px, transparent 1px),
+      radial-gradient(hsl(var(--chart-3) / 0.04) 1px, transparent 1px),
       linear-gradient(
         180deg,
-        hsl(var(--primary) / 0.03) 0%,
-        transparent 28%,
+        hsl(var(--primary) / 0.04) 0%,
+        hsl(var(--accent) / 0.08) 18%,
+        transparent 42%,
         transparent 100%
       );
-    background-size: 24px 24px, 100% 100%;
-    background-position: center top;
+    background-size: 24px 24px, 48px 48px, 100% 100%;
+    background-position:
+      0 0,
+      12px 12px,
+      center top;
+    transition: background 0.5s ease, background-color 0.5s ease;
   }
 
   .dark .member-portal-canvas {
     background-color: hsl(var(--background));
     background-image:
-      radial-gradient(hsl(var(--muted-foreground) / 0.08) 1px, transparent 1px),
+      radial-gradient(hsl(var(--primary) / 0.1) 1px, transparent 1px),
+      radial-gradient(hsl(var(--chart-3) / 0.08) 1px, transparent 1px),
       linear-gradient(
         180deg,
-        hsl(var(--primary) / 0.06) 0%,
-        transparent 32%,
+        hsl(var(--primary) / 0.08) 0%,
+        hsl(var(--chart-3) / 0.05) 22%,
+        transparent 48%,
         transparent 100%
       );
   }

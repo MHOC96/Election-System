@@ -3,7 +3,7 @@ import { optimizeCloudinaryUrl } from '@/lib/cloudinary'
 import { Check } from 'lucide-react'
 import type { Candidate } from '@/types/api'
 import { Badge } from '@/components/ui/badge'
-import { memberCardRadiusClass, transitionInteractive } from '@/lib/design-tokens'
+import { memberCardRadiusClass, memberSurfaceTileClass, transitionInteractive } from '@/lib/design-tokens'
 import { cn } from '@/lib/utils'
 
 interface CandidateCardProps {
@@ -33,11 +33,12 @@ export const CandidateCard = memo(function CandidateCard({
       aria-disabled={disabled || undefined}
       aria-label={`${candidate.full_name}, ${candidate.academic_year}${isRecorded ? ', vote recorded' : ''}`}
       className={cn(
-        'group relative flex w-full min-w-0 flex-col overflow-hidden border bg-card text-left shadow-sm',
+        'group relative flex w-full min-w-0 flex-col text-left',
+        memberSurfaceTileClass,
         memberCardRadiusClass,
         transitionInteractive,
-        isRecorded && 'border-primary/40 ring-2 ring-primary/30 shadow-md',
-        isInteractive && 'border-border/70 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg hover:ring-1 hover:ring-primary/20',
+        isRecorded && 'member-surface--success ring-2 ring-[var(--cd-chip-border)]',
+        isInteractive && 'hover:-translate-y-0.5 hover:shadow-lg',
         disabled && !isRecorded && 'cursor-default opacity-55',
         disabled && 'cursor-default',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
@@ -75,7 +76,7 @@ export const CandidateCard = memo(function CandidateCard({
           </>
         ) : null}
       </div>
-      <div className="space-y-1 border-t border-border/50 p-4 sm:p-5">
+      <div className="space-y-1 border-t border-[var(--cd-surface-border)] p-4 sm:p-5">
         <p className="break-words text-base font-semibold leading-snug tracking-tight">
           {candidate.full_name}
         </p>

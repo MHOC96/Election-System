@@ -1,9 +1,5 @@
 import { ElectionStatusBadge } from '@/components/shared/StatusBadge'
-import {
-  memberPhaseAccentClass,
-  memberPhaseLabel,
-  memberPhasePulseClass,
-} from '@/lib/member-phase-ui'
+import { memberPhaseLabel, memberPhasePulseClass } from '@/lib/member-phase-ui'
 import { cn } from '@/lib/utils'
 import type { ElectionPhase } from '@/types/api'
 
@@ -33,12 +29,12 @@ export function MemberPhaseStrip({ phase, variant = 'banner', className }: Membe
   return (
     <div
       className={cn(
-        'flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-center text-xs font-medium leading-snug sm:text-sm',
-        memberPhaseAccentClass(phase),
+        'member-surface member-surface--inset flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-center text-xs font-medium leading-snug sm:text-sm',
         className,
       )}
       role="status"
       aria-label={`Election status: ${label}`}
+      style={{ color: 'var(--cd-chip-text)' }}
     >
       {showPulse ? (
         <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">

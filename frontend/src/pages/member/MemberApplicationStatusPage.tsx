@@ -266,6 +266,7 @@ export function MemberApplicationStatusPage() {
         <MemberPageHeader title="Application status" />
         <EmptyState
           icon={ClipboardList}
+          variant="member"
           title="No active election"
           description="There is no election in progress right now."
         />
@@ -301,6 +302,7 @@ export function MemberApplicationStatusPage() {
         {!application ? (
           <EmptyState
             icon={ClipboardList}
+            variant="member"
             title="No application on file"
             description="You did not submit an application for this election before the window closed."
           />

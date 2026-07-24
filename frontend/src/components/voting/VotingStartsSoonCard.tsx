@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { CountdownDisplay } from '@/components/shared/CountdownDisplay'
 import { CountdownTimeInline } from '@/components/shared/CountdownTimeCard'
 import { VotingScheduleDetails } from '@/components/voting/VotingScheduleDetails'
-import { electionCountdownCardClass } from '@/lib/design-tokens'
+import { electionCountdownCardClass, portalCountdownInnerClass } from '@/lib/design-tokens'
 import { cn } from '@/lib/utils'
 
 interface VotingStartsSoonCardProps {
@@ -29,19 +29,8 @@ export function VotingStartsSoonCard({
       )}
       aria-live="polite"
     >
-      <div
-        className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full blur-3xl sm:h-44 sm:w-44"
-        style={{ background: 'var(--cd-glow-a)' }}
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute -bottom-12 left-1/4 h-32 w-32 rounded-full blur-3xl sm:h-40 sm:w-40"
-        style={{ background: 'var(--cd-glow-b)' }}
-        aria-hidden="true"
-      />
-
-      <CardContent className="relative px-4 py-5 sm:px-6 sm:py-6">
-        <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-4 text-center sm:gap-5">
+      <CardContent className="relative px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
+        <div className={cn(portalCountdownInnerClass, 'flex flex-col items-center gap-4 text-center sm:gap-5')}>
           <div className="space-y-2">
             <div
               className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border shadow-sm sm:h-14 sm:w-14"

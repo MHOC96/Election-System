@@ -227,6 +227,7 @@ export function CandidateApplicationPage() {
         <MemberPageHeader title="Candidate Application" description="Apply for executive committee positions" />
         <EmptyState
           icon={Clock}
+          variant="member"
           title="Applications are not open"
           description="There are currently no elections accepting candidate applications."
         />
