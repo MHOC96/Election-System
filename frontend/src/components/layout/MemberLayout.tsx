@@ -7,6 +7,7 @@ import {
   brandMarkClass,
   memberShellContentClass,
   memberShellHeaderClass,
+  memberShellHeaderInnerClass,
   memberShellMainClass,
   shellCanvasClass,
   shellMobileHeaderClass,
@@ -99,57 +100,61 @@ export function MemberLayout() {
       <header className={memberShellHeaderClass}>
         {/* Mobile — stacked brand, actions, and phase banner */}
         <div className="sm:hidden">
-          <div className="border-b border-border/50 bg-gradient-to-b from-card via-card/95 to-muted/25 px-3 pb-3 dark:from-card dark:via-card/90 dark:to-muted/30">
-            <div className="flex items-center justify-between gap-3 py-2">
-              <Link to="/" className="flex min-w-0 flex-1 items-center gap-2.5 overflow-hidden">
-                <div className={cn(brandMarkClass, 'h-10 w-10 shrink-0 shadow-md')}>
-                  <Vote className="h-4 w-4" aria-hidden="true" />
-                </div>
-                <div className="min-w-0 leading-tight">
-                  <p className="truncate text-sm font-semibold tracking-tight">Member Portal</p>
-                  <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-                    {user?.cpm_number ? `CPM ${user.cpm_number}` : 'Executive Committee Election'}
-                  </p>
-                </div>
-              </Link>
+          <div className="border-b border-border/50 bg-gradient-to-b from-card via-card/95 to-muted/25 px-3 pb-3 dark:from-card dark:via-card/90 dark:to-muted/30 sm:px-6 lg:px-8 xl:px-10">
+            <div className={memberShellHeaderInnerClass}>
+              <div className="flex items-center justify-between gap-3 py-2">
+                <Link to="/" className="flex min-w-0 flex-1 items-center gap-2.5 overflow-hidden">
+                  <div className={cn(brandMarkClass, 'h-10 w-10 shrink-0 shadow-md')}>
+                    <Vote className="h-4 w-4" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0 leading-tight">
+                    <p className="truncate text-sm font-semibold tracking-tight">Member Portal</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                      {user?.cpm_number ? `CPM ${user.cpm_number}` : 'Executive Committee Election'}
+                    </p>
+                  </div>
+                </Link>
 
-              <div className="flex shrink-0 items-center gap-0.5 rounded-xl border border-border/60 bg-background/90 p-0.5 shadow-sm backdrop-blur-sm">
-                <ThemeToggle />
-                <ShellActions
-                  compact
-                  cpmNumber={user?.cpm_number}
-                  onLogout={() => void handleLogout()}
-                  isLoggingOut={isLoggingOut}
-                />
+                <div className="flex shrink-0 items-center gap-0.5 rounded-xl border border-border/60 bg-background/90 p-0.5 shadow-sm backdrop-blur-sm">
+                  <ThemeToggle />
+                  <ShellActions
+                    compact
+                    cpmNumber={user?.cpm_number}
+                    onLogout={() => void handleLogout()}
+                    isLoggingOut={isLoggingOut}
+                  />
+                </div>
               </div>
+
+              {phase ? (
+                <div
+                  className={cn(
+                    'flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-center text-xs font-medium leading-snug',
+                    memberPhaseAccentClass(phase),
+                  )}
+                  role="status"
+                  aria-label={`Election status: ${memberPhaseLabel(phase)}`}
+                >
+                  <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-50" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-current" />
+                  </span>
+                  <span className="text-pretty">{memberPhaseLabel(phase)}</span>
+                </div>
+              ) : null}
             </div>
-
-            {phase ? (
-              <div
-                className={cn(
-                  'mt-3 flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-center text-xs font-medium leading-snug',
-                  memberPhaseAccentClass(phase),
-                )}
-                role="status"
-                aria-label={`Election status: ${memberPhaseLabel(phase)}`}
-              >
-                <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-50" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-current" />
-                </span>
-                <span className="text-pretty">{memberPhaseLabel(phase)}</span>
-              </div>
-            ) : null}
           </div>
         </div>
 
         {/* Tablet & desktop — logo, centered badge, actions */}
-        <div
-          className={cn(
-            shellMobileHeaderClass,
-            'hidden sm:grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center sm:gap-x-3',
-          )}
-        >
+        <div className="hidden border-b border-border/50 sm:block lg:px-8 xl:px-10">
+          <div
+            className={cn(
+              shellMobileHeaderClass,
+              memberShellHeaderInnerClass,
+              'grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-4 lg:gap-x-6',
+            )}
+          >
           <Link
             to="/"
             className="flex min-w-0 items-center gap-2.5 overflow-hidden justify-self-start"
@@ -158,9 +163,9 @@ export function MemberLayout() {
               <Vote className="h-4 w-4" aria-hidden="true" />
             </div>
             <div className="min-w-0 leading-none">
-              <p className="truncate text-sm font-semibold leading-tight">Member Portal</p>
+              <p className="truncate text-sm font-semibold leading-tight sm:text-base">Member Portal</p>
               <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                Executive Committee Election
+                {user?.cpm_number ? `CPM ${user.cpm_number}` : 'Executive Committee Election'}
               </p>
             </div>
           </Link>
@@ -168,7 +173,7 @@ export function MemberLayout() {
           {phase ? (
             <ElectionStatusBadge
               status={phase}
-              className="max-w-full shrink-0 justify-self-center truncate text-center text-xs normal-case tracking-normal"
+              className="max-w-full shrink-0 justify-self-center truncate text-center text-xs normal-case tracking-normal sm:text-sm"
               aria-label={`Election status: ${memberPhaseLabel(phase)}`}
             >
               {memberPhaseLabel(phase)}
@@ -177,13 +182,15 @@ export function MemberLayout() {
             <span className="justify-self-center" aria-hidden="true" />
           )}
 
-          <div className="flex shrink-0 items-center justify-self-end justify-end gap-1">
+          <div className="flex shrink-0 items-center justify-self-end justify-end gap-1 rounded-xl border border-border/60 bg-background/90 p-0.5 shadow-sm backdrop-blur-sm">
+            <ThemeToggle />
             <ShellActions
               cpmNumber={user?.cpm_number}
               onLogout={() => void handleLogout()}
               isLoggingOut={isLoggingOut}
             />
           </div>
+        </div>
         </div>
       </header>
 

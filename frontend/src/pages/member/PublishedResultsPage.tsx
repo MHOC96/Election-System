@@ -11,7 +11,7 @@ import {
   insetPanelClass,
   memberCardHeaderTintClass,
   memberCardSurfaceClass,
-  memberSectionStackClass,
+  memberResultsGridClass,
 } from '@/lib/design-tokens'
 import { optimizeCloudinaryUrl } from '@/lib/cloudinary'
 import { PUBLISHED_RESULTS_QUERY_KEY, PUBLISHED_RESULTS_STALE_MS } from '@/lib/query-sync'
@@ -56,7 +56,7 @@ export function PublishedResultsPage() {
         />
       </Stagger>
 
-      <div className={memberSectionStackClass}>
+      <div className={memberResultsGridClass}>
         {results.positions.map((position) => {
           const winners = position.winners
           return (

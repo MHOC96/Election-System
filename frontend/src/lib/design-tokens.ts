@@ -23,7 +23,7 @@ export const insetPanelClass =
 
 /** Election / countdown hero cards — let `.election-countdown` own surface styling */
 export const electionCountdownCardClass =
-  'election-countdown relative mx-auto w-full max-w-3xl overflow-hidden rounded-2xl !border-0 !bg-transparent !shadow-none ring-0 sm:rounded-3xl'
+  'election-countdown relative mx-auto w-full max-w-3xl overflow-hidden rounded-2xl !border-0 !bg-transparent !shadow-none ring-0 sm:rounded-3xl lg:max-w-4xl xl:max-w-5xl'
 
 /** Admin / wide content shell */
 export const shellContentClass = 'mx-auto w-full max-w-7xl'
@@ -95,12 +95,16 @@ export const applicationFilterRowClass =
 export const memberShellHeaderClass =
   'glass sticky top-0 z-40 w-full border-b pt-[env(safe-area-inset-top)]'
 
+/** Aligns member header content with the main page column */
+export const memberShellHeaderInnerClass =
+  'mx-auto w-full min-w-0 max-w-4xl lg:max-w-5xl xl:max-w-6xl'
+
 export const memberShellMainClass =
-  'min-w-0 flex-1 overflow-x-hidden px-3 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-8'
+  'min-w-0 flex-1 overflow-x-hidden px-3 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-8 lg:px-8 lg:py-10 xl:px-10'
 
-export const memberShellContentClass = 'mx-auto w-full min-w-0 max-w-4xl'
+export const memberShellContentClass = memberShellHeaderInnerClass
 
-export const memberPageLayoutClass = 'w-full min-w-0 space-y-5 sm:space-y-8'
+export const memberPageLayoutClass = 'w-full min-w-0 space-y-5 sm:space-y-8 lg:space-y-10'
 
 export const memberCardSurfaceClass =
   'overflow-hidden border border-border/70 bg-card shadow-md ring-1 ring-primary/10 dark:ring-primary/20'
@@ -116,7 +120,18 @@ export const memberPositionCardClass =
 
 /** Application position cards grid */
 export const memberPositionGridClass =
-  'grid grid-cols-1 items-start gap-3 sm:grid-cols-2 sm:gap-5'
+  'grid grid-cols-1 items-start gap-3 sm:grid-cols-2 sm:gap-5 lg:gap-6 xl:grid-cols-3'
+
+/** Ballot candidate cards and member selection tiles */
+export const memberCandidateGridClass =
+  'grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6'
+
+/** Published results — position cards on wide screens */
+export const memberResultsGridClass =
+  'grid grid-cols-1 gap-5 lg:grid-cols-2 lg:gap-6 xl:gap-8'
+
+/** Centered status / outcome cards */
+export const memberStatusCardClass = 'mx-auto w-full max-w-2xl lg:max-w-3xl'
 
 export const memberSectionStackClass = 'space-y-4'
 

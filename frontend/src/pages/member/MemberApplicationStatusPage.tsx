@@ -18,6 +18,7 @@ import {
   memberCardSurfaceClass,
   memberHeroSpacingClass,
   memberHeroSurfaceClass,
+  memberStatusCardClass,
 } from '@/lib/design-tokens'
 import { isVotingStartPending } from '@/lib/election-lifecycle-ui'
 import { ONGOING_ELECTION_QUERY_KEY } from '@/lib/query-sync'
@@ -303,9 +304,13 @@ export function MemberApplicationStatusPage() {
             description="You did not submit an application for this election before the window closed."
           />
         ) : isPostVoting ? (
-          <PostVotingOutcomeCard application={application} />
+          <div className={memberStatusCardClass}>
+            <PostVotingOutcomeCard application={application} />
+          </div>
         ) : (
-          <ActiveApplicationCard application={application} election={election} phase={phase} />
+          <div className={memberStatusCardClass}>
+            <ActiveApplicationCard application={application} election={election} phase={phase} />
+          </div>
         )}
       </Stagger>
     </MemberPage>

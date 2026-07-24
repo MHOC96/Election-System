@@ -19,6 +19,7 @@ import { sectionDelays, Stagger, StaggerChildren } from '@/components/motion/Sta
 import {
   memberCardHeaderTintClass,
   memberCardSurfaceClass,
+  memberCandidateGridClass,
   memberHeroSpacingClass,
   memberSectionHeadingClass,
   memberSectionIntroClass,
@@ -220,7 +221,7 @@ export function BallotPage() {
               {votedCount}/{total}
             </Badge>
           </div>
-          <StaggerChildren className="grid gap-4 sm:grid-cols-2" staggerMs={60}>
+          <StaggerChildren className={memberCandidateGridClass} staggerMs={60}>
             {selections.map((vote) => (
               <MemberSelectionItem
                 key={vote.position_id}
@@ -317,7 +318,7 @@ const PositionSection = memo(function PositionSection({
         item.has_voted && 'border-success/30 bg-success/[0.03]',
       )}
     >
-      <CardHeader className={memberCardHeaderTintClass}>
+      <CardHeader className={cn(memberCardHeaderTintClass, 'px-5 sm:px-6 lg:px-8')}>
         <div className="flex min-w-0 flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
           <div className="min-w-0">
             <h3 id={sectionId} className="text-base font-semibold leading-snug tracking-tight sm:text-lg">
@@ -341,12 +342,12 @@ const PositionSection = memo(function PositionSection({
           )}
         </div>
       </CardHeader>
-      <CardContent className="pt-5 sm:pt-6">
+      <CardContent className="pt-5 sm:pt-6 lg:px-8 lg:pt-7">
         <div
           role="radiogroup"
           aria-labelledby={sectionId}
           aria-readonly={votingDisabled || undefined}
-          className="grid gap-4 sm:grid-cols-2"
+          className={memberCandidateGridClass}
           onKeyDown={handleRadioGroupKeyDown}
         >
           {item.candidates.map((candidate, candidateIndex) => {
