@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle2, XCircle, ExternalLink, Clock, FileText } from 'lucide-react'
+import { CheckCircle2, Clock } from 'lucide-react'
 import { notifyApiError, notifySuccessMessage } from '@/lib/notify'
 import { SUCCESS_MESSAGES } from '@/lib/user-messages'
 import { fetchPositions } from '@/api/positions'
@@ -16,15 +16,16 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { FormField } from '@/components/design-system/FormField'
+import {
+  ApplicationReviewGroups,
+  buildApplicationPositionGroups,
+} from '@/components/applications/ApplicationReviewGroups'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { sectionDelays, Stagger } from '@/components/motion/Stagger'
-import { getPaginationMeta } from '@/components/shared/DataTablePagination'
-import { pageLayoutClass, responsiveTableDesktopClass, responsiveTableMobileClass, dataTableScrollClass } from '@/lib/design-tokens'
-import { cn } from '@/lib/utils'
-import { Badge } from '@/components/ui/badge'
+import { DataTablePagination, getPaginationMeta } from '@/components/shared/DataTablePagination'
+import { pageHeaderBlockClass, pageLayoutClass, dataTableShellClass } from '@/lib/design-tokens'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 const rejectSchema = z.object({
@@ -105,11 +106,8 @@ export function ApplicationReviewPage() {
     }
   }, [page, totalPages])
 
-  const groupedApplications = applications.reduce((acc, app) => {
-    if (!acc[app.position_name]) acc[app.position_name] = []
-    acc[app.position_name].push(app)
-    return acc
-  }, {} as Record<string, CandidateApplication[]>)
+  const positionNames = Array.from(new Set((positions || []).map((position) => position.name)))
+  const applicationGroups = buildApplicationPositionGroups(positionNames, applications)
 
   const {
     register,
@@ -196,64 +194,75 @@ export function ApplicationReviewPage() {
   return (
     <div className={pageLayoutClass}>
       <Stagger delayMs={sectionDelays.header}>
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className={pageHeaderBlockClass}>
           <PageHeader
             title="Application Review"
             description={`Review pending applications for: ${ongoingElection.name}`}
-          />
-          {totalCount > 0 && (
-            <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-              <Input 
-                placeholder="Search applications..." 
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value)
-                  setPage(1)
-                }}
-                className="w-full sm:w-64"
-              />
-              {positions && positions.length > 0 && (
-                <div className="w-full sm:w-64">
-                  <Select value={selectedPosition} onValueChange={(value) => {
-                    setSelectedPosition(value)
+            action={
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                <Input
+                  placeholder="Search applications..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value)
                     setPage(1)
-                  }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Filter by position" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Positions</SelectItem>
-                      {positions.map((pos) => (
-                        <SelectItem key={pos.id} value={pos.name}>
-                          {pos.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
-          )}
+                  }}
+                  className="w-full sm:w-56 lg:w-64"
+                />
+                {positions && positions.length > 0 ? (
+                  <div className="w-full sm:w-56 lg:w-64">
+                    <Select
+                      value={selectedPosition}
+                      onValueChange={(value) => {
+                        setSelectedPosition(value)
+                        setPage(1)
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Filter by position" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Positions</SelectItem>
+                        {positions.map((pos) => (
+                          <SelectItem key={pos.id} value={pos.name}>
+                            {pos.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : null}
+              </div>
+            }
+          />
         </div>
       </Stagger>
 
       <Stagger delayMs={sectionDelays.secondary}>
-        <div className="flex flex-col sm:flex-row gap-4 mb-6 w-full justify-between">
-          <Tabs value={activeStatusTab} onValueChange={(value) => {
-            setActiveStatusTab(value)
-            setPage(1)
-          }} className="w-full sm:w-auto">
-            <TabsList className="grid w-full sm:w-[360px] grid-cols-3">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <Tabs
+            value={activeStatusTab}
+            onValueChange={(value) => {
+              setActiveStatusTab(value)
+              setPage(1)
+            }}
+            className="w-full lg:w-auto"
+          >
+            <TabsList className="grid w-full grid-cols-3 sm:w-[360px]">
               <TabsTrigger value="PENDING_REVIEW">Pending</TabsTrigger>
               <TabsTrigger value="APPROVED">Approved</TabsTrigger>
               <TabsTrigger value="REJECTED">Rejected</TabsTrigger>
             </TabsList>
           </Tabs>
-          <Tabs value={activeYearTab} onValueChange={(value) => {
-            setActiveYearTab(value)
-            setPage(1)
-          }} className="w-full sm:w-auto">
-            <TabsList className="grid w-full sm:w-48 grid-cols-2">
+          <Tabs
+            value={activeYearTab}
+            onValueChange={(value) => {
+              setActiveYearTab(value)
+              setPage(1)
+            }}
+            className="w-full lg:w-auto"
+          >
+            <TabsList className="grid w-full grid-cols-2 sm:w-48">
               <TabsTrigger value="2nd Year">2nd Year</TabsTrigger>
               <TabsTrigger value="3rd Year">3rd Year</TabsTrigger>
             </TabsList>
@@ -262,201 +271,35 @@ export function ApplicationReviewPage() {
       </Stagger>
 
       <Stagger delayMs={sectionDelays.tertiary}>
-        <Card>
-          <CardContent className="p-4 sm:p-6">
+        <Card className={dataTableShellClass}>
+          <CardContent className="px-4 py-4 sm:px-6 sm:py-6">
             {!applications.length ? (
               <EmptyState
                 icon={CheckCircle2}
-                title={activeStatusTab === 'PENDING_REVIEW' ? "All caught up!" : "No applications"}
+                title={activeStatusTab === 'PENDING_REVIEW' ? 'All caught up!' : 'No applications'}
                 description={`There are no ${activeStatusTab.toLowerCase().replace('_', ' ')} applications right now.`}
               />
             ) : (
-              <div className="space-y-8">
-                {Array.from(new Set((positions || []).map(p => p.name)))
-                  .filter(name => groupedApplications[name] && groupedApplications[name].length > 0)
-                  .map(positionName => {
-                    const apps = groupedApplications[positionName];
-
-                    return (
-                      <div key={positionName} className="rounded-md border overflow-hidden">
-                        <div className="bg-muted/50 px-4 py-3 border-b flex justify-between items-center">
-                          <h3 className="font-semibold text-base sm:text-lg">{positionName}</h3>
-                          <Badge variant="outline">{apps.length}</Badge>
-                        </div>
-
-                        {/* Mobile card view */}
-                        <div className={responsiveTableMobileClass}>
-                          <div className="divide-y">
-                            {apps.map((app) => (
-                              <div key={app.id} className="px-4 py-3 space-y-3">
-                                <div className="flex items-center gap-3">
-                                  {app.photo_url && (
-                                    <img 
-                                      src={app.photo_url} 
-                                      alt={app.full_name} 
-                                      loading="lazy"
-                                      className="h-10 w-10 rounded-full object-cover border shrink-0"
-                                    />
-                                  )}
-                                  <div className="min-w-0 flex-1">
-                                    <p className="font-medium text-sm truncate">{app.full_name}</p>
-                                    <p className="text-xs text-muted-foreground">CPM: {app.cpm_number}</p>
-                                  </div>
-                                </div>
-                                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-                                  <Button variant="link" size="sm" asChild className="h-auto w-fit px-0">
-                                    <a href={app.declaration_file} target="_blank" rel="noopener noreferrer">
-                                      <FileText className="mr-1 h-3.5 w-3.5" />
-                                      Declaration <ExternalLink className="ml-1 h-3 w-3" />
-                                    </a>
-                                  </Button>
-                                  {activeStatusTab === 'PENDING_REVIEW' && (
-                                    <div className="flex flex-wrap gap-2 sm:ml-auto">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-8 border-success/30 text-success hover:bg-success/10"
-                                        onClick={() => handleApprove(app.id)}
-                                        disabled={pendingId === app.id}
-                                      >
-                                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Approve
-                                      </Button>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-8 text-destructive border-destructive/30 hover:bg-destructive/10"
-                                        onClick={() => openReject(app)}
-                                        disabled={pendingId === app.id}
-                                      >
-                                        <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
-                                      </Button>
-                                    </div>
-                                  )}
-                                  {activeStatusTab === 'REJECTED' && (
-                                    <span className="text-xs text-destructive">{app.rejection_reason}</span>
-                                  )}
-                                  {activeStatusTab === 'APPROVED' && (
-                                    <Badge variant="success" className="ml-auto">Approved</Badge>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Desktop table view */}
-                        <div className={cn(dataTableScrollClass, responsiveTableDesktopClass)}>
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Candidate Name</TableHead>
-                                <TableHead>CPM Number</TableHead>
-                                <TableHead>Declaration</TableHead>
-                                {activeStatusTab === 'PENDING_REVIEW' && (
-                                  <TableHead className="w-32 text-right">Actions</TableHead>
-                                )}
-                                {activeStatusTab === 'REJECTED' && (
-                                  <TableHead>Reason</TableHead>
-                                )}
-                                {activeStatusTab === 'APPROVED' && (
-                                  <TableHead className="text-right">Status</TableHead>
-                                )}
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {apps.map((app) => (
-                                <TableRow key={app.id}>
-                                  <TableCell className="font-medium">
-                                    <div className="flex items-center gap-3">
-                                      {app.photo_url && (
-                                        <img 
-                                          src={app.photo_url} 
-                                          alt={app.full_name} 
-                                          loading="lazy"
-                                          className="h-10 w-10 rounded-full object-cover border"
-                                        />
-                                      )}
-                                      <span>{app.full_name}</span>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="text-sm text-muted-foreground">
-                                      CPM: {app.cpm_number}
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <Button variant="link" size="sm" asChild className="px-0">
-                                      <a href={app.declaration_file} target="_blank" rel="noopener noreferrer">
-                                        <FileText className="w-4 h-4 mr-2" />
-                                        View Document <ExternalLink className="w-3 h-3 ml-1" />
-                                      </a>
-                                    </Button>
-                                  </TableCell>
-                                  {activeStatusTab === 'PENDING_REVIEW' && (
-                                    <TableCell className="text-right whitespace-nowrap">
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-success hover:bg-success/10 hover:text-success"
-                                        onClick={() => handleApprove(app.id)}
-                                        disabled={pendingId === app.id}
-                                      >
-                                        <CheckCircle2 className="h-4 w-4 mr-1" /> Approve
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-destructive hover:bg-destructive/10"
-                                        onClick={() => openReject(app)}
-                                        disabled={pendingId === app.id}
-                                      >
-                                        <XCircle className="h-4 w-4 mr-1" /> Reject
-                                      </Button>
-                                    </TableCell>
-                                  )}
-                                  {activeStatusTab === 'REJECTED' && (
-                                    <TableCell>
-                                      <span className="text-sm text-destructive">{app.rejection_reason}</span>
-                                    </TableCell>
-                                  )}
-                                  {activeStatusTab === 'APPROVED' && (
-                                    <TableCell className="text-right">
-                                      <Badge variant="success">Approved</Badge>
-                                    </TableCell>
-                                  )}
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      </div>
-                )})}
-              </div>
+              <ApplicationReviewGroups
+                groups={applicationGroups}
+                activeStatusTab={activeStatusTab}
+                pendingId={pendingId}
+                onApprove={handleApprove}
+                onReject={openReject}
+              />
             )}
             {totalPages > 1 ? (
-              <div className="mt-6 flex flex-col items-center gap-3 border-t pt-4 sm:flex-row sm:justify-between">
-                <p className="text-sm text-muted-foreground">
-                  Page {page} of {totalPages} · {totalCount} applications
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={!canGoPrevious}
-                    onClick={() => setPage((current) => Math.max(1, current - 1))}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={!canGoNext}
-                    onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
+              <DataTablePagination
+                className="px-0"
+                page={page}
+                pageSize={APPLICATIONS_PAGE_SIZE}
+                totalCount={totalCount}
+                hasPrevious={canGoPrevious}
+                hasNext={canGoNext}
+                itemLabel="applications"
+                onPrevious={() => setPage((current) => Math.max(1, current - 1))}
+                onNext={() => setPage((current) => Math.min(totalPages, current + 1))}
+              />
             ) : null}
           </CardContent>
         </Card>
