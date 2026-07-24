@@ -38,6 +38,10 @@ export const shellHeaderBarClass = 'flex h-14 shrink-0 items-center'
 export const shellMobileHeaderClass =
   'flex min-h-16 shrink-0 items-center gap-2 px-3 py-2 sm:gap-3 sm:px-4'
 
+/** Unified header action cluster — theme, logout, and optional menu */
+export const shellActionToolbarClass =
+  'flex shrink-0 items-center gap-0.5 rounded-xl border border-border/70 bg-background/80 p-0.5 shadow-sm backdrop-blur-sm'
+
 /** Page title — PageHeader */
 export const pageTitleClass = 'text-lg font-semibold tracking-tight sm:text-xl md:text-2xl'
 

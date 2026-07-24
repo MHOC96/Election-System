@@ -18,7 +18,6 @@ import { AdminSidebarFooter } from '@/components/layout/AdminSidebarFooter'
 import { ShellActions } from '@/components/layout/ShellActions'
 import { SidebarNav } from '@/components/layout/SidebarNav'
 import { SkipToContent } from '@/components/shared/SkipToContent'
-import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import { MAIN_CONTENT_ID } from '@/lib/a11y'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
@@ -100,8 +99,7 @@ export function AdminLayout() {
               <AdminBrandMark />
             </Link>
 
-            <div className="flex shrink-0 items-center gap-0.5 rounded-lg border border-border/70 bg-background/70 p-0.5 shadow-sm backdrop-blur">
-              <ThemeToggle />
+            <div className="flex shrink-0 items-center">
               <ShellActions
                 compact
                 cpmNumber={user?.cpm_number}
@@ -112,7 +110,7 @@ export function AdminLayout() {
             </div>
           </div>
 
-          <div className={cn(shellHeaderBarClass, 'hidden w-full gap-2 px-8 lg:flex')}>
+          <div className={cn(shellHeaderBarClass, 'hidden w-full px-8 lg:flex')}>
             <div className="flex-1" aria-hidden="true" />
             <ShellActions
               cpmNumber={user?.cpm_number}

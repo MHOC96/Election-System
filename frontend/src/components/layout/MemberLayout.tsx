@@ -16,7 +16,6 @@ import { warmMemberConsole, resetConsoleWarmupState } from '@/lib/prefetch'
 import { useOngoingElection } from '@/hooks/useOngoingElection'
 import { ShellActions } from '@/components/layout/ShellActions'
 import { SkipToContent } from '@/components/shared/SkipToContent'
-import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import { ElectionStatusBadge } from '@/components/shared/StatusBadge'
 import { MAIN_CONTENT_ID } from '@/lib/a11y'
 import { notifyError } from '@/lib/notify'
@@ -115,15 +114,12 @@ export function MemberLayout() {
                   </div>
                 </Link>
 
-                <div className="flex shrink-0 items-center gap-0.5 rounded-xl border border-border/60 bg-background/90 p-0.5 shadow-sm backdrop-blur-sm">
-                  <ThemeToggle />
-                  <ShellActions
-                    compact
-                    cpmNumber={user?.cpm_number}
-                    onLogout={() => void handleLogout()}
-                    isLoggingOut={isLoggingOut}
-                  />
-                </div>
+                <ShellActions
+                  compact
+                  cpmNumber={user?.cpm_number}
+                  onLogout={() => void handleLogout()}
+                  isLoggingOut={isLoggingOut}
+                />
               </div>
 
               {phase ? (
@@ -182,14 +178,12 @@ export function MemberLayout() {
             <span className="justify-self-center" aria-hidden="true" />
           )}
 
-          <div className="flex shrink-0 items-center justify-self-end justify-end gap-1 rounded-xl border border-border/60 bg-background/90 p-0.5 shadow-sm backdrop-blur-sm">
-            <ThemeToggle />
-            <ShellActions
-              cpmNumber={user?.cpm_number}
-              onLogout={() => void handleLogout()}
-              isLoggingOut={isLoggingOut}
-            />
-          </div>
+          <ShellActions
+            cpmNumber={user?.cpm_number}
+            onLogout={() => void handleLogout()}
+            isLoggingOut={isLoggingOut}
+            className="justify-self-end"
+          />
         </div>
         </div>
       </header>

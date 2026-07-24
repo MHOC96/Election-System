@@ -3,7 +3,11 @@ import { Button } from '@/components/ui/button'
 import { useTheme } from '@/context/ThemeContext'
 import { cn } from '@/lib/utils'
 
-export function ThemeToggle() {
+interface ThemeToggleProps {
+  className?: string
+}
+
+export function ThemeToggle({ className }: ThemeToggleProps) {
   const { theme, toggleTheme } = useTheme()
 
   return (
@@ -12,7 +16,7 @@ export function ThemeToggle() {
       size="icon"
       onClick={toggleTheme}
       aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
-      className="relative overflow-hidden"
+      className={cn('relative h-9 w-9 shrink-0 overflow-hidden sm:h-10 sm:w-10', className)}
     >
       <Sun
         className={cn(

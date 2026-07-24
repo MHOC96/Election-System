@@ -1,6 +1,7 @@
 import { Loader2, LogOut, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/shared/ThemeToggle'
+import { shellActionToolbarClass } from '@/lib/design-tokens'
 import { cn } from '@/lib/utils'
 
 interface ShellActionsProps {
@@ -10,8 +11,10 @@ interface ShellActionsProps {
   onMenuClick?: () => void
   showMenuButton?: boolean
   menuButtonClassName?: string
-  /** Icon-only actions for narrow mobile headers */
+  /** Icon-only logout for narrow headers */
   compact?: boolean
+  showThemeToggle?: boolean
+  className?: string
 }
 
 export function ShellActions({
@@ -22,31 +25,39 @@ export function ShellActions({
   showMenuButton,
   menuButtonClassName = 'lg:hidden',
   compact = false,
+  showThemeToggle = true,
+  className,
 }: ShellActionsProps) {
   return (
-    <div className={cn('flex shrink-0 items-center', compact ? 'gap-0.5' : 'gap-1 sm:gap-2')}>
+    <div className={cn(shellActionToolbarClass, className)}>
       {cpmNumber && !compact ? (
-        <span className="hidden max-w-[8rem] truncate text-sm text-muted-foreground md:inline">
+        <span className="hidden max-w-[9rem] truncate rounded-lg bg-muted/50 px-2.5 py-1.5 text-xs font-medium tabular-nums text-muted-foreground md:inline">
           {cpmNumber}
         </span>
       ) : null}
+
       {showMenuButton && onMenuClick ? (
         <Button
           variant="ghost"
           size="icon"
-          className={menuButtonClassName}
+          className={cn('h-9 w-9 shrink-0 sm:h-10 sm:w-10', menuButtonClassName)}
           onClick={onMenuClick}
           aria-label="Open navigation menu"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-5 w-5" aria-hidden="true" />
         </Button>
       ) : null}
-      {!compact ? <ThemeToggle /> : null}
+
+      {showThemeToggle ? <ThemeToggle /> : null}
+
       <Button
         type="button"
         variant={compact ? 'ghost' : 'outline'}
         size={compact ? 'icon' : 'sm'}
-        className={compact ? 'h-10 w-10 shrink-0' : undefined}
+        className={cn(
+          'shrink-0',
+          compact ? 'h-9 w-9 sm:h-10 sm:w-10' : 'h-9 gap-1.5 px-3 sm:h-10',
+        )}
         onClick={onLogout}
         disabled={isLoggingOut}
         aria-label="Log out"
