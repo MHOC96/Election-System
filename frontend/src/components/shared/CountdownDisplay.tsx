@@ -3,29 +3,18 @@ import { splitCountdown } from '@/lib/datetime'
 import { useCountdown } from '@/lib/use-countdown'
 import { cn } from '@/lib/utils'
 
-function TimeUnit({
-  value,
-  label,
-  pulse,
-}: {
-  value: number
-  label: string
-  pulse?: boolean
-}) {
+function TimeUnit({ value, label, pulse }: { value: number; label: string; pulse?: boolean }) {
   return (
     <div
       className={cn(
-        'election-countdown__digit flex w-full min-w-0 flex-col items-center justify-center rounded-xl px-2 py-2.5 sm:rounded-2xl sm:px-3 sm:py-3.5 md:px-4 md:py-4',
-        pulse && 'election-countdown__digit--seconds',
+        'portal-digit flex w-full min-w-0 flex-col items-center justify-center rounded-xl px-2 py-3 sm:px-3 sm:py-4',
+        pulse && 'portal-digit--pulse',
       )}
     >
-      <span className="election-countdown__digit-value text-2xl font-bold leading-none tabular-nums tracking-tight sm:text-3xl md:text-4xl">
+      <span className="portal-digit__value text-[1.75rem] font-bold leading-none tracking-tight sm:text-4xl">
         {String(value).padStart(2, '0')}
       </span>
-      <span
-        className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] sm:mt-2 sm:text-xs sm:tracking-[0.2em]"
-        style={{ color: 'var(--cd-label)' }}
-      >
+      <span className="portal-digit__label mt-2 text-[10px] font-semibold uppercase tracking-[0.14em] sm:text-xs">
         {label}
       </span>
     </div>
@@ -112,17 +101,14 @@ export function CountdownDisplay({
   return (
     <div
       className={cn(
-        'w-full space-y-2.5 sm:space-y-3',
+        'w-full space-y-3',
         centered && 'mx-auto max-w-xl text-center',
         className,
       )}
       aria-live="polite"
       aria-label={label}
     >
-      <p
-        className="pb-2 text-xs font-semibold uppercase tracking-[0.12em] sm:pb-4 sm:text-sm sm:tracking-[0.16em]"
-        style={{ color: 'var(--cd-digit-accent)' }}
-      >
+      <p className="portal-accent-text text-xs font-semibold uppercase tracking-[0.14em] sm:text-sm">
         {label}
       </p>
       <CountdownDigits targetAt={targetAt} centered={centered} />

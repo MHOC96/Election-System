@@ -4,7 +4,6 @@ import { cn } from '@/lib/utils'
 
 interface CountdownTimeCardProps {
   children: ReactNode
-  modifier?: string
   className?: string
   meta?: string
   ariaLabel?: string
@@ -13,7 +12,6 @@ interface CountdownTimeCardProps {
 /** Bordered, centered countdown card — admin election cards and standalone timers. */
 export function CountdownTimeCard({
   children,
-  modifier,
   className,
   meta,
   ariaLabel,
@@ -21,20 +19,19 @@ export function CountdownTimeCard({
   return (
     <div
       className={cn(
-        'election-countdown mx-auto mt-3 w-full min-w-0 overflow-hidden rounded-xl',
+        'portal-surface mt-3 overflow-hidden rounded-2xl',
         portalCountdownInnerClass,
-        modifier,
         className,
       )}
       aria-live="polite"
       aria-label={ariaLabel}
     >
       {meta ? (
-        <div className="border-b border-border/50 bg-[var(--cd-date-bg,hsl(var(--card)/0.4))] px-4 py-3 text-center sm:px-6 sm:py-3.5">
-          <p className="text-xs font-medium text-muted-foreground sm:text-sm">{meta}</p>
+        <div className="portal-surface__header px-4 py-3 text-center sm:px-6 sm:py-3.5">
+          <p className="portal-subtle text-xs font-semibold sm:text-sm">{meta}</p>
         </div>
       ) : null}
-      <div className="flex flex-col items-center justify-center px-4 py-5 pb-6 text-center sm:px-6 sm:py-6 sm:pb-8">
+      <div className="flex flex-col items-center justify-center px-4 py-5 text-center sm:px-6 sm:py-6">
         {children}
       </div>
     </div>
@@ -53,7 +50,7 @@ export function CountdownTimeInline({ children, className, ariaLabel }: Countdow
     <div
       className={cn(
         portalCountdownInnerClass,
-        'flex flex-col items-center justify-center px-1 py-2 text-center sm:px-4 sm:py-4',
+        'flex flex-col items-center justify-center text-center',
         className,
       )}
       aria-live="polite"

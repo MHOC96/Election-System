@@ -4,12 +4,11 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Vote } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import {
-  brandMarkClass,
+  memberShellClass,
   memberShellContentClass,
   memberShellHeaderClass,
   memberShellHeaderInnerClass,
   memberShellMainClass,
-  shellCanvasClass,
 } from '@/lib/design-tokens'
 import { warmMemberConsole, resetConsoleWarmupState } from '@/lib/prefetch'
 import { useOngoingElection } from '@/hooks/useOngoingElection'
@@ -17,6 +16,8 @@ import { ShellActions } from '@/components/layout/ShellActions'
 import { MemberPhaseStrip } from '@/components/member/MemberPhaseStrip'
 import { SkipToContent } from '@/components/shared/SkipToContent'
 import { MAIN_CONTENT_ID } from '@/lib/a11y'
+import { memberPhaseAccent } from '@/lib/member-phase-ui'
+import { accentScope } from '@/lib/portal-accent'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 
@@ -30,37 +31,40 @@ function MemberBrandMark({
   compact?: boolean
 }) {
   return (
-    <Link to="/" className="flex min-w-0 items-center gap-2.5 overflow-hidden sm:gap-3">
-      <div
+    <Link
+      to="/"
+      className="group flex min-w-0 items-center gap-3 overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal-accent focus-visible:ring-offset-2 focus-visible:ring-offset-portal-surface"
+    >
+      <span
         className={cn(
-          brandMarkClass,
-          'shrink-0 shadow-md',
-          compact ? 'h-10 w-10' : 'h-9 w-9 sm:h-10 sm:w-10',
+          'portal-accent-fill flex shrink-0 items-center justify-center rounded-xl',
+          compact ? 'h-10 w-10' : 'h-10 w-10 sm:h-11 sm:w-11',
         )}
+        aria-hidden="true"
       >
-        <Vote className="h-4 w-4" aria-hidden="true" />
-      </div>
-      <div className="min-w-0 leading-tight">
-        <p
+        <Vote className="h-[1.15rem] w-[1.15rem]" />
+      </span>
+      <span className="min-w-0 leading-tight">
+        <span
           className={cn(
-            'truncate font-semibold tracking-tight',
+            'portal-heading block truncate font-semibold tracking-tight',
             compact ? 'text-sm' : 'text-sm sm:text-base',
           )}
         >
           Member Portal
-        </p>
-        <p className="mt-0.5 truncate text-[11px] text-muted-foreground sm:text-xs">
+        </span>
+        <span className="portal-subtle mt-0.5 block truncate text-[11px] sm:text-xs">
           {cpmNumber ? `CPM ${cpmNumber}` : 'Executive Committee Election'}
           {electionName ? (
             <>
-              <span className="mx-1.5 text-border" aria-hidden="true">
+              <span className="mx-1.5 opacity-50" aria-hidden="true">
                 ·
               </span>
-              <span className="text-foreground/75">{electionName}</span>
+              {electionName}
             </>
           ) : null}
-        </p>
-      </div>
+        </span>
+      </span>
     </Link>
   )
 }
@@ -97,17 +101,14 @@ export function MemberLayout() {
   }, [isLoggingOut, logout, navigate, queryClient])
 
   return (
-    <div className={cn('flex min-h-[100dvh] min-w-0 flex-col', shellCanvasClass)}>
+    // The phase accent lives on the shell so the header, canvas wash, and
+    // every card below inherit the same hue for the current election stage.
+    <div className={cn(memberShellClass, accentScope(memberPhaseAccent(phase)))}>
       <SkipToContent />
 
       <header className={memberShellHeaderClass}>
-        <div
-          className={cn(
-            memberShellHeaderInnerClass,
-            'border-b border-[var(--cd-surface-border,hsl(var(--border)/0.6))] bg-gradient-to-b from-card/95 via-card/85 to-transparent px-3 py-2.5 sm:px-6 sm:py-3 lg:px-8 xl:px-10',
-          )}
-        >
-          {/* Mobile header */}
+        <div className={cn(memberShellHeaderInnerClass, 'gap-2.5 py-3 sm:py-3.5')}>
+          {/* Mobile */}
           <div className="flex flex-col gap-2.5 sm:hidden">
             <div className="flex items-center justify-between gap-3">
               <MemberBrandMark cpmNumber={user?.cpm_number} electionName={electionName} compact />
@@ -121,7 +122,7 @@ export function MemberLayout() {
             {phase ? <MemberPhaseStrip phase={phase} /> : null}
           </div>
 
-          {/* Tablet & desktop header */}
+          {/* Tablet and up */}
           <div className="hidden sm:grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center sm:gap-x-4 lg:gap-x-6">
             <MemberBrandMark cpmNumber={user?.cpm_number} electionName={electionName} />
 

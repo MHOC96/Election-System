@@ -1,11 +1,7 @@
-import { Badge } from '@/components/ui/badge'
+import { CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import {
-  memberCardRadiusClass,
-  memberPositionCardClass,
-  transitionInteractive,
-} from '@/lib/design-tokens'
+import { PortalCard, PortalChip } from '@/components/member/PortalCard'
+import { accentScope } from '@/lib/portal-accent'
 import { cn } from '@/lib/utils'
 
 interface PositionApplyCardProps {
@@ -31,68 +27,67 @@ export function PositionApplyCard({
   onApply,
   showSubmittedState = false,
 }: PositionApplyCardProps) {
-  const isLocked =
-    buttonLabel === 'Opens soon' || buttonLabel === 'Already applied' || buttonLabel === 'Not eligible'
   const isActionable = !buttonDisabled && !showSubmittedState && Boolean(onApply)
   const showMessage = Boolean(bodyText)
 
   return (
-    <Card
+    <PortalCard
+      as="article"
+      selected={showSubmittedState}
       className={cn(
-        memberPositionCardClass,
-        memberCardRadiusClass,
-        transitionInteractive,
-        isActionable && 'hover:-translate-y-0.5 hover:shadow-lg',
-        showSubmittedState && 'member-surface--success',
-        bodyTone === 'destructive' && !showSubmittedState && 'border-destructive/30',
-        isLocked && !showSubmittedState && 'opacity-95',
+        'flex h-full flex-col',
+        // A submitted application reads green; a blocking message reads amber.
+        showSubmittedState && accentScope('success'),
+        bodyTone === 'destructive' && !showSubmittedState && accentScope('warning'),
       )}
     >
-      <div className="relative overflow-hidden p-4 sm:p-5 lg:p-6">
-        <div className="relative min-w-0 space-y-2.5">
+      <div className="flex min-w-0 flex-1 flex-col p-4 sm:p-5 lg:p-6">
+        <div className="min-w-0 space-y-3">
           <div className="flex flex-wrap items-start gap-2">
-            <h3 className="min-w-0 flex-1 text-base font-semibold leading-snug tracking-tight text-foreground sm:text-lg">
+            <h3 className="portal-heading min-w-0 flex-1 text-base font-semibold leading-snug tracking-tight sm:text-lg">
               {positionName}
             </h3>
             {academicYear ? (
-              <Badge variant="secondary" className="shrink-0 text-[10px] uppercase tracking-wide sm:text-xs">
+              <span className="portal-subtle shrink-0 rounded-full bg-portal-muted px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide sm:text-xs">
                 {academicYear}
-              </Badge>
+              </span>
             ) : null}
           </div>
 
           {showMessage ? (
-            <div
+            <p
               className={cn(
                 'rounded-xl border px-3 py-2.5 text-sm leading-relaxed',
-                bodyTone === 'destructive' && 'border-destructive/25 bg-destructive/5 text-destructive',
-                bodyTone !== 'destructive' && 'border-border/60 bg-muted/25 text-muted-foreground',
+                bodyTone === 'destructive'
+                  ? 'portal-accent-soft portal-accent-border portal-accent-text'
+                  : 'portal-subtle border-portal-border bg-portal-muted',
               )}
             >
               {bodyText}
-            </div>
+            </p>
           ) : null}
         </div>
 
-        {showSubmittedState ? (
-          <div className="mt-4 flex items-center justify-center gap-2 rounded-xl border border-success/25 bg-success/8 px-3 py-2.5 text-sm font-semibold text-success sm:mt-5">
-            Application submitted
-          </div>
-        ) : (
-          <div className={cn('mt-4 sm:mt-5', showMessage && 'sm:mt-6')}>
+        <div className="mt-auto pt-4 sm:pt-5">
+          {showSubmittedState ? (
+            <PortalChip className="w-full justify-center gap-2 rounded-xl py-2.5 text-sm">
+              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+              Application submitted
+            </PortalChip>
+          ) : (
             <Button
               type="button"
               onClick={onApply}
-              className="h-10 w-full sm:h-11"
+              className="h-11 w-full"
               disabled={buttonDisabled}
               aria-busy={buttonBusy}
               variant={isActionable ? 'default' : 'secondary'}
             >
               {buttonLabel}
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </Card>
+    </PortalCard>
   )
 }

@@ -63,6 +63,24 @@ export default {
           4: 'hsl(var(--chart-4))',
           5: 'hsl(var(--chart-5))',
         },
+        /* Member portal scale — resolves per theme, and `accent` also
+           resolves against the nearest `.accent-*` phase scope. */
+        portal: {
+          canvas: 'hsl(var(--portal-canvas) / <alpha-value>)',
+          surface: 'hsl(var(--portal-surface) / <alpha-value>)',
+          muted: 'hsl(var(--portal-surface-muted) / <alpha-value>)',
+          hover: 'hsl(var(--portal-surface-hover) / <alpha-value>)',
+          header: 'hsl(var(--portal-header) / <alpha-value>)',
+          border: 'hsl(var(--portal-border) / <alpha-value>)',
+          'border-strong': 'hsl(var(--portal-border-strong) / <alpha-value>)',
+          heading: 'hsl(var(--portal-heading) / <alpha-value>)',
+          body: 'hsl(var(--portal-body) / <alpha-value>)',
+          subtle: 'hsl(var(--portal-subtle) / <alpha-value>)',
+          accent:
+            'hsl(var(--portal-accent-h) var(--portal-accent-s) var(--portal-accent-l) / <alpha-value>)',
+          'accent-readable':
+            'hsl(var(--portal-accent-h) var(--portal-accent-s) var(--portal-accent-readable-l) / <alpha-value>)',
+        },
       },
       borderRadius: {
         '3xl': 'calc(var(--radius) + 12px)',
@@ -82,6 +100,8 @@ export default {
         md: 'var(--shadow-md)',
         lg: 'var(--shadow-lg)',
         xl: 'var(--shadow-xl)',
+        portal: 'var(--portal-shadow)',
+        'portal-raised': 'var(--portal-shadow-raised)',
       },
       transitionDuration: {
         DEFAULT: '200ms',

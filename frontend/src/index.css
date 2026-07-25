@@ -20,14 +20,14 @@
     --secondary: 210 40% 96%;
     --secondary-foreground: 222 47% 11%;
     --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 42%;
+    --muted-foreground: 215 18% 40%;
     --accent: 214 95% 96%;
-    --accent-foreground: 224 76% 40%;
-    --destructive: 0 72% 48%;
+    --accent-foreground: 224 76% 38%;
+    --destructive: 0 72% 45%;
     --destructive-foreground: 0 0% 100%;
-    --success: 142 65% 34%;
+    --success: 152 62% 32%;
     --success-foreground: 0 0% 100%;
-    --warning: 32 95% 44%;
+    --warning: 32 92% 40%;
     --warning-foreground: 0 0% 100%;
 
     --border: 220 16% 88%;
@@ -37,12 +37,12 @@
 
     /* Chart palette (theme-aware) */
     --chart-1: 224 76% 52%;
-    --chart-2: 142 65% 38%;
+    --chart-2: 152 62% 38%;
     --chart-3: 262 68% 58%;
     --chart-4: 32 95% 48%;
-    --chart-5: 199 89% 48%;
+    --chart-5: 199 89% 44%;
 
-    /* Elevation — theme-aware, soft and layered like Stripe/Linear */
+    /* Elevation — theme-aware, soft and layered */
     --shadow-color: 220 43% 11%;
     --shadow-xs: 0 1px 2px 0 hsl(var(--shadow-color) / 0.05);
     --shadow-sm: 0 1px 3px 0 hsl(var(--shadow-color) / 0.08), 0 1px 2px -1px hsl(var(--shadow-color) / 0.06);
@@ -50,10 +50,41 @@
     --shadow-lg: 0 14px 32px -8px hsl(var(--shadow-color) / 0.14), 0 6px 14px -6px hsl(var(--shadow-color) / 0.08);
     --shadow-xl: 0 28px 56px -14px hsl(var(--shadow-color) / 0.2), 0 10px 24px -10px hsl(var(--shadow-color) / 0.1);
 
-    /* Decorative gradients */
     --gradient-brand: linear-gradient(135deg, hsl(224 76% 54%), hsl(262 68% 58%));
     --surface-highlight: hsl(var(--foreground) / 0.06);
-    --cd-digit-highlight: hsl(var(--foreground) / 0.08);
+
+    /* ── Member portal palette (light) ──────────────────────────────
+       Every portal colour resolves through these tokens so light and
+       dark share one contract and only the values change. */
+    --portal-canvas: 220 26% 96%;
+    --portal-surface: 0 0% 100%;
+    --portal-surface-muted: 220 24% 97%;
+    --portal-surface-hover: 220 26% 94%;
+    --portal-header: 220 28% 98%;
+    --portal-border: 220 16% 88%;
+    --portal-border-strong: 220 14% 78%;
+    --portal-heading: 222 44% 13%;
+    --portal-body: 222 24% 26%;
+    --portal-subtle: 218 14% 43%;
+
+    /* Accent channels — phase classes override only these.
+       `readable-l` is the shifted lightness for text on tinted fills. */
+    --portal-accent-h: 224;
+    --portal-accent-s: 74%;
+    --portal-accent-l: 48%;
+    --portal-accent-readable-l: 36%;
+    --portal-accent-soft-alpha: 0.08;
+    --portal-accent-border-alpha: 0.28;
+    --portal-accent-veil-alpha: 0.05;
+
+    /* Portal elevation — intentionally softer than the app-wide scale */
+    --portal-shadow: 0 1px 2px 0 hsl(var(--shadow-color) / 0.04),
+      0 8px 20px -14px hsl(var(--shadow-color) / 0.1);
+    --portal-shadow-raised: 0 2px 4px -1px hsl(var(--shadow-color) / 0.05),
+      0 18px 40px -20px hsl(var(--shadow-color) / 0.14);
+
+    /* Shared duration for the light↔dark cross-fade */
+    --portal-fade: 240ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dark {
@@ -66,30 +97,30 @@
     --popover: 224 30% 12%;
     --popover-foreground: 210 40% 96%;
 
-    --primary: 217 91% 65%;
+    --primary: 217 91% 66%;
     --primary-foreground: 224 44% 8%;
     --secondary: 217 28% 15%;
     --secondary-foreground: 210 40% 98%;
     --muted: 217 28% 15%;
-    --muted-foreground: 216 18% 66%;
+    --muted-foreground: 216 18% 68%;
     --accent: 217 33% 18%;
     --accent-foreground: 213 96% 82%;
-    --destructive: 0 72% 58%;
-    --destructive-foreground: 0 0% 100%;
-    --success: 142 60% 48%;
+    --destructive: 0 72% 62%;
+    --destructive-foreground: 224 44% 8%;
+    --success: 152 58% 52%;
     --success-foreground: 224 44% 8%;
-    --warning: 35 92% 58%;
+    --warning: 38 92% 60%;
     --warning-foreground: 224 44% 8%;
 
-    --border: 216 18% 20%;
-    --input: 216 16% 22%;
-    --ring: 217 91% 65%;
+    --border: 216 18% 22%;
+    --input: 216 16% 24%;
+    --ring: 217 91% 66%;
 
-    --chart-1: 217 91% 65%;
-    --chart-2: 142 60% 50%;
-    --chart-3: 262 72% 70%;
-    --chart-4: 35 92% 60%;
-    --chart-5: 199 89% 60%;
+    --chart-1: 217 91% 66%;
+    --chart-2: 152 58% 55%;
+    --chart-3: 262 76% 72%;
+    --chart-4: 38 92% 62%;
+    --chart-5: 199 89% 62%;
 
     --shadow-color: 224 60% 2%;
     --shadow-xs: 0 1px 2px 0 hsl(var(--shadow-color) / 0.4);
@@ -100,7 +131,34 @@
 
     --gradient-brand: linear-gradient(135deg, hsl(217 91% 62%), hsl(262 72% 66%));
     --surface-highlight: hsl(var(--foreground) / 0.04);
-    --cd-digit-highlight: hsl(var(--foreground) / 0.12);
+
+    /* ── Member portal palette (dark) ───────────────────────────────
+       Raised surfaces step up in lightness (not down) so depth reads
+       without heavy shadows. Borders and secondary text are pushed
+       brighter for WCAG-friendly contrast on deep backgrounds. */
+    --portal-canvas: 224 38% 7%;
+    --portal-surface: 224 28% 13%;
+    --portal-surface-muted: 223 24% 18%;
+    --portal-surface-hover: 223 22% 23%;
+    --portal-header: 224 26% 15%;
+    --portal-border: 218 18% 28%;
+    --portal-border-strong: 216 18% 38%;
+    --portal-heading: 210 42% 98%;
+    --portal-body: 213 28% 90%;
+    --portal-subtle: 216 20% 73%;
+
+    --portal-accent-h: 217;
+    --portal-accent-s: 91%;
+    --portal-accent-l: 66%;
+    --portal-accent-readable-l: 76%;
+    --portal-accent-soft-alpha: 0.18;
+    --portal-accent-border-alpha: 0.42;
+    --portal-accent-veil-alpha: 0.09;
+
+    --portal-shadow: 0 1px 2px 0 hsl(var(--shadow-color) / 0.4),
+      0 10px 24px -16px hsl(var(--shadow-color) / 0.6);
+    --portal-shadow-raised: 0 2px 6px -1px hsl(var(--shadow-color) / 0.5),
+      0 22px 46px -22px hsl(var(--shadow-color) / 0.72);
   }
 }
 
@@ -123,6 +181,9 @@
     text-rendering: optimizeLegibility;
     overflow-x: hidden;
     min-width: 0;
+    transition:
+      background-color var(--portal-fade),
+      color var(--portal-fade);
   }
 
   html {
@@ -237,432 +298,389 @@
     -webkit-backdrop-filter: saturate(140%) blur(16px);
   }
 
-  /* Gradient brand text (logos, hero numbers) */
-  .text-gradient {
-    background: var(--gradient-brand);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-
   .bg-gradient-brand {
     background: var(--gradient-brand);
   }
 
-  /* Election countdown + member portal — shared gradient surface system */
-  .election-countdown,
-  .member-surface {
-    --cd-title: hsl(var(--foreground));
-    --cd-subtitle: hsl(var(--muted-foreground));
-    --cd-label: hsl(var(--muted-foreground));
-    --cd-digit-bg: hsl(var(--primary) / 0.07);
-    --cd-digit-border: hsl(var(--primary) / 0.14);
-    --cd-digit-accent: hsl(var(--primary));
-    --cd-chip-bg: hsl(var(--accent));
-    --cd-chip-border: hsl(var(--primary) / 0.18);
-    --cd-chip-text: hsl(var(--accent-foreground));
-    --cd-date-bg: hsl(var(--primary) / 0.06);
-    --cd-date-border: hsl(var(--primary) / 0.14);
-    --cd-date-text: hsl(var(--foreground));
-    --cd-glow-a: hsl(var(--primary) / 0.1);
-    --cd-glow-b: hsl(var(--chart-3) / 0.08);
-    --cd-shadow: hsl(var(--shadow-color) / 0.08);
-    --cd-surface-border: hsl(var(--primary) / 0.12);
-    --cd-header-from: hsl(var(--card) / 0.92);
-    --cd-header-via: hsl(var(--accent) / 0.28);
-    --cd-header-to: hsl(var(--primary) / 0.06);
+  /* ══════════════════════════════════════════════════════════════════
+     MEMBER PORTAL DESIGN SYSTEM
 
-    position: relative;
-    isolation: isolate;
-    overflow: hidden;
-    color: hsl(var(--foreground));
-    background: linear-gradient(
-      152deg,
-      hsl(var(--card)) 0%,
-      hsl(var(--accent) / 0.32) 52%,
-      hsl(var(--primary) / 0.05) 100%
-    );
-    border: 1px solid var(--cd-surface-border);
-    box-shadow: var(--shadow-md);
-    transition:
-      background 0.5s ease,
-      border-color 0.5s ease,
-      box-shadow 0.5s ease,
-      color 0.4s ease;
+     One token contract, two themes. Colour is applied only through the
+     `--portal-*` variables so switching `.dark` re-paints every surface
+     in a single transition. Accent hue is inherited from an
+     `.tint-*` scope, which lets a whole card tree shift colour to
+     match the current election phase without per-element overrides.
+     ══════════════════════════════════════════════════════════════════ */
+
+  /* ── Phase accent scopes (`tint-*`) ───────────────────────────────
+     Each phase gets a distinct hue. Light mode uses deeper readable
+     text; dark mode lifts readable-l and bumps soft/border alphas so
+     chips, borders, and the canvas wash stay visible on deep surfaces. */
+
+  /* Voting — clear action blue */
+  .tint-brand {
+    --portal-accent-h: 221;
+    --portal-accent-s: 78%;
+    --portal-accent-l: 46%;
+    --portal-accent-readable-l: 34%;
+    --portal-accent-soft-alpha: 0.09;
+    --portal-accent-border-alpha: 0.30;
+    --portal-accent-veil-alpha: 0.055;
   }
 
-  .election-countdown::before,
-  .member-surface::before,
-  .election-countdown::after,
-  .member-surface::after {
+  .dark .tint-brand {
+    --portal-accent-h: 213;
+    --portal-accent-s: 94%;
+    --portal-accent-l: 62%;
+    --portal-accent-readable-l: 76%;
+    --portal-accent-soft-alpha: 0.20;
+    --portal-accent-border-alpha: 0.46;
+    --portal-accent-veil-alpha: 0.12;
+  }
+
+  /* Applications open — inviting emerald */
+  .tint-success {
+    --portal-accent-h: 158;
+    --portal-accent-s: 64%;
+    --portal-accent-l: 34%;
+    --portal-accent-readable-l: 26%;
+    --portal-accent-soft-alpha: 0.10;
+    --portal-accent-border-alpha: 0.32;
+    --portal-accent-veil-alpha: 0.06;
+  }
+
+  .dark .tint-success {
+    --portal-accent-h: 156;
+    --portal-accent-s: 62%;
+    --portal-accent-l: 56%;
+    --portal-accent-readable-l: 70%;
+    --portal-accent-soft-alpha: 0.22;
+    --portal-accent-border-alpha: 0.48;
+    --portal-accent-veil-alpha: 0.13;
+  }
+
+  /* Review / waiting — warm amber (distinct from destructive red) */
+  .tint-warning {
+    --portal-accent-h: 32;
+    --portal-accent-s: 92%;
+    --portal-accent-l: 40%;
+    --portal-accent-readable-l: 30%;
+    --portal-accent-soft-alpha: 0.10;
+    --portal-accent-border-alpha: 0.30;
+    --portal-accent-veil-alpha: 0.05;
+  }
+
+  .dark .tint-warning {
+    --portal-accent-h: 36;
+    --portal-accent-s: 90%;
+    --portal-accent-l: 56%;
+    --portal-accent-readable-l: 74%;
+    --portal-accent-soft-alpha: 0.19;
+    --portal-accent-border-alpha: 0.44;
+    --portal-accent-veil-alpha: 0.10;
+  }
+
+  /* Results published — celebratory violet */
+  .tint-info {
+    --portal-accent-h: 268;
+    --portal-accent-s: 70%;
+    --portal-accent-l: 48%;
+    --portal-accent-readable-l: 38%;
+    --portal-accent-soft-alpha: 0.09;
+    --portal-accent-border-alpha: 0.28;
+    --portal-accent-veil-alpha: 0.05;
+  }
+
+  .dark .tint-info {
+    --portal-accent-h: 266;
+    --portal-accent-s: 80%;
+    --portal-accent-l: 66%;
+    --portal-accent-readable-l: 80%;
+    --portal-accent-soft-alpha: 0.18;
+    --portal-accent-border-alpha: 0.42;
+    --portal-accent-veil-alpha: 0.11;
+  }
+
+  /* Scheduled / closed — cool slate, low chroma */
+  .tint-neutral {
+    --portal-accent-h: 215;
+    --portal-accent-s: 16%;
+    --portal-accent-l: 42%;
+    --portal-accent-readable-l: 30%;
+    --portal-accent-soft-alpha: 0.07;
+    --portal-accent-border-alpha: 0.24;
+    --portal-accent-veil-alpha: 0.03;
+  }
+
+  .dark .tint-neutral {
+    --portal-accent-h: 214;
+    --portal-accent-s: 18%;
+    --portal-accent-l: 56%;
+    --portal-accent-readable-l: 72%;
+    --portal-accent-soft-alpha: 0.14;
+    --portal-accent-border-alpha: 0.36;
+    --portal-accent-veil-alpha: 0.05;
+  }
+
+  /* ── Page canvas ───────────────────────────────────────────────── */
+  .portal-canvas {
+    background-color: hsl(var(--portal-canvas));
+    transition: background-color var(--portal-fade);
+  }
+
+  /* A single wide accent wash at the top of the page. Replaces the old
+     blurred glow blobs — no filters, so it stays cheap to repaint. */
+  .portal-canvas::before {
     content: '';
     position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 22rem;
     pointer-events: none;
-    border-radius: 50%;
-    filter: blur(48px);
     z-index: 0;
-    transition: background 0.5s ease, opacity 0.5s ease;
+    background-image: radial-gradient(
+      120% 100% at 50% 0%,
+      hsl(var(--portal-accent-h) var(--portal-accent-s) var(--portal-accent-l) / var(--portal-accent-veil-alpha)) 0%,
+      transparent 70%
+    );
+    transition: background-image var(--portal-fade);
   }
 
-  .election-countdown::before,
-  .member-surface::before {
-    top: -2rem;
-    right: -2rem;
-    width: 9rem;
-    height: 9rem;
-    background: var(--cd-glow-a);
-  }
-
-  .election-countdown::after,
-  .member-surface::after {
-    bottom: -3rem;
-    left: 22%;
-    width: 8rem;
-    height: 8rem;
-    background: var(--cd-glow-b);
-  }
-
-  .election-countdown > *,
-  .member-surface > * {
+  .portal-canvas > * {
     position: relative;
     z-index: 1;
   }
 
-  .dark .election-countdown,
-  .dark .member-surface {
-    --cd-digit-bg: hsl(var(--secondary) / 0.65);
-    --cd-digit-border: hsl(var(--border));
-    --cd-chip-bg: hsl(var(--primary) / 0.12);
-    --cd-chip-border: hsl(var(--primary) / 0.24);
-    --cd-chip-text: hsl(var(--primary));
-    --cd-date-bg: hsl(var(--muted) / 0.5);
-    --cd-date-border: hsl(var(--border));
-    --cd-glow-a: hsl(var(--primary) / 0.18);
-    --cd-glow-b: hsl(var(--chart-3) / 0.14);
-    --cd-shadow: hsl(var(--shadow-color) / 0.35);
-    --cd-surface-border: hsl(var(--border));
-    --cd-header-from: hsl(var(--card));
-    --cd-header-via: hsl(var(--primary) / 0.1);
-    --cd-header-to: hsl(var(--chart-3) / 0.08);
-
-    background: linear-gradient(
-      152deg,
-      hsl(var(--card)) 0%,
-      hsl(var(--primary) / 0.1) 45%,
-      hsl(var(--chart-3) / 0.08) 100%
-    );
-    box-shadow: var(--shadow-lg);
-  }
-
-  .member-surface__header {
-    border-bottom: 1px solid var(--cd-surface-border);
-    background: linear-gradient(
-      135deg,
-      var(--cd-header-from) 0%,
-      var(--cd-header-via) 55%,
-      var(--cd-header-to) 100%
-    );
+  /* ── Base surface ──────────────────────────────────────────────── */
+  .portal-surface {
+    position: relative;
+    border: 1px solid hsl(var(--portal-border));
+    background-color: hsl(var(--portal-surface));
+    color: hsl(var(--portal-body));
+    box-shadow: var(--portal-shadow);
     transition:
-      background 0.5s ease,
-      border-color 0.5s ease;
+      background-color var(--portal-fade),
+      border-color var(--portal-fade),
+      color var(--portal-fade),
+      box-shadow var(--portal-fade);
   }
 
-  .member-surface--inset {
-    --cd-glow-a: hsl(var(--primary) / 0.06);
-    --cd-glow-b: hsl(var(--chart-3) / 0.05);
-    background: linear-gradient(
-      152deg,
-      hsl(var(--muted) / 0.35) 0%,
-      hsl(var(--accent) / 0.22) 55%,
-      hsl(var(--primary) / 0.04) 100%
-    );
-    border-color: hsl(var(--primary) / 0.1);
-    box-shadow: var(--shadow-xs);
+  .portal-surface--raised {
+    box-shadow: var(--portal-shadow-raised);
   }
 
-  .dark .member-surface--inset {
-    background: linear-gradient(
-      152deg,
-      hsl(var(--secondary) / 0.55) 0%,
-      hsl(var(--primary) / 0.08) 55%,
-      hsl(var(--chart-3) / 0.06) 100%
-    );
-    border-color: hsl(var(--border));
+  /* Nested panel — recedes from its parent surface in both themes */
+  .portal-surface--muted {
+    background-color: hsl(var(--portal-surface-muted));
+    box-shadow: none;
   }
 
-  .member-surface--inset::before,
-  .member-surface--inset::after {
-    opacity: 0.45;
-    transform: scale(0.75);
-  }
-
-  .member-surface--tile::before,
-  .member-surface--tile::after {
-    opacity: 0.35;
-    transform: scale(0.6);
-  }
-
-  .member-surface--success {
-    --cd-glow-a: hsl(var(--success) / 0.12);
-    --cd-glow-b: hsl(var(--primary) / 0.08);
-    --cd-chip-bg: hsl(var(--success) / 0.1);
-    --cd-chip-border: hsl(var(--success) / 0.22);
-    --cd-chip-text: hsl(var(--success));
-    --cd-surface-border: hsl(var(--success) / 0.22);
-    --cd-header-via: hsl(var(--success) / 0.12);
-    --cd-header-to: hsl(var(--success) / 0.06);
-    border-color: hsl(var(--success) / 0.22);
-  }
-
-  .dark .member-surface--success {
-    --cd-chip-bg: hsl(var(--success) / 0.14);
-    --cd-surface-border: hsl(var(--success) / 0.3);
-    border-color: hsl(var(--success) / 0.3);
-  }
-
-  .member-surface--hero {
-    --cd-glow-a: hsl(var(--primary) / 0.14);
-    --cd-glow-b: hsl(var(--chart-3) / 0.1);
-  }
-
-  .portal-countdown-inner {
-    width: 100%;
-    max-width: 36rem;
-  }
-
-  @media (min-width: 1024px) {
-    .portal-countdown-inner {
-      max-width: 44rem;
-    }
-  }
-
-  @media (min-width: 1280px) {
-    .portal-countdown-inner {
-      max-width: 52rem;
-    }
-  }
-
-  .portal-countdown-shell {
-    width: 100%;
-    max-width: 48rem;
-  }
-
-  @media (min-width: 1024px) {
-    .portal-countdown-shell {
-      max-width: 56rem;
-    }
-  }
-
-  @media (min-width: 1280px) {
-    .portal-countdown-shell {
-      max-width: 64rem;
-    }
-  }
-
-  @media (min-width: 1536px) {
-    .portal-countdown-shell {
-      max-width: 72rem;
-    }
-  }
-
-  .election-countdown--applications-upcoming {
-    --cd-glow-a: hsl(var(--primary) / 0.12);
-    --cd-glow-b: hsl(var(--chart-3) / 0.1);
-    --cd-digit-bg: hsl(var(--primary) / 0.06);
-    --cd-digit-border: hsl(var(--primary) / 0.13);
-  }
-
-  .election-countdown--centered {
-    padding-top: 1.5rem;
-    padding-bottom: 1.75rem;
-  }
-
-  @media (min-width: 768px) {
-    .election-countdown--centered {
-      padding-top: 2rem;
-      padding-bottom: 2.25rem;
-    }
-  }
-
-  .election-countdown--voting-upcoming {
-    --cd-chip-bg: hsl(var(--primary) / 0.1);
-    --cd-chip-border: hsl(var(--primary) / 0.2);
-    --cd-chip-text: hsl(var(--accent-foreground));
-    --cd-glow-a: hsl(var(--primary) / 0.12);
-    --cd-glow-b: hsl(var(--primary) / 0.06);
-    --cd-digit-bg: hsl(var(--primary) / 0.08);
-    --cd-digit-border: hsl(var(--primary) / 0.16);
-    --cd-digit-accent: hsl(var(--accent-foreground));
-    --cd-date-bg: hsl(var(--primary) / 0.08);
-    --cd-date-border: hsl(var(--primary) / 0.16);
-    border-color: hsl(var(--primary) / 0.16);
-    box-shadow:
-      var(--shadow-md),
-      0 0 0 1px hsl(var(--primary) / 0.04);
-  }
-
-  .dark .election-countdown--voting-upcoming {
-    --cd-chip-bg: hsl(var(--primary) / 0.14);
-    --cd-chip-text: hsl(var(--primary));
-    --cd-digit-bg: hsl(var(--secondary) / 0.65);
-    --cd-digit-border: hsl(var(--border));
-    --cd-date-bg: hsl(var(--muted) / 0.5);
-    --cd-date-border: hsl(var(--border));
-    border-color: hsl(var(--primary) / 0.3);
-    box-shadow:
-      var(--shadow-lg),
-      0 0 24px hsl(var(--primary) / 0.08);
-  }
-
-  .election-countdown--applications-open {
-    --cd-chip-bg: hsl(var(--success) / 0.1);
-    --cd-chip-text: hsl(var(--success));
-    --cd-glow-a: hsl(var(--success) / 0.1);
-    --cd-glow-b: hsl(var(--primary) / 0.08);
-    --cd-digit-bg: hsl(var(--success) / 0.07);
-    --cd-digit-border: hsl(var(--success) / 0.18);
-    border-color: hsl(var(--success) / 0.2);
-  }
-
-  .dark .election-countdown--applications-open {
-    --cd-chip-bg: hsl(var(--success) / 0.12);
-    --cd-chip-text: hsl(var(--success));
-    --cd-digit-bg: hsl(var(--secondary) / 0.65);
-    --cd-digit-border: hsl(var(--border));
-    border-color: hsl(var(--success) / 0.28);
-  }
-
-  .election-countdown--voting-open {
-    --cd-digit-accent: hsl(var(--primary));
-    --cd-chip-bg: hsl(var(--primary) / 0.1);
-    --cd-chip-text: hsl(var(--accent-foreground));
-    --cd-glow-a: hsl(var(--primary) / 0.12);
-    --cd-glow-b: hsl(var(--chart-3) / 0.08);
-    --cd-digit-bg: hsl(var(--primary) / 0.08);
-    --cd-digit-border: hsl(var(--primary) / 0.16);
-    --cd-date-bg: hsl(var(--primary) / 0.08);
-    --cd-date-border: hsl(var(--primary) / 0.16);
-  }
-
-  .dark .election-countdown--voting-open {
-    --cd-digit-accent: hsl(var(--chart-3));
-    --cd-chip-text: hsl(var(--chart-3));
-    --cd-digit-bg: hsl(var(--secondary) / 0.65);
-    --cd-digit-border: hsl(var(--border));
-  }
-
-  .election-countdown__digit {
-    background: var(--cd-digit-bg);
-    border: 1px solid var(--cd-digit-border);
-    box-shadow:
-      var(--shadow-xs),
-      inset 0 1px 0 var(--cd-digit-highlight);
+  /* Header band inside a surface */
+  .portal-surface__header {
+    background-color: hsl(var(--portal-header));
+    border-bottom: 1px solid hsl(var(--portal-border));
     transition:
-      background 0.45s ease,
-      border-color 0.45s ease,
-      box-shadow 0.45s ease,
-      color 0.45s ease,
-      transform 0.25s ease;
+      background-color var(--portal-fade),
+      border-color var(--portal-fade);
   }
 
-  .dark .election-countdown__digit {
-    box-shadow: var(--shadow-xs);
-  }
-
-  .election-countdown__digit-value {
-    color: var(--cd-digit-accent);
-    background: none;
-    -webkit-background-clip: unset;
-    background-clip: unset;
-    transition: color 0.45s ease;
-  }
-
-  .dark .election-countdown__digit-value {
-    background: var(--gradient-brand);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-
-  .dark .election-countdown--voting-open .election-countdown__digit-value {
-    background: linear-gradient(
-      135deg,
-      hsl(var(--primary)),
-      hsl(var(--chart-3))
+  /* Accent-tinted surface — picks up the inherited accent scope */
+  .portal-surface--accent {
+    border-color: hsl(
+      var(--portal-accent-h) var(--portal-accent-s) var(--portal-accent-l) /
+        var(--portal-accent-border-alpha)
     );
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    background-color: hsl(
+      var(--portal-accent-h) var(--portal-accent-s) var(--portal-accent-l) /
+        var(--portal-accent-soft-alpha)
+    );
   }
 
-  .dark .election-countdown--voting-upcoming .election-countdown__digit-value {
-    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--chart-3)));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+  /* Interactive tile — hover/press feedback with no layout shift */
+  .portal-surface--interactive {
+    cursor: pointer;
   }
 
-  .election-countdown__digit--seconds {
-    animation: countdown-pulse 1s ease-in-out infinite;
+  .portal-surface--interactive:hover:not(:disabled) {
+    background-color: hsl(var(--portal-surface-hover));
+    border-color: hsl(var(--portal-border-strong));
   }
 
-  @keyframes countdown-pulse {
+  .portal-surface--interactive:active:not(:disabled) {
+    transform: scale(0.99);
+  }
+
+  /* Selected tile — accent border + tint, readable in both themes */
+  .portal-surface--selected {
+    border-color: hsl(
+      var(--portal-accent-h) var(--portal-accent-s) var(--portal-accent-l) /
+        var(--portal-accent-border-alpha)
+    );
+    background-color: hsl(
+      var(--portal-accent-h) var(--portal-accent-s) var(--portal-accent-l) /
+        var(--portal-accent-soft-alpha)
+    );
+    box-shadow:
+      var(--portal-shadow),
+      inset 0 0 0 1px
+        hsl(
+          var(--portal-accent-h) var(--portal-accent-s) var(--portal-accent-l) /
+            var(--portal-accent-border-alpha)
+        );
+  }
+
+  /* ── Accent helpers (resolve against the inherited scope) ───────── */
+  .portal-accent-text {
+    color: hsl(
+      var(--portal-accent-h) var(--portal-accent-s) var(--portal-accent-readable-l)
+    );
+    transition: color var(--portal-fade);
+  }
+
+  .portal-accent-fill {
+    background-color: hsl(var(--portal-accent-h) var(--portal-accent-s) var(--portal-accent-l));
+    color: hsl(0 0% 100%);
+    transition: background-color var(--portal-fade);
+  }
+
+  .dark .portal-accent-fill {
+    color: hsl(224 44% 6%);
+    font-weight: 600;
+  }
+
+  /* Chips and soft fills need a hairline in dark so they don't melt into cards */
+  .dark .portal-accent-soft.portal-accent-border {
+    box-shadow: inset 0 0 0 1px
+      hsl(
+        var(--portal-accent-h) var(--portal-accent-s) var(--portal-accent-l) /
+          calc(var(--portal-accent-border-alpha) * 0.55)
+      );
+  }
+
+  .portal-accent-soft {
+    background-color: hsl(
+      var(--portal-accent-h) var(--portal-accent-s) var(--portal-accent-l) /
+        var(--portal-accent-soft-alpha)
+    );
+    transition: background-color var(--portal-fade);
+  }
+
+  .portal-accent-border {
+    border-color: hsl(
+      var(--portal-accent-h) var(--portal-accent-s) var(--portal-accent-l) /
+        var(--portal-accent-border-alpha)
+    );
+    transition: border-color var(--portal-fade);
+  }
+
+  /* ── Text roles ────────────────────────────────────────────────── */
+  .portal-heading {
+    color: hsl(var(--portal-heading));
+    transition: color var(--portal-fade);
+  }
+
+  .portal-body {
+    color: hsl(var(--portal-body));
+    transition: color var(--portal-fade);
+  }
+
+  .portal-subtle {
+    color: hsl(var(--portal-subtle));
+    transition: color var(--portal-fade);
+  }
+
+  /* ── Divider ───────────────────────────────────────────────────── */
+  .portal-divider {
+    border-color: hsl(var(--portal-border));
+    transition: border-color var(--portal-fade);
+  }
+
+  /* ── Countdown ─────────────────────────────────────────────────── */
+  .portal-digit {
+    background-color: hsl(var(--portal-surface-muted));
+    border: 1px solid hsl(var(--portal-border));
+    transition:
+      background-color var(--portal-fade),
+      border-color var(--portal-fade),
+      color var(--portal-fade);
+  }
+
+  .dark .portal-digit {
+    background-color: hsl(var(--portal-surface-muted));
+    border-color: hsl(var(--portal-border-strong));
+  }
+
+  /* Solid accent colour — never gradient-clipped text, so the digits
+     stay legible and high-contrast in both themes. */
+  .portal-digit__value {
+    color: hsl(var(--portal-accent-h) var(--portal-accent-s) var(--portal-accent-readable-l));
+    font-variant-numeric: tabular-nums;
+    transition: color var(--portal-fade);
+  }
+
+  .portal-digit__label {
+    color: hsl(var(--portal-subtle));
+    transition: color var(--portal-fade);
+  }
+
+  .portal-digit--pulse {
+    animation: portal-pulse 1.8s ease-in-out infinite;
+  }
+
+  @keyframes portal-pulse {
     0%,
     100% {
-      transform: scale(1);
-      box-shadow: var(--shadow-xs);
+      opacity: 1;
     }
     50% {
-      transform: scale(1.015);
-      box-shadow: var(--shadow-sm);
+      opacity: 0.72;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .election-countdown__digit--seconds {
+    .portal-digit--pulse {
       animation: none;
     }
+  }
+
+  /* Fluid content widths for the countdown block */
+  .portal-countdown-inner {
+    width: 100%;
+    max-width: 34rem;
+    margin-inline: auto;
+  }
+
+  @media (min-width: 1024px) {
+    .portal-countdown-inner {
+      max-width: 42rem;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .portal-countdown-inner {
+      max-width: 48rem;
+    }
+  }
+
+  /* ── Legacy countdown shell (still used by the admin console) ───── */
+  .election-countdown {
+    position: relative;
+    border-radius: 1rem;
+    border: 1px solid hsl(var(--portal-border));
+    background-color: hsl(var(--portal-surface));
+    color: hsl(var(--portal-body));
+    box-shadow: var(--portal-shadow);
+    transition:
+      background-color var(--portal-fade),
+      border-color var(--portal-fade),
+      color var(--portal-fade),
+      box-shadow var(--portal-fade);
   }
 
   /* Subtle dotted grid background for hero/empty canvases */
   .bg-grid {
     background-image: radial-gradient(hsl(var(--muted-foreground) / 0.12) 1px, transparent 1px);
     background-size: 22px 22px;
-  }
-
-  /* Member portal main canvas — blends with portal surface gradients */
-  .member-portal-canvas {
-    background-color: hsl(var(--muted) / 0.18);
-    background-image:
-      radial-gradient(hsl(var(--primary) / 0.06) 1px, transparent 1px),
-      radial-gradient(hsl(var(--chart-3) / 0.04) 1px, transparent 1px),
-      linear-gradient(
-        180deg,
-        hsl(var(--primary) / 0.04) 0%,
-        hsl(var(--accent) / 0.08) 18%,
-        transparent 42%,
-        transparent 100%
-      );
-    background-size: 24px 24px, 48px 48px, 100% 100%;
-    background-position:
-      0 0,
-      12px 12px,
-      center top;
-    transition: background 0.5s ease, background-color 0.5s ease;
-  }
-
-  .dark .member-portal-canvas {
-    background-color: hsl(var(--background));
-    background-image:
-      radial-gradient(hsl(var(--primary) / 0.1) 1px, transparent 1px),
-      radial-gradient(hsl(var(--chart-3) / 0.08) 1px, transparent 1px),
-      linear-gradient(
-        180deg,
-        hsl(var(--primary) / 0.08) 0%,
-        hsl(var(--chart-3) / 0.05) 22%,
-        transparent 48%,
-        transparent 100%
-      );
   }
 }
 

@@ -15,7 +15,7 @@ export function ApplicationRejectionNotice({
   return (
     <div
       className={cn(
-        'rounded-xl border border-destructive/20 bg-destructive/[0.04] text-left dark:border-destructive/30 dark:bg-destructive/[0.08]',
+        'rounded-xl border border-destructive/25 bg-destructive/[0.06] text-left dark:bg-destructive/[0.1]',
         compact ? 'px-3.5 py-3.5 sm:px-4 sm:py-4' : 'px-4 py-4 sm:px-5 sm:py-5',
         className,
       )}
@@ -24,20 +24,21 @@ export function ApplicationRejectionNotice({
       <div className="flex gap-3">
         <div
           className={cn(
-            'flex shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive',
-            compact ? 'mt-0.5 h-8 w-8' : 'mt-0.5 h-9 w-9',
+            'mt-0.5 flex shrink-0 items-center justify-center rounded-full bg-destructive/12 text-destructive',
+            compact ? 'h-8 w-8' : 'h-9 w-9',
           )}
+          aria-hidden="true"
         >
-          <MessageCircle className="h-4 w-4" aria-hidden="true" />
+          <MessageCircle className="h-4 w-4" />
         </div>
-        <div className="min-w-0 space-y-2">
+        <div className="min-w-0 space-y-2.5">
           <div>
-            <p className={cn('font-semibold text-foreground', compact ? 'text-sm' : 'text-base')}>
+            <p className={cn('portal-heading font-semibold', compact ? 'text-sm' : 'text-base')}>
               Application not approved
             </p>
             <p
               className={cn(
-                'mt-1 leading-relaxed text-muted-foreground',
+                'portal-subtle mt-1 leading-relaxed',
                 compact ? 'text-sm' : 'text-sm sm:text-base',
               )}
             >
@@ -46,13 +47,13 @@ export function ApplicationRejectionNotice({
           </div>
 
           {reason ? (
-            <div className="rounded-lg border border-border/60 bg-card/80 px-3 py-3 dark:bg-card/60 sm:px-4 sm:py-3.5">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <div className="rounded-lg border border-portal-border bg-portal-surface px-3 py-3 sm:px-4 sm:py-3.5">
+              <p className="portal-subtle text-xs font-semibold uppercase tracking-wide">
                 Reason from the committee
               </p>
               <p
                 className={cn(
-                  'mt-1.5 leading-relaxed text-foreground',
+                  'portal-body mt-1.5 leading-relaxed',
                   compact ? 'text-sm' : 'text-sm sm:text-base',
                 )}
               >
@@ -61,7 +62,7 @@ export function ApplicationRejectionNotice({
             </div>
           ) : null}
 
-          <p className={cn('text-muted-foreground', compact ? 'text-xs sm:text-sm' : 'text-sm')}>
+          <p className={cn('portal-subtle', compact ? 'text-xs sm:text-sm' : 'text-sm')}>
             If you have questions, please contact the election committee.
           </p>
         </div>

@@ -17,9 +17,9 @@ import type { Election } from '@/types/api'
 function PhasePageSkeleton() {
   return (
     <MemberPage>
-      <Skeleton className="h-12 w-56 rounded-2xl" />
-      <Skeleton className="h-44 w-full rounded-3xl" />
-      <Skeleton className="h-64 w-full rounded-3xl" />
+      <Skeleton className="h-11 w-56 rounded-xl" />
+      <Skeleton className="h-44 w-full rounded-2xl" />
+      <Skeleton className="h-64 w-full rounded-2xl" />
     </MemberPage>
   )
 }

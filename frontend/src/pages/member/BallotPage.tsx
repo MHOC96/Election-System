@@ -9,24 +9,25 @@ import { VotingStartsSoonCard } from '@/components/voting/VotingStartsSoonCard'
 import { CandidateCard } from '@/components/voting/CandidateCard'
 import { MemberSelectionItem } from '@/components/voting/MemberSelectionItem'
 import { VoteConfirmDialog } from '@/components/voting/VoteConfirmDialog'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { MemberPage } from '@/components/layout/MemberPage'
 import { MemberSection } from '@/components/member/MemberSection'
-import { sectionDelays, Stagger, StaggerChildren } from '@/components/motion/Stagger'
 import {
-  memberCardHeaderTintClass,
-  memberCardPaddingClass,
-  memberCardSurfaceClass,
-  memberCandidateGridClass,
-  memberHeroSpacingClass,
-} from '@/lib/design-tokens'
+  PortalCard,
+  PortalCardContent,
+  PortalCardDescription,
+  PortalCardHeader,
+  PortalCardTitle,
+  PortalChip,
+} from '@/components/member/PortalCard'
+import { sectionDelays, Stagger, StaggerChildren } from '@/components/motion/Stagger'
+import { memberCandidateGridClass, memberHeroSpacingClass } from '@/lib/design-tokens'
 import { BALLOT_QUERY_KEY, BALLOT_STALE_MS, ONGOING_ELECTION_QUERY_KEY } from '@/lib/query-sync'
 import { isVotingStartPending } from '@/lib/election-lifecycle-ui'
 import { handleRadioGroupKeyDown } from '@/lib/a11y'
+import { accentScope } from '@/lib/portal-accent'
 import { cn } from '@/lib/utils'
 import type { BallotItem, Candidate } from '@/types/api'
 import { notifyApiError, notifySuccessMessage } from '@/lib/notify'
@@ -98,9 +99,9 @@ export function BallotPage() {
   if (ballotQuery.isPending && !ballotQuery.data) {
     return (
       <MemberPage>
-        <Skeleton className="h-44 w-full rounded-3xl" />
-        <Skeleton className="h-36 w-full rounded-3xl" />
-        <Skeleton className="h-64 w-full rounded-3xl" />
+        <Skeleton className="h-44 w-full rounded-2xl" />
+        <Skeleton className="h-36 w-full rounded-2xl" />
+        <Skeleton className="h-64 w-full rounded-2xl" />
       </MemberPage>
     )
   }
@@ -210,12 +211,14 @@ export function BallotPage() {
             title="Your selections"
             description="Only you can see who you voted for"
             badge={
-              <Badge
-                variant={voteStatus?.all_positions_voted ? 'success' : 'secondary'}
-                className="w-fit shrink-0"
+              <PortalChip
+                className={cn(
+                  'tabular-nums',
+                  voteStatus?.all_positions_voted && accentScope('success'),
+                )}
               >
                 {votedCount}/{total}
-              </Badge>
+              </PortalChip>
             }
           >
             <StaggerChildren className={memberCandidateGridClass} staggerMs={60}>
@@ -306,19 +309,17 @@ const PositionSection = memo(function PositionSection({
   )
 
   return (
-    <Card
-      className={cn(
-        memberCardSurfaceClass,
-        item.has_voted && 'member-surface--success',
-      )}
-    >
-      <CardHeader className={cn(memberCardHeaderTintClass, memberCardPaddingClass)}>
-        <div className="flex min-w-0 flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+    <PortalCard as="section">
+      <PortalCardHeader
+        // A completed position turns green so members can scan the ballot.
+        className={cn(item.has_voted && accentScope('success'))}
+      >
+        <div className="flex min-w-0 flex-col items-start justify-between gap-3 sm:flex-row sm:items-center sm:gap-4">
           <div className="min-w-0">
-            <h3 id={sectionId} className="text-base font-semibold leading-snug tracking-tight sm:text-lg lg:text-xl">
+            <PortalCardTitle as="h3" id={sectionId}>
               {item.position.name}
-            </h3>
-            <CardDescription className="mt-1.5">
+            </PortalCardTitle>
+            <PortalCardDescription>
               {item.has_voted
                 ? 'Your vote for this position is recorded'
                 : canVote
@@ -326,17 +327,18 @@ const PositionSection = memo(function PositionSection({
                   : isVotingUpcoming
                     ? 'Voting opens soon'
                     : 'Waiting for voting to resume'}
-            </CardDescription>
+            </PortalCardDescription>
           </div>
-          {item.has_voted && (
-            <Badge variant="success" className="w-fit shrink-0 gap-1">
-              <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+          {item.has_voted ? (
+            <PortalChip>
+              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
               Voted
-            </Badge>
-          )}
+            </PortalChip>
+          ) : null}
         </div>
-      </CardHeader>
-      <CardContent className={cn(memberCardPaddingClass, 'pt-0')}>
+      </PortalCardHeader>
+
+      <PortalCardContent>
         <div
           role="radiogroup"
           aria-labelledby={sectionId}
@@ -359,7 +361,7 @@ const PositionSection = memo(function PositionSection({
             )
           })}
         </div>
-      </CardContent>
-    </Card>
+      </PortalCardContent>
+    </PortalCard>
   )
 })

@@ -1,6 +1,5 @@
 import { formatVotingDuration } from '@/lib/datetime'
-import { formatDate } from '@/lib/utils'
-import { cn } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
 
 interface VotingScheduleDetailsProps {
   votingStartAt?: string | null
@@ -18,23 +17,24 @@ export function VotingScheduleDetails({
 
   if (!votingStartAt && !votingEndAt) return null
 
+  const rows: Array<{ label: string; value: string }> = []
+  if (votingStartAt) rows.push({ label: 'Opens', value: formatDate(votingStartAt) })
+  if (votingEndAt) rows.push({ label: 'Closes', value: formatDate(votingEndAt) })
+  if (duration) rows.push({ label: 'Voting period', value: duration })
+
   return (
-    <div className={cn('space-y-1 text-sm text-muted-foreground', className)}>
-      {votingStartAt ? (
-        <p>
-          <span className="font-medium text-foreground/80">Opens</span> · {formatDate(votingStartAt)}
-        </p>
-      ) : null}
-      {votingEndAt ? (
-        <p>
-          <span className="font-medium text-foreground/80">Closes</span> · {formatDate(votingEndAt)}
-        </p>
-      ) : null}
-      {duration ? (
-        <p>
-          <span className="font-medium text-foreground/80">Voting period</span> · {duration}
-        </p>
-      ) : null}
-    </div>
+    <dl
+      className={cn(
+        'flex flex-col items-center gap-2 text-sm sm:flex-row sm:flex-wrap sm:gap-x-6 sm:gap-y-2',
+        className,
+      )}
+    >
+      {rows.map((row) => (
+        <div key={row.label} className="flex flex-wrap items-baseline justify-center gap-x-1.5">
+          <dt className="portal-subtle font-semibold">{row.label}</dt>
+          <dd className="portal-body">{row.value}</dd>
+        </div>
+      ))}
+    </dl>
   )
 }

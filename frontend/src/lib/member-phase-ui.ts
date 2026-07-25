@@ -1,3 +1,4 @@
+import type { PortalAccent } from '@/lib/portal-accent'
 import type { ElectionPhase } from '@/types/api'
 
 export function memberPhaseLabel(phase: ElectionPhase | string): string {
@@ -21,26 +22,31 @@ export function memberPhaseLabel(phase: ElectionPhase | string): string {
   }
 }
 
-export function memberPhaseAccentClass(phase: ElectionPhase | string): string {
+/**
+ * Accent scope for a phase. Green means "open, act now", amber means "we are
+ * working on it", blue means voting, violet means results, grey means idle.
+ * Every phase page wraps itself in this so the whole screen shifts colour
+ * together instead of tinting elements one by one.
+ */
+export function memberPhaseAccent(phase: ElectionPhase | string | undefined): PortalAccent {
   switch (phase) {
-    case 'VOTING_OPEN':
-      return 'border-success/30 bg-success/10 text-success'
     case 'APPLICATIONS_OPEN':
-      return 'border-warning/35 bg-warning/10 text-warning'
+      return 'success'
     case 'REVIEWING':
+      return 'warning'
     case 'READY_FOR_VOTING':
-      return 'border-primary/25 bg-primary/10 text-primary'
+    case 'VOTING_OPEN':
+      return 'brand'
     case 'RESULTS_PUBLISHED':
-      return 'border-border/70 bg-muted/40 text-foreground'
-    case 'VOTING_CLOSED':
-      return 'border-border/70 bg-muted/30 text-muted-foreground'
+      return 'info'
     case 'SCHEDULED':
-      return 'border-border/60 bg-card/70 text-muted-foreground'
+    case 'VOTING_CLOSED':
     default:
-      return 'border-border/60 bg-muted/20 text-muted-foreground'
+      return 'neutral'
   }
 }
 
-export function memberPhasePulseClass(phase: ElectionPhase | string): boolean {
+/** Phases that are actively accepting member input. */
+export function memberPhaseIsLive(phase: ElectionPhase | string): boolean {
   return phase === 'VOTING_OPEN' || phase === 'APPLICATIONS_OPEN'
 }

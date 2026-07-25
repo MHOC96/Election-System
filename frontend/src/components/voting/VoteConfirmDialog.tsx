@@ -1,3 +1,4 @@
+import { AlertTriangle } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,8 +36,8 @@ export function VoteConfirmDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Confirm your vote</AlertDialogTitle>
           <AlertDialogDescription asChild>
-            <div className="space-y-4 pt-2">
-              <div className="flex min-w-0 items-center gap-3 rounded-lg border bg-muted/30 p-3 sm:gap-4">
+            <div className="space-y-3 pt-2">
+              <div className="portal-surface portal-surface--muted flex min-w-0 items-center gap-3 rounded-xl p-3 sm:gap-4">
                 <img
                   src={optimizeCloudinaryUrl(candidatePhoto, 128)}
                   alt=""
@@ -45,12 +46,19 @@ export function VoteConfirmDialog({
                   className="h-14 w-14 shrink-0 rounded-lg object-cover sm:h-16 sm:w-16"
                 />
                 <div className="min-w-0 text-left">
-                  <p className="break-words font-semibold text-foreground">{candidateName}</p>
-                  <p className="text-sm text-muted-foreground">{positionName}</p>
+                  <p className="portal-heading break-words text-base font-semibold leading-snug">
+                    {candidateName}
+                  </p>
+                  <p className="portal-subtle mt-0.5 text-sm">{positionName}</p>
                 </div>
               </div>
-              <div className="rounded-lg border border-muted bg-muted/40 p-3 text-left">
-                <p className="text-sm text-foreground">
+
+              <div className="tint-warning portal-accent-soft portal-accent-border flex items-start gap-2.5 rounded-xl border p-3 text-left">
+                <AlertTriangle
+                  className="portal-accent-text mt-0.5 h-4 w-4 shrink-0"
+                  aria-hidden="true"
+                />
+                <p className="portal-body text-sm leading-relaxed">
                   Once confirmed, your choice for this position cannot be changed.
                 </p>
               </div>
@@ -69,7 +77,7 @@ export function VoteConfirmDialog({
               onConfirm()
             }}
           >
-            {loading ? 'Submitting...' : 'Confirm vote'}
+            {loading ? 'Submitting…' : 'Confirm vote'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

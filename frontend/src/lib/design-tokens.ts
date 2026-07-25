@@ -23,10 +23,10 @@ export const insetPanelClass =
 
 /** Election / countdown hero cards — shared portal surface styling */
 export const electionCountdownCardClass =
-  'election-countdown member-surface portal-countdown-shell relative mx-auto w-full min-w-0 overflow-hidden rounded-2xl !border-0 !bg-transparent !shadow-none ring-0 sm:rounded-3xl'
+  'portal-surface relative mx-auto w-full min-w-0 overflow-hidden rounded-2xl'
 
 /** Inner countdown content width */
-export const portalCountdownInnerClass = 'portal-countdown-inner mx-auto w-full'
+export const portalCountdownInnerClass = 'portal-countdown-inner'
 
 /** Admin / wide content shell */
 export const shellContentClass = 'mx-auto w-full max-w-7xl'
@@ -98,89 +98,78 @@ export const applicationFilterBarClass = 'flex flex-col gap-3 sm:gap-4'
 export const applicationFilterRowClass =
   'flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3'
 
-/** Member portal — shell, page rhythm, and surfaces */
+/* ══════════════════════════════════════════════════════════════════════
+   MEMBER PORTAL
+
+   Colour is never written here — it comes from the `--portal-*` token
+   contract in index.css (see the `portal-*` classes and the `portal.*`
+   Tailwind scale). These exports only carry layout, rhythm, and type,
+   so light and dark stay in sync by construction.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/** Outer portal shell */
+export const memberShellClass = 'flex min-h-[100dvh] min-w-0 flex-col bg-portal-canvas'
+
 export const memberShellHeaderClass =
-  'glass sticky top-0 z-40 w-full border-b border-border/60 pt-[env(safe-area-inset-top)]'
+  'sticky top-0 z-40 w-full border-b border-portal-border bg-portal-surface/90 backdrop-blur-xl pt-[env(safe-area-inset-top)] transition-colors duration-300 dark:bg-portal-surface/95 dark:border-portal-border-strong/60'
 
 /** Aligns member header content with the main page column */
 export const memberShellHeaderInnerClass =
-  'mx-auto w-full min-w-0 max-w-4xl lg:max-w-5xl xl:max-w-6xl'
+  'mx-auto flex w-full min-w-0 max-w-5xl flex-col px-4 sm:px-6 lg:max-w-6xl lg:px-8'
 
 export const memberShellMainClass =
-  'member-portal-canvas relative min-w-0 flex-1 overflow-x-hidden px-3 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-8 lg:px-8 lg:py-10 xl:px-10'
+  'portal-canvas relative min-w-0 flex-1 overflow-x-hidden px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-9 lg:px-8 lg:py-12'
 
-export const memberShellContentClass = memberShellHeaderInnerClass
+export const memberShellContentClass = 'mx-auto w-full min-w-0 max-w-5xl lg:max-w-6xl'
 
-export const memberPageLayoutClass = 'w-full min-w-0 space-y-6 sm:space-y-8 lg:space-y-10'
+export const memberPageLayoutClass = 'w-full min-w-0 space-y-7 sm:space-y-9 lg:space-y-11'
 
 /** Shared card radius across member surfaces */
-export const memberCardRadiusClass = 'rounded-2xl sm:rounded-3xl'
-
-/** Base portal surface — matches election countdown gradient system */
-export const memberSurfaceClass =
-  'member-surface !border-0 !bg-transparent !shadow-none ring-0'
-
-export const memberCardSurfaceClass =
-  'member-surface overflow-hidden rounded-2xl sm:rounded-3xl !border-0 !bg-transparent !shadow-none ring-0'
-
-/** Header band inside member surfaces */
-export const memberCardHeaderTintClass = 'member-surface__header'
+export const memberCardRadiusClass = 'rounded-2xl'
 
 export const memberCardPaddingClass = 'p-5 sm:p-6 lg:p-7'
 
-/** Elevated inset panel inside member cards */
+/** Recessed panel nested inside a portal card */
 export const memberInsetPanelClass =
-  'member-surface member-surface--inset rounded-xl p-4 sm:rounded-2xl sm:p-5'
-
-/** Interactive tile surfaces (candidate cards, selection items) */
-export const memberSurfaceTileClass =
-  'member-surface member-surface--tile overflow-hidden !border-0 !bg-transparent !shadow-none ring-0'
-
-/** Application position cards */
-export const memberPositionCardClass =
-  'member-surface flex min-w-0 flex-col overflow-hidden !border-0 !bg-transparent !shadow-none ring-0 rounded-2xl'
+  'portal-surface portal-surface--muted rounded-xl p-4 sm:p-5'
 
 /** Application position cards grid */
 export const memberPositionGridClass =
-  'grid grid-cols-1 items-start gap-3 sm:grid-cols-2 sm:gap-5 lg:gap-6 xl:grid-cols-3'
+  'grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3'
 
 /** Ballot candidate cards and member selection tiles */
 export const memberCandidateGridClass =
-  'grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6'
+  'grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3'
 
 /** Published results — position cards on wide screens */
-export const memberResultsGridClass =
-  'grid grid-cols-1 gap-5 lg:grid-cols-2 lg:gap-6 xl:gap-8'
+export const memberResultsGridClass = 'grid grid-cols-1 gap-5 lg:grid-cols-2 lg:gap-6'
 
 /** Centered status / outcome cards */
 export const memberStatusCardClass = 'mx-auto w-full max-w-2xl lg:max-w-3xl'
 
-export const memberSectionStackClass = 'space-y-4'
+export const memberSectionStackClass = 'space-y-4 sm:space-y-5'
 
-export const memberHeroSpacingClass = 'mt-4 sm:mt-6'
+export const memberHeroSpacingClass = 'mt-5 sm:mt-7'
 
 export const memberSectionHeadingClass =
-  'text-base font-semibold tracking-tight sm:text-lg lg:text-xl'
+  'portal-heading text-lg font-semibold tracking-tight sm:text-xl'
 
 export const memberSectionIntroClass =
-  'mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-[0.9375rem]'
+  'portal-subtle mt-1.5 max-w-2xl text-sm leading-relaxed'
 
 export const memberSectionHeaderRowClass =
   'flex min-w-0 flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4'
 
 /** Member page title block */
 export const memberPageTitleClass =
-  'text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl'
+  'portal-heading text-2xl font-bold tracking-tight sm:text-3xl'
 
 export const memberPageDescriptionClass =
-  'mt-1.5 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base'
+  'portal-subtle mt-2 max-w-2xl text-pretty text-sm leading-relaxed sm:text-base'
 
 export const memberCalloutClass =
-  'member-surface member-surface--inset rounded-xl px-4 py-4 text-sm leading-relaxed text-muted-foreground sm:px-6 sm:py-5'
-
-/** Theme-aware hero gradient shell for member status pages */
-export const memberHeroSurfaceClass = 'member-surface member-surface--hero'
+  'portal-surface portal-surface--muted portal-body rounded-xl px-4 py-4 text-sm leading-relaxed sm:px-5 sm:py-5'
 
 /** Member empty / waiting states */
 export const memberEmptyStateClass =
-  'member-surface member-surface--inset flex flex-col items-center justify-center p-8 text-center sm:p-12'
+  'portal-surface flex flex-col items-center justify-center rounded-2xl p-8 text-center sm:p-12'

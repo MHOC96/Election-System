@@ -22,19 +22,15 @@ import { MemberPage } from '@/components/layout/MemberPage'
 import { MemberPageHeader } from '@/components/member/MemberPageHeader'
 import { MemberSection } from '@/components/member/MemberSection'
 import { PositionApplyCard } from '@/components/applications/PositionApplyCard'
-import {
-  memberCardHeaderTintClass,
-  electionCountdownCardClass,
-  memberHeroSpacingClass,
-  memberPositionGridClass,
-} from '@/lib/design-tokens'
+import { PortalCard, PortalCardHeader } from '@/components/member/PortalCard'
+import { memberHeroSpacingClass, memberPositionGridClass } from '@/lib/design-tokens'
 import { ONGOING_ELECTION_QUERY_KEY, APPLICATIONS_STALE_MS, POSITIONS_QUERY_KEY, POSITIONS_STALE_MS } from '@/lib/query-sync'
 import { fetchPositions } from '@/api/positions'
 import { PhotoCropDialog } from '@/components/shared/PhotoCropDialog'
 import { ApplicationsStartsSoonCard } from '@/components/applications/ApplicationsStartsSoonCard'
 import { ElectionCountdownHero } from '@/components/elections/ElectionCountdownHero'
 import { CountdownExpiryWatcher } from '@/components/shared/CountdownDisplay'
-import { cn, formatDate } from '@/lib/utils'
+import { formatDate } from '@/lib/utils'
 
 const applicationSchema = z.object({
   full_name: z.string().trim().min(1, 'Full Name is required'),
@@ -199,9 +195,9 @@ export function CandidateApplicationPage() {
   if (electionInitialLoad) {
     return (
       <MemberPage>
-        <Skeleton className="h-12 w-64 rounded-2xl" />
-        <Skeleton className="h-44 w-full rounded-3xl" />
-        <Skeleton className="h-64 w-full rounded-3xl" />
+        <Skeleton className="h-11 w-64 rounded-xl" />
+        <Skeleton className="h-44 w-full rounded-2xl" />
+        <Skeleton className="h-64 w-full rounded-2xl" />
       </MemberPage>
     )
   }
@@ -259,19 +255,14 @@ export function CandidateApplicationPage() {
             />
           </>
         ) : (
-          <div
-            className={cn(
-              electionCountdownCardClass,
-              'election-countdown--applications-open',
-            )}
-          >
-            <div className={cn(memberCardHeaderTintClass, 'space-y-3 px-4 py-4 sm:space-y-5 sm:px-6 sm:py-5 lg:px-8')}>
+          <PortalCard raised>
+            <PortalCardHeader className="space-y-5">
               <MemberPageHeader
                 title="Candidate Application"
                 description={`Apply for positions in: ${ongoingElection.name}`}
                 meta={appEnd ? `Closes ${formatDate(appEnd)}` : undefined}
               />
-              <div className="border-t border-border/60 pt-4 pb-2 sm:pt-5 sm:pb-4">
+              <div className="portal-divider border-t pt-5">
                 <ElectionCountdownHero
                   variant="applications-open"
                   electionName={ongoingElection.name}
@@ -279,8 +270,8 @@ export function CandidateApplicationPage() {
                   inline
                 />
               </div>
-            </div>
-          </div>
+            </PortalCardHeader>
+          </PortalCard>
         )}
       </Stagger>
 
@@ -292,7 +283,7 @@ export function CandidateApplicationPage() {
         {loadingPositions && !positions ? (
           <div className={memberPositionGridClass}>
             {Array.from({ length: positionSkeletonCount }, (_, index) => (
-              <Skeleton key={index} className="min-h-[8.5rem] w-full rounded-2xl sm:min-h-[9.5rem]" />
+              <Skeleton key={index} className="min-h-[9.5rem] w-full rounded-2xl" />
             ))}
           </div>
         ) : (
@@ -409,9 +400,9 @@ export function CandidateApplicationPage() {
                   }}
                 />
                 {croppedPreview ? (
-                  <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/20 p-2">
-                    <img src={croppedPreview} alt="Cropped preview" className="h-10 w-10 shrink-0 rounded-full border object-cover" />
-                    <span className="min-w-0 flex-1 text-sm font-medium">Photo cropped and ready</span>
+                  <div className="flex flex-wrap items-center gap-2 rounded-lg border border-portal-border bg-portal-muted p-2">
+                    <img src={croppedPreview} alt="Cropped preview" className="h-10 w-10 shrink-0 rounded-full border border-portal-border object-cover" />
+                    <span className="portal-body min-w-0 flex-1 text-sm font-semibold">Photo cropped and ready</span>
                     <Button
                       type="button"
                       variant="ghost"
@@ -451,7 +442,7 @@ export function CandidateApplicationPage() {
                     type="checkbox"
                     id="declaration_agreed"
                     disabled={isSubmittingApplication}
-                    className="mt-0.5 h-4 w-4 shrink-0 rounded-md border-input text-primary focus:ring-ring"
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded-sm border-input accent-[hsl(var(--primary))] focus-visible:ring-2 focus-visible:ring-ring"
                     checked={field.value || false}
                     onChange={(e) => field.onChange(e.target.checked)}
                   />

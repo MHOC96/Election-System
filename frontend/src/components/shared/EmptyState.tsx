@@ -8,7 +8,7 @@ interface EmptyStateProps {
   description?: string
   className?: string
   children?: ReactNode
-  /** Member portal surfaces use the shared countdown gradient system */
+  /** `member` uses the portal surface tokens and inherits the phase accent. */
   variant?: 'default' | 'member'
 }
 
@@ -20,29 +20,47 @@ export function EmptyState({
   children,
   variant = 'default',
 }: EmptyStateProps) {
+  const isMember = variant === 'member'
+
   return (
     <div
       className={cn(
-        'flex animate-fade-in flex-col items-center justify-center rounded-xl p-8 text-center sm:p-12',
-        variant === 'default' &&
-          'bg-grid border border-dashed bg-card/40',
-        variant === 'member' && 'member-surface member-surface--inset',
+        'flex animate-fade-in flex-col items-center justify-center p-8 text-center sm:p-12',
+        isMember
+          ? 'portal-surface rounded-2xl'
+          : 'bg-grid rounded-xl border border-dashed bg-card/40',
         className,
       )}
     >
       <div
         className={cn(
-          'mb-4 flex h-16 w-16 items-center justify-center rounded-2xl ring-1 ring-inset',
-          variant === 'member'
-            ? 'border border-[var(--cd-chip-border)] bg-[var(--cd-chip-bg)] text-[var(--cd-chip-text)]'
-            : 'bg-gradient-to-br from-primary/12 to-primary/5 text-primary ring-primary/15',
+          'mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border',
+          isMember
+            ? 'portal-accent-soft portal-accent-text portal-accent-border'
+            : 'border-primary/15 bg-primary/10 text-primary',
         )}
       >
         <Icon className="h-7 w-7" aria-hidden="true" />
       </div>
-      <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
-      {description && <p className="mt-2 max-w-sm text-sm text-muted-foreground">{description}</p>}
-      {children && <div className="mt-6">{children}</div>}
+      <h2
+        className={cn(
+          'text-lg font-semibold tracking-tight',
+          isMember && 'portal-heading sm:text-xl',
+        )}
+      >
+        {title}
+      </h2>
+      {description ? (
+        <p
+          className={cn(
+            'mt-2 max-w-sm text-sm leading-relaxed',
+            isMember ? 'portal-subtle' : 'text-muted-foreground',
+          )}
+        >
+          {description}
+        </p>
+      ) : null}
+      {children ? <div className="mt-6">{children}</div> : null}
     </div>
   )
 }

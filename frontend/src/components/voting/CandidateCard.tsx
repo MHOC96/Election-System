@@ -1,10 +1,11 @@
 import { memo } from 'react'
-import { optimizeCloudinaryUrl } from '@/lib/cloudinary'
 import { Check } from 'lucide-react'
-import type { Candidate } from '@/types/api'
-import { Badge } from '@/components/ui/badge'
-import { memberCardRadiusClass, memberSurfaceTileClass, transitionInteractive } from '@/lib/design-tokens'
+import { optimizeCloudinaryUrl } from '@/lib/cloudinary'
+import { portalSurfaceClass } from '@/components/member/PortalCard'
+import { memberCardRadiusClass } from '@/lib/design-tokens'
+import { accentScope } from '@/lib/portal-accent'
 import { cn } from '@/lib/utils'
+import type { Candidate } from '@/types/api'
 
 interface CandidateCardProps {
   candidate: Pick<Candidate, 'id' | 'full_name' | 'academic_year' | 'photo_url'>
@@ -33,18 +34,18 @@ export const CandidateCard = memo(function CandidateCard({
       aria-disabled={disabled || undefined}
       aria-label={`${candidate.full_name}, ${candidate.academic_year}${isRecorded ? ', vote recorded' : ''}`}
       className={cn(
-        'group relative flex w-full min-w-0 flex-col text-left',
-        memberSurfaceTileClass,
+        'group flex w-full min-w-0 flex-col text-left',
+        portalSurfaceClass({ interactive: isInteractive, selected: isRecorded }),
         memberCardRadiusClass,
-        transitionInteractive,
-        isRecorded && 'member-surface--success ring-2 ring-[var(--cd-chip-border)]',
-        isInteractive && 'hover:-translate-y-0.5 hover:shadow-lg',
-        disabled && !isRecorded && 'cursor-default opacity-55',
+        'overflow-hidden',
+        // A recorded vote always reads green, whatever the page accent is.
+        isRecorded && accentScope('success'),
+        disabled && !isRecorded && 'cursor-default opacity-60',
         disabled && 'cursor-default',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal-accent focus-visible:ring-offset-2 focus-visible:ring-offset-portal-canvas',
       )}
     >
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
+      <span className="relative block aspect-[4/3] w-full overflow-hidden bg-portal-muted">
         <img
           src={optimizeCloudinaryUrl(candidate.photo_url, 480, '4:3')}
           alt=""
@@ -55,33 +56,36 @@ export const CandidateCard = memo(function CandidateCard({
           decoding="async"
           fetchPriority={priority ? 'high' : 'auto'}
           className={cn(
-            'h-full w-full object-cover transition-transform duration-300',
-            isInteractive && 'group-hover:scale-[1.03]',
+            'h-full w-full object-cover transition-transform duration-500 ease-out-expo',
+            isInteractive && 'group-hover:scale-[1.04]',
           )}
         />
+
         {isRecorded ? (
           <>
-            <div className="absolute inset-0 flex items-end justify-between bg-gradient-to-t from-background/95 via-background/25 to-transparent p-3 sm:p-4">
-              <Badge variant="success" className="gap-1 shadow-sm">
-                <Check className="h-3 w-3" aria-hidden="true" />
+            {/* Scrim keeps the badge legible over any photo, in both themes */}
+            <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end p-3 pt-10 sm:p-4 sm:pt-12 bg-gradient-to-t from-portal-surface via-portal-surface/70 to-transparent">
+              <span className="portal-accent-text inline-flex items-center gap-1.5 text-xs font-semibold">
+                <Check className="h-3.5 w-3.5" aria-hidden="true" />
                 Vote recorded
-              </Badge>
-            </div>
-            <div
-              className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md"
+              </span>
+            </span>
+            <span
+              className="portal-accent-fill absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full shadow-portal"
               aria-hidden="true"
             >
               <Check className="h-4 w-4" />
-            </div>
+            </span>
           </>
         ) : null}
-      </div>
-      <div className="space-y-1 border-t border-[var(--cd-surface-border)] p-4 sm:p-5">
-        <p className="break-words text-base font-semibold leading-snug tracking-tight">
+      </span>
+
+      <span className="block space-y-1 p-4 sm:p-5">
+        <span className="portal-heading block break-words text-base font-semibold leading-snug tracking-tight">
           {candidate.full_name}
-        </p>
-        <p className="text-sm text-muted-foreground">{candidate.academic_year}</p>
-      </div>
+        </span>
+        <span className="portal-subtle block text-sm">{candidate.academic_year}</span>
+      </span>
     </button>
   )
 })
