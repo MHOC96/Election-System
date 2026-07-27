@@ -4,6 +4,7 @@ import {
   clearAuth,
   getAccessToken,
   getRefreshToken,
+  isLoginGracePeriod,
   setAuthTokens,
   getStoredUser,
 } from '@/lib/auth-storage'
@@ -89,6 +90,11 @@ api.interceptors.response.use(
 
     const newToken = await refreshPromise
     if (!newToken) {
+      // A prefetch race right after login can 401 before the token is picked up
+      // everywhere; do not wipe a session that was just established.
+      if (isLoginGracePeriod()) {
+        return Promise.reject(error)
+      }
       clearAuth()
       dispatchAuthSessionExpired()
       return Promise.reject(error)

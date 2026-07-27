@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import { fetchMe, login as apiLogin, logout as apiLogout, type LoginPayload } from '@/api/auth'
+import { AUTH_SESSION_EXPIRED_EVENT } from '@/lib/auth-events'
 import { clearAuth, consumeFreshLogin, getAccessToken, getRefreshToken, getStoredUser, setAuthTokens } from '@/lib/auth-storage'
 import type { User } from '@/types/api'
 import { ForcePasswordChangeModal } from '@/components/auth/ForcePasswordChangeModal'
@@ -70,20 +71,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setIsLoading(false))
   }, [refreshUser])
 
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setUser(null)
+      setIsLoading(false)
+    }
+    window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, handleSessionExpired)
+    return () => window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, handleSessionExpired)
+  }, [])
+
   const login = useCallback(async (payload: LoginPayload) => {
-    await apiLogin(payload)
-    let profile: User | null = getStoredUser()
-    if (profile?.role === 'MEMBER') {
-      profile = await fetchMe()
-      const access = getAccessToken()
-      const refresh = getRefreshToken()
-      if (access && refresh) {
-        setAuthTokens(access, refresh, profile)
+    const loggedInUser = await apiLogin(payload)
+    let profile: User = loggedInUser
+
+    // Enrich member profile (mc_number) but never fail login if this call blips.
+    if (profile.role === 'MEMBER') {
+      try {
+        profile = await fetchMe()
+        const access = getAccessToken()
+        const refresh = getRefreshToken()
+        if (access && refresh) {
+          setAuthTokens(access, refresh, profile)
+        }
+      } catch {
+        profile = loggedInUser
       }
     }
+
     setUser(profile)
     setIsLoading(false)
-    return profile!
+    return profile
   }, [])
 
   const logout = useCallback(async () => {

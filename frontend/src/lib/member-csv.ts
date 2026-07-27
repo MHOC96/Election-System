@@ -162,7 +162,7 @@ function buildPreviewFromRows(
       preview.push({
         row: rowNumber,
         cpm_number: cpm,
-        mc_number: mc ? '••••••••' : '',
+        mc_number: mc,
         valid,
         issue,
       })

@@ -202,14 +202,14 @@ class MemberAPITestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.data["success"])
         self.assertEqual(response.data["data"]["cpm_number"], "CPM900")
-        self.assertNotIn("mc_number", response.data["data"])
+        self.assertEqual(response.data["data"]["mc_number"], "member-pass")
 
-    def test_member_list_omits_mc_number(self):
+    def test_member_list_includes_mc_number(self):
         self._auth_as_admin()
         response = self.client.get(reverse("members-list"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         first = response.data["data"]["results"][0]
-        self.assertNotIn("mc_number", first)
+        self.assertEqual(first["mc_number"], "member-pass")
 
     def test_admin_can_update_member(self):
         self._auth_as_admin()

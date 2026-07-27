@@ -1,7 +1,8 @@
+import { useEffect, useRef } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, Vote } from 'lucide-react'
-import { useNavigate, Navigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
@@ -28,6 +29,7 @@ export function LoginPage() {
   const { login, isAuthenticated, user, isLoading } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const submitInFlightRef = useRef(false)
 
   const {
     control,
@@ -40,16 +42,20 @@ export function LoginPage() {
     defaultValues: loginDefaultValues,
   })
 
+  // Already signed in (e.g. bookmarked /login) — redirect once, not mid-submit.
+  useEffect(() => {
+    if (isLoading || submitInFlightRef.current || !isAuthenticated || !user) return
+    navigate(user.role === 'ADMIN' ? '/admin' : '/', { replace: true })
+  }, [isLoading, isAuthenticated, user, navigate])
+
   if (isLoading) {
     return <PageLoader fullScreen shell />
   }
 
-  if (isAuthenticated && user) {
-    const target = user.role === 'ADMIN' ? '/admin' : '/'
-    return <Navigate to={target} replace />
-  }
-
   const onSubmit = async (data: LoginForm) => {
+    if (submitInFlightRef.current) return
+    submitInFlightRef.current = true
+
     try {
       queryClient.clear()
       const loggedIn = await login({
@@ -57,17 +63,25 @@ export function LoginPage() {
         mc_number: data.mc_number,
       })
 
-      const { prepareAdminEntry, prepareMemberEntry } = await import('@/lib/prefetch')
+      const target = loggedIn.role === 'ADMIN' ? '/admin' : '/'
 
-      if (loggedIn.role === 'ADMIN') {
-        await prepareAdminEntry(queryClient)
-        navigate('/admin')
-      } else {
-        await prepareMemberEntry(queryClient)
-        navigate('/')
+      // Prefetch is best-effort — a failure here must not look like a bad login.
+      try {
+        const { prepareAdminEntry, prepareMemberEntry } = await import('@/lib/prefetch')
+        if (loggedIn.role === 'ADMIN') {
+          await prepareAdminEntry(queryClient)
+        } else {
+          await prepareMemberEntry(queryClient)
+        }
+      } catch {
+        // Portal still loads; warmMemberConsole / warmAdminConsole will retry.
       }
+
+      navigate(target, { replace: true })
     } catch (error) {
       notifyApiError(error, 'login')
+    } finally {
+      submitInFlightRef.current = false
     }
   }
 
@@ -125,6 +139,7 @@ export function LoginPage() {
                       spellCheck={false}
                       inputMode="text"
                       enterKeyHint="next"
+                      disabled={isSubmitting}
                       className="scroll-mt-24"
                     />
                   )}
@@ -151,6 +166,7 @@ export function LoginPage() {
                       spellCheck={false}
                       inputMode="text"
                       enterKeyHint="done"
+                      disabled={isSubmitting}
                       className="scroll-mt-24"
                     />
                   )}
@@ -170,8 +186,6 @@ export function LoginPage() {
           </CardContent>
         </Card>
       </main>
-
-
     </div>
   )
 }

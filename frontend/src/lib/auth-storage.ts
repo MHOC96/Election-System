@@ -5,6 +5,11 @@ const REFRESH_KEY = 'election_refresh_token'
 const USER_KEY = 'election_user'
 const FRESH_LOGIN_KEY = 'election_fresh_login'
 
+/** After login, avoid clearing the session on transient 401s from prefetch races. */
+const LOGIN_GRACE_MS = 8_000
+
+let loginAt = 0
+
 export function getAccessToken(): string | null {
   return localStorage.getItem(ACCESS_KEY)
 }
@@ -30,7 +35,12 @@ export function setAuthTokens(access: string, refresh: string, user: User) {
 }
 
 export function markFreshLogin() {
+  loginAt = Date.now()
   sessionStorage.setItem(FRESH_LOGIN_KEY, '1')
+}
+
+export function isLoginGracePeriod(): boolean {
+  return loginAt > 0 && Date.now() - loginAt < LOGIN_GRACE_MS
 }
 
 export function consumeFreshLogin(): boolean {
@@ -42,6 +52,7 @@ export function consumeFreshLogin(): boolean {
 }
 
 export function clearAuth() {
+  loginAt = 0
   localStorage.removeItem(ACCESS_KEY)
   localStorage.removeItem(REFRESH_KEY)
   localStorage.removeItem(USER_KEY)

@@ -271,7 +271,9 @@ export function MembersPage() {
                 <div key={member.id} className="mobile-card-item">
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold text-sm">{member.cpm_number}</p>
-                    <p className="text-xs text-muted-foreground">MC: ••••••••</p>
+                    <p className="truncate text-xs text-muted-foreground tabular-nums">
+                      MC: {member.mc_number || '—'}
+                    </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                     <Button
@@ -328,7 +330,7 @@ export function MembersPage() {
             {data?.results.map((member) => (
               <TableRow key={member.id}>
                 <TableCell className="font-medium">{member.cpm_number}</TableCell>
-                <TableCell>••••••••</TableCell>
+                <TableCell className="tabular-nums">{member.mc_number || '—'}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     <Button

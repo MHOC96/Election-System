@@ -40,6 +40,7 @@ export interface Paginated<T> {
 export interface Member {
   id: number
   cpm_number: string
+  mc_number: string
   academic_year?: AcademicYear
   is_active: boolean
   created_at: string
