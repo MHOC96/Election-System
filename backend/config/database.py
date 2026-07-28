@@ -11,6 +11,7 @@ from django.core.exceptions import ImproperlyConfigured
 logger = logging.getLogger(__name__)
 
 VALID_POOL_MODES = frozenset({"session", "transaction"})
+_LOCAL_DB_HOSTS = frozenset({"localhost", "127.0.0.1", "::1", ""})
 
 
 def resolve_pool_mode(*, port: str | int | None, explicit: str) -> str:
@@ -27,6 +28,16 @@ def resolve_pool_mode(*, port: str | int | None, explicit: str) -> str:
     return "session"
 
 
+def resolve_sslmode(env, *, is_test: bool, debug: bool, host: str | None) -> str:
+    """Use SSL for remote production DBs; allow local/CI Postgres without TLS."""
+    explicit = env("DB_SSLMODE", default="").strip()
+    if explicit:
+        return explicit
+    if is_test or debug or (host or "") in _LOCAL_DB_HOSTS:
+        return "prefer"
+    return "require"
+
+
 def apply_connection_pool_settings(
     db_config: dict[str, Any],
     env,
@@ -39,7 +50,10 @@ def apply_connection_pool_settings(
     pool_mode = resolve_pool_mode(port=port, explicit=env("DB_POOL_MODE", default=""))
 
     options = db_config.setdefault("OPTIONS", {})
-    options.setdefault("sslmode", env("DB_SSLMODE", default="require"))
+    options.setdefault(
+        "sslmode",
+        resolve_sslmode(env, is_test=is_test, debug=debug, host=db_config.get("HOST")),
+    )
     options.setdefault("connect_timeout", env.int("DB_CONNECT_TIMEOUT", default=10))
 
     if pool_mode == "transaction":

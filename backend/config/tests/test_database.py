@@ -1,7 +1,7 @@
 from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase
 
-from config.database import apply_connection_pool_settings, resolve_pool_mode
+from config.database import apply_connection_pool_settings, resolve_pool_mode, resolve_sslmode
 
 
 class ResolvePoolModeTests(SimpleTestCase):
@@ -17,6 +17,43 @@ class ResolvePoolModeTests(SimpleTestCase):
     def test_invalid_mode_raises(self):
         with self.assertRaises(ImproperlyConfigured):
             resolve_pool_mode(port="5432", explicit="invalid")
+
+
+class ResolveSslmodeTests(SimpleTestCase):
+    def _env(self, **values):
+        class FakeEnv:
+            def __call__(self, key, default=""):
+                return values.get(key, default)
+
+        return FakeEnv()
+
+    def test_local_debug_defaults_to_prefer(self):
+        self.assertEqual(
+            resolve_sslmode(self._env(), is_test=False, debug=True, host="localhost"),
+            "prefer",
+        )
+
+    def test_remote_production_defaults_to_require(self):
+        self.assertEqual(
+            resolve_sslmode(
+                self._env(),
+                is_test=False,
+                debug=False,
+                host="db.example.supabase.co",
+            ),
+            "require",
+        )
+
+    def test_explicit_sslmode_overrides_default(self):
+        self.assertEqual(
+            resolve_sslmode(
+                self._env(DB_SSLMODE="disable"),
+                is_test=False,
+                debug=False,
+                host="db.example.supabase.co",
+            ),
+            "disable",
+        )
 
 
 class ApplyConnectionPoolSettingsTests(SimpleTestCase):
@@ -41,8 +78,18 @@ class ApplyConnectionPoolSettingsTests(SimpleTestCase):
 
         return FakeEnv()
 
+    def test_localhost_uses_prefer_sslmode_in_debug(self):
+        db_config = {"PORT": "5432", "HOST": "localhost"}
+        apply_connection_pool_settings(
+            db_config,
+            self._env(),
+            is_test=False,
+            debug=True,
+        )
+        self.assertEqual(db_config["OPTIONS"]["sslmode"], "prefer")
+
     def test_session_mode_enables_persistent_connections(self):
-        db_config = {"PORT": "5432"}
+        db_config = {"PORT": "5432", "HOST": "localhost"}
         apply_connection_pool_settings(
             db_config,
             self._env(),
@@ -54,7 +101,7 @@ class ApplyConnectionPoolSettingsTests(SimpleTestCase):
         self.assertNotIn("DISABLE_SERVER_SIDE_CURSORS", db_config)
 
     def test_transaction_mode_disables_persistent_connections(self):
-        db_config = {"PORT": "6543"}
+        db_config = {"PORT": "6543", "HOST": "db.example.supabase.co"}
         apply_connection_pool_settings(
             db_config,
             self._env(),
@@ -66,7 +113,7 @@ class ApplyConnectionPoolSettingsTests(SimpleTestCase):
         self.assertNotIn("CONN_HEALTH_CHECKS", db_config)
 
     def test_custom_conn_max_age_for_session_mode(self):
-        db_config = {"PORT": "5432"}
+        db_config = {"PORT": "5432", "HOST": "localhost"}
         apply_connection_pool_settings(
             db_config,
             self._env(DB_CONN_MAX_AGE="120"),
