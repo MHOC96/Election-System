@@ -46,6 +46,27 @@ export function memberPhaseAccent(phase: ElectionPhase | string | undefined): Po
   }
 }
 
+/** Badge variant for phase strip — matches admin semantic colours. */
+export function memberPhaseBadgeVariant(
+  phase: ElectionPhase | string | undefined,
+): 'success' | 'warning' | 'default' | 'secondary' | 'muted' {
+  switch (phase) {
+    case 'APPLICATIONS_OPEN':
+      return 'success'
+    case 'REVIEWING':
+      return 'warning'
+    case 'VOTING_OPEN':
+    case 'READY_FOR_VOTING':
+      return 'default'
+    case 'RESULTS_PUBLISHED':
+      return 'secondary'
+    case 'SCHEDULED':
+    case 'VOTING_CLOSED':
+    default:
+      return 'muted'
+  }
+}
+
 /** Phases that are actively accepting member input. */
 export function memberPhaseIsLive(phase: ElectionPhase | string): boolean {
   return phase === 'VOTING_OPEN' || phase === 'APPLICATIONS_OPEN'

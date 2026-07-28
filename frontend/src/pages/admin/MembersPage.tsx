@@ -1,6 +1,4 @@
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { KeyRound, Pencil, Trash2, Users } from 'lucide-react'
 import {
@@ -15,16 +13,9 @@ import {
 import { notifyApiError, notifyInfo, notifySuccessMessage, notifyWarning } from '@/lib/notify'
 import { SUCCESS_MESSAGES } from '@/lib/user-messages'
 import { MemberImportPanel } from '@/components/members/MemberImportPanel'
+import { MemberEditDialog } from '@/components/members/MemberEditDialog'
+import { MaskedSecretCell } from '@/components/members/MaskedSecretCell'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { NativeSelect } from '@/components/ui/native-select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
@@ -33,14 +24,16 @@ import { getPaginationMeta } from '@/components/shared/DataTablePagination'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { sectionDelays, Stagger } from '@/components/motion/Stagger'
-import { FormField } from '@/components/design-system/FormField'
-import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass, pageHeaderBlockClass } from '@/lib/design-tokens'
 import { PageNotice } from '@/components/shared/PageNotice'
-import { memberEditSchema, type MemberEditForm } from '@/lib/form-schemas'
+import { type MemberEditForm } from '@/lib/form-schemas'
+import { useDocumentVisible } from '@/lib/useDocumentVisible'
 import {
   fetchAndSetQueryData,
   markQueriesStale,
+  MEMBERS_DELETION_STATUS_POLL_MS,
+  MEMBERS_DELETION_STATUS_QUERY_KEY,
+  MEMBERS_DELETION_STATUS_STALE_MS,
   MEMBERS_STALE_MS,
   refreshDashboard,
 } from '@/lib/query-sync'
@@ -53,28 +46,13 @@ async function refreshMembersPage(queryClient: QueryClient, academicYear: Academ
 
 export function MembersPage() {
   const queryClient = useQueryClient()
+  const documentVisible = useDocumentVisible()
   const [activeTab, setActiveTab] = useState<AcademicYear>('2nd Year')
   const [page, setPage] = useState(1)
   const [clearAllOpen, setClearAllOpen] = useState(false)
   const [editing, setEditing] = useState<Member | null>(null)
   const [resetTarget, setResetTarget] = useState<Member | null>(null)
   const [importResult, setImportResult] = useState<MemberImportResult | null>(null)
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    watch,
-    formState: { errors, isSubmitting, touchedFields },
-  } = useForm<MemberEditForm>({
-    resolver: zodResolver(memberEditSchema),
-    defaultValues: { cpm_number: '', is_active: true },
-    mode: 'onBlur',
-  })
-
-  const cpmNumber = watch('cpm_number')
-  const isActive = watch('is_active')
 
   const { data, isPending, isFetching, isError, refetch } = useQuery({
     queryKey: ['members', activeTab, page],
@@ -84,11 +62,11 @@ export function MembersPage() {
   })
 
   const { data: deletionStatus, isLoading: deletionStatusLoading } = useQuery({
-    queryKey: ['members-deletion-status'],
+    queryKey: MEMBERS_DELETION_STATUS_QUERY_KEY,
     queryFn: fetchMemberDeletionStatus,
-    refetchInterval: 30_000,
-    refetchOnMount: 'always',
-    staleTime: 0,
+    staleTime: MEMBERS_DELETION_STATUS_STALE_MS,
+    refetchInterval: documentVisible ? MEMBERS_DELETION_STATUS_POLL_MS : false,
+    refetchIntervalInBackground: false,
   })
 
   const showDeletionBlockedNotice =
@@ -177,16 +155,10 @@ export function MembersPage() {
 
   const openEdit = (member: Member) => {
     setEditing(member)
-    reset({
-      cpm_number: member.cpm_number,
-      is_active: member.is_active,
-    })
   }
 
   const closeEditDialog = () => {
     setEditing(null)
-    reset({ cpm_number: '', is_active: true })
-    requestAnimationFrame(() => restoreBodyPointerEvents())
   }
 
   const onSubmit = (values: MemberEditForm) => {
@@ -274,6 +246,15 @@ export function MembersPage() {
                     <p className="truncate text-xs text-muted-foreground tabular-nums">
                       MC: {member.mc_number || '—'}
                     </p>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      <span className="mr-1.5">Changed:</span>
+                      <MaskedSecretCell
+                        value={member.changed_password}
+                        className="inline-flex"
+                        revealLabel={`Show changed password for ${member.cpm_number}`}
+                        hideLabel={`Hide changed password for ${member.cpm_number}`}
+                      />
+                    </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                     <Button
@@ -323,6 +304,7 @@ export function MembersPage() {
             <TableRow>
               <TableHead>CPM Number</TableHead>
               <TableHead>MC Number</TableHead>
+              <TableHead>Changed Password</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -331,6 +313,13 @@ export function MembersPage() {
               <TableRow key={member.id}>
                 <TableCell className="font-medium">{member.cpm_number}</TableCell>
                 <TableCell className="tabular-nums">{member.mc_number || '—'}</TableCell>
+                <TableCell>
+                  <MaskedSecretCell
+                    value={member.changed_password}
+                    revealLabel={`Show changed password for ${member.cpm_number}`}
+                    hideLabel={`Hide changed password for ${member.cpm_number}`}
+                  />
+                </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     <Button
@@ -360,51 +349,13 @@ export function MembersPage() {
       </DataTable>
       </Stagger>
 
-      <Dialog open={!!editing} onOpenChange={(open) => !open && closeEditDialog()}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit member</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-4" noValidate>
-            <FormField
-              label="CPM Number"
-              htmlFor="cpm_number"
-              error={errors.cpm_number?.message}
-              valid={Boolean(touchedFields.cpm_number && cpmNumber && !errors.cpm_number)}
-              required
-            >
-              <Input
-                id="cpm_number"
-                autoComplete="off"
-                autoCapitalize="off"
-                autoCorrect="off"
-                spellCheck={false}
-                {...register('cpm_number')}
-              />
-            </FormField>
-            <FormField label="Status" htmlFor="member_status" hint="Inactive members cannot sign in or vote.">
-              <NativeSelect
-                id="member_status"
-                value={isActive ? 'active' : 'inactive'}
-                onChange={(e) =>
-                  setValue('is_active', e.target.value === 'active', { shouldValidate: true })
-                }
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </NativeSelect>
-            </FormField>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={closeEditDialog}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting || updateMutation.isPending}>
-                {updateMutation.isPending ? 'Saving…' : 'Save changes'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <MemberEditDialog
+        member={editing}
+        open={!!editing}
+        isSaving={updateMutation.isPending}
+        onClose={closeEditDialog}
+        onSave={onSubmit}
+      />
 
       <ConfirmDialog
         open={clearAllOpen}
@@ -420,7 +371,7 @@ export function MembersPage() {
       <ConfirmDialog
         open={!!resetTarget}
         title={`Reset password for ${resetTarget?.cpm_number ?? 'member'}?`}
-        description="Their login password will be restored to their original imported MC number. The member must change it again after signing in. Share the MC number with them outside the system."
+        description="Their login password will be restored to their original imported MC number, and their changed password will be cleared. The member must set a new password after signing in."
         confirmLabel="Reset password"
         loading={resetPasswordMutation.isPending}
         onCancel={() => setResetTarget(null)}

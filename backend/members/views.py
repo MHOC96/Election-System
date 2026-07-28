@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 
 from accounts.models import User, UserRole
 from accounts.permissions import IsAdmin
+from accounts.authentication import invalidate_user_auth_cache
 from dashboard.services.stats_service import invalidate_dashboard_cache
 from members.pagination import MemberListPagination
 from members.serializers import (
@@ -33,8 +34,6 @@ from members.services.import_service import import_members, import_result_to_dic
 from members.services.password_reset_service import MemberPasswordResetError, reset_member_password
 from members.throttling import MemberImportRateThrottle
 from config.throttling import AUTHENTICATED_API_THROTTLE_CLASSES
-from audit.constants import AuditAction
-from audit.services.audit_service import log_action
 
 
 class MemberDeletionStatusView(APIView):
@@ -75,12 +74,18 @@ class MemberImportView(APIView):
             from members.services.import_service import parse_member_file, validate_import_file
 
             validate_import_file(uploaded_file)
-            _, preview_rows = parse_member_file(uploaded_file)
+            parsed = parse_member_file(uploaded_file)
+            _, preview_rows = parsed
             if hasattr(uploaded_file, "seek"):
                 uploaded_file.seek(0)
 
             if should_import_async(len(preview_rows)):
-                job = create_import_job(uploaded_file, academic_year, created_by=request.user)
+                job = create_import_job(
+                    uploaded_file,
+                    academic_year,
+                    created_by=request.user,
+                    total_rows=len(preview_rows),
+                )
                 start_import_job_async(job.id)
                 return Response(
                     {
@@ -95,7 +100,7 @@ class MemberImportView(APIView):
                     status=status.HTTP_202_ACCEPTED,
                 )
 
-            result = import_members(uploaded_file, academic_year)
+            result = import_members(uploaded_file, academic_year, parsed=parsed)
         except ValueError as exc:
             return Response(
                 {
@@ -111,18 +116,6 @@ class MemberImportView(APIView):
 
         if result.successful:
             invalidate_dashboard_cache()
-            log_action(
-                action=AuditAction.MEMBER_IMPORTED,
-                request=request,
-                actor=request.user,
-                metadata={
-                    "academic_year": academic_year,
-                    "total_rows": result.total_rows,
-                    "successful": result.successful,
-                    "failed_count": len(result.failed_rows),
-                    "duplicate_count": len(result.duplicates),
-                },
-            )
 
         return Response(
             {
@@ -172,12 +165,6 @@ class MemberClearAllView(APIView):
             raise ValidationError(str(exc)) from exc
 
         invalidate_dashboard_cache()
-        log_action(
-            action=AuditAction.MEMBERS_CLEARED,
-            request=request,
-            actor=request.user,
-            metadata={"academic_year": academic_year, "deleted": result.deleted},
-        )
 
         return Response(
             {
@@ -204,16 +191,6 @@ class MemberBulkDeleteView(APIView):
 
         if result.deleted:
             invalidate_dashboard_cache()
-            log_action(
-                action=AuditAction.MEMBERS_BULK_DELETED,
-                request=request,
-                actor=request.user,
-                metadata={
-                    "requested": result.requested,
-                    "deleted": len(result.deleted),
-                    "failed_count": len(result.failed),
-                },
-            )
 
         return Response(
             {
@@ -240,10 +217,7 @@ class MemberListView(generics.ListAPIView):
         if academic_year:
             queryset = queryset.filter(academic_year=academic_year)
         
-        return (
-            queryset.only("id", "cpm_number", "academic_year", "is_active", "created_at")
-            .order_by("cpm_number")
-        )
+        return queryset.order_by("cpm_number")
 
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
@@ -272,13 +246,8 @@ class MemberDetailView(generics.RetrieveUpdateDestroyAPIView):
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         member = serializer.save()
+        invalidate_user_auth_cache(member.pk)
         invalidate_dashboard_cache()
-        log_action(
-            action=AuditAction.MEMBER_UPDATED,
-            request=request,
-            actor=request.user,
-            metadata={"member_id": member.id, "cpm_number": member.cpm_number},
-        )
         return Response(
             {"success": True, "data": MemberSerializer(member).data},
             status=status.HTTP_200_OK,
@@ -295,12 +264,6 @@ class MemberDetailView(generics.RetrieveUpdateDestroyAPIView):
             raise ValidationError(str(exc)) from exc
 
         invalidate_dashboard_cache()
-        log_action(
-            action=AuditAction.MEMBER_DELETED,
-            request=request,
-            actor=request.user,
-            metadata={"member_id": member_id, "cpm_number": cpm_number},
-        )
 
         return Response(
             {"success": True, "message": "Member deleted successfully."},
@@ -332,13 +295,8 @@ class MemberResetPasswordView(APIView):
         except MemberPasswordResetError as exc:
             raise ValidationError(str(exc)) from exc
 
+        invalidate_user_auth_cache(member.pk)
         invalidate_dashboard_cache()
-        log_action(
-            action=AuditAction.MEMBER_PASSWORD_RESET,
-            request=request,
-            actor=request.user,
-            metadata={"member_id": member.id, "cpm_number": member.cpm_number},
-        )
 
         return Response(
             {

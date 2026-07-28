@@ -20,6 +20,13 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 
 const STORAGE_KEY = 'election_theme'
+const THEME_SWITCH_MS = 320
+
+/** Browser chrome colour — matches admin `--background` for each theme. */
+const THEME_COLOR: Record<Theme, string> = {
+  light: 'hsl(220 24% 97%)',
+  dark: 'hsl(224 38% 7%)',
+}
 
 function getInitialTheme(): Theme {
   const stored = localStorage.getItem(STORAGE_KEY)
@@ -27,10 +34,8 @@ function getInitialTheme(): Theme {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
-/** Browser chrome colour — matches `--portal-canvas` for each theme. */
-const THEME_COLOR: Record<Theme, string> = {
-  light: '#f1f4f9',
-  dark: '#0b0e15',
+function prefersReducedMotion(): boolean {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
 function setThemeColorMeta(theme: Theme) {
@@ -44,27 +49,17 @@ function setThemeColorMeta(theme: Theme) {
   meta.content = THEME_COLOR[theme]
 }
 
-/**
- * Applies the theme to <html>.
- *
- * On the first paint transitions are suppressed so the stored theme does
- * not animate in from the default. Every later switch keeps transitions
- * enabled, which lets the `--portal-fade` declarations on portal surfaces
- * cross-fade colours instead of snapping.
- */
-function applyTheme(theme: Theme, animate: boolean) {
+function commitTheme(theme: Theme, instant: boolean) {
   const root = document.documentElement
 
-  if (!animate) root.classList.add('theme-transition-disabled')
+  if (instant) root.classList.add('theme-transition-disabled')
 
   root.classList.toggle('dark', theme === 'dark')
   root.style.colorScheme = theme
   localStorage.setItem(STORAGE_KEY, theme)
   setThemeColorMeta(theme)
 
-  if (!animate) {
-    // Force a reflow so the class change is committed before transitions
-    // are re-enabled, otherwise the removal batches with the paint.
+  if (instant) {
     void root.offsetHeight
     requestAnimationFrame(() => {
       root.classList.remove('theme-transition-disabled')
@@ -72,11 +67,36 @@ function applyTheme(theme: Theme, animate: boolean) {
   }
 }
 
+/**
+ * Applies the theme to <html>.
+ *
+ * First paint is instant (no animation). Later toggles use the View
+ * Transitions API for a full-page cross-fade when available, otherwise a
+ * synchronized CSS colour transition on every surface.
+ */
+function applyTheme(theme: Theme, animate: boolean) {
+  if (!animate || prefersReducedMotion()) {
+    commitTheme(theme, !animate)
+    return
+  }
+
+  const root = document.documentElement
+
+  if (typeof document.startViewTransition === 'function') {
+    document.startViewTransition(() => {
+      commitTheme(theme, true)
+    })
+    return
+  }
+
+  root.classList.add('theme-switching')
+  commitTheme(theme, false)
+  window.setTimeout(() => root.classList.remove('theme-switching'), THEME_SWITCH_MS)
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(getInitialTheme)
   const hasMountedRef = useRef(false)
-  // Read before the first `applyTheme` writes to storage, so we can tell a
-  // saved preference apart from the value we are about to persist.
   const hasExplicitChoiceRef = useRef(localStorage.getItem(STORAGE_KEY) !== null)
 
   useEffect(() => {

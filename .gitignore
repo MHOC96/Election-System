@@ -54,3 +54,12 @@ Thumbs.db
 .cursor/
 .vercel
 .env*
+
+# Graphify local tracking and heavy/local-only files
+graphify-out/cost.json
+graphify-out/manifest.json
+graphify-out/cache/
+# Graphify local tracking and heavy/local-only files
+graphify-out/cost.json
+graphify-out/manifest.json
+graphify-out/

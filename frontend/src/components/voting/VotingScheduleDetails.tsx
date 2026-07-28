@@ -1,4 +1,3 @@
-import { formatVotingDuration } from '@/lib/datetime'
 import { cn, formatDate } from '@/lib/utils'
 
 interface VotingScheduleDetailsProps {
@@ -12,15 +11,11 @@ export function VotingScheduleDetails({
   votingEndAt,
   className,
 }: VotingScheduleDetailsProps) {
-  const duration =
-    votingStartAt && votingEndAt ? formatVotingDuration(votingStartAt, votingEndAt) : null
-
   if (!votingStartAt && !votingEndAt) return null
 
   const rows: Array<{ label: string; value: string }> = []
   if (votingStartAt) rows.push({ label: 'Opens', value: formatDate(votingStartAt) })
   if (votingEndAt) rows.push({ label: 'Closes', value: formatDate(votingEndAt) })
-  if (duration) rows.push({ label: 'Voting period', value: duration })
 
   return (
     <dl

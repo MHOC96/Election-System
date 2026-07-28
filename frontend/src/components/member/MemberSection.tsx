@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import {
+  memberPageBlockClass,
   memberSectionHeaderRowClass,
   memberSectionHeadingClass,
   memberSectionIntroClass,
@@ -27,7 +28,7 @@ export function MemberSection({
   const headingId = id ? `${id}-heading` : undefined
 
   return (
-    <section aria-labelledby={headingId} className={cn(memberSectionStackClass, className)}>
+    <section aria-labelledby={headingId} className={cn(memberPageBlockClass, memberSectionStackClass, className)}>
       <div className={memberSectionHeaderRowClass}>
         <div className="min-w-0">
           <h2 id={headingId} className={memberSectionHeadingClass}>

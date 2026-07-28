@@ -1,5 +1,6 @@
 from rest_framework import status
 from rest_framework.exceptions import APIException, Throttled
+from rest_framework.response import Response
 from rest_framework.views import exception_handler
 import logging
 import math
@@ -17,7 +18,17 @@ def custom_exception_handler(exc, context):
             exc_info=True,
             extra={"view": repr(context.get("view"))},
         )
-        return response
+        return Response(
+            {
+                "success": False,
+                "error": {
+                    "code": "server_error",
+                    "message": "An unexpected error occurred. Please try again later.",
+                    "details": None,
+                },
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
     if isinstance(exc, Throttled):
         wait_seconds = exc.wait

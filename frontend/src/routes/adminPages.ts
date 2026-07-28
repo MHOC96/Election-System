@@ -25,12 +25,5 @@ export const ApplicationReviewPage = lazyWithPreload(() =>
 )
 
 export function preloadAdminPageModules() {
-  return Promise.all([
-    MembersPage.preload(),
-    PositionsPage.preload(),
-    CandidatesPage.preload(),
-    ElectionsPage.preload(),
-    ReportsPage.preload(),
-    ApplicationReviewPage.preload(),
-  ])
+  return Promise.all([MembersPage.preload(), ElectionsPage.preload()])
 }

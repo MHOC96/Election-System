@@ -48,7 +48,7 @@ import {
   getCreateElectionBlockReason,
   getElectionScheduleBlockReason,
 } from '@/lib/election-readiness'
-import { MEMBERS_STALE_MS, POSITIONS_QUERY_KEY, POSITIONS_STALE_MS, refreshDashboard, markQueriesStale } from '@/lib/query-sync'
+import { MEMBERS_DELETION_STATUS_QUERY_KEY, MEMBERS_STALE_MS, POSITIONS_QUERY_KEY, POSITIONS_STALE_MS, refreshDashboard, markQueriesStale } from '@/lib/query-sync'
 import { electionSchema, type ElectionForm } from '@/lib/form-schemas'
 import type { Election } from '@/types/api'
 import { cn, formatDate } from '@/lib/utils'
@@ -159,7 +159,7 @@ export function ElectionsPage() {
         ),
       )
       refreshDashboard(queryClient)
-      markQueriesStale(queryClient, ['members-deletion-status'])
+      markQueriesStale(queryClient, MEMBERS_DELETION_STATUS_QUERY_KEY)
     },
     onError: (error, variables) => {
       if (variables.action === 'archive') {
@@ -196,7 +196,7 @@ export function ElectionsPage() {
     },
     onSuccess: () => {
       refreshDashboard(queryClient)
-      markQueriesStale(queryClient, ['members-deletion-status'])
+      markQueriesStale(queryClient, MEMBERS_DELETION_STATUS_QUERY_KEY)
       closeCreateDialog()
     },
     onError: (error, _id, context) => {

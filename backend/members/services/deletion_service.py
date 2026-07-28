@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from django.db import connection, transaction
+from django.db import transaction
 
 from accounts.models import User, UserRole
 from voting.models import Election, ElectionStatus, Vote
@@ -29,36 +29,6 @@ def assert_member_deletion_allowed() -> None:
         raise MemberDeletionNotAllowedError()
 
 
-_legacy_audit_log_table_exists_cache: bool | None = None
-
-
-def _legacy_audit_log_table_exists() -> bool:
-    global _legacy_audit_log_table_exists_cache
-    if _legacy_audit_log_table_exists_cache is not None:
-        return _legacy_audit_log_table_exists_cache
-
-    with connection.cursor() as cursor:
-        tables = connection.introspection.table_names(cursor)
-    _legacy_audit_log_table_exists_cache = "audit_auditlog" in tables
-    return _legacy_audit_log_table_exists_cache
-
-
-def _clear_legacy_audit_logs_for_users(user_ids: list[int]) -> None:
-    """Remove orphan audit rows that still reference users after audit app removal."""
-    if not user_ids or not _legacy_audit_log_table_exists():
-        return
-
-    batch_size = 1000
-    with connection.cursor() as cursor:
-        for i in range(0, len(user_ids), batch_size):
-            batch = user_ids[i:i + batch_size]
-            placeholders = ", ".join(["%s"] * len(batch))
-            cursor.execute(
-                f"DELETE FROM audit_auditlog WHERE actor_id IN ({placeholders})",
-                batch,
-            )
-
-
 def _delete_members(user_ids: list[int]) -> int:
     if not user_ids:
         return 0
@@ -69,7 +39,6 @@ def _delete_members(user_ids: list[int]) -> int:
         for i in range(0, len(user_ids), batch_size):
             batch = user_ids[i:i + batch_size]
             Vote.objects.filter(member_id__in=batch).delete()
-            _clear_legacy_audit_logs_for_users(batch)
             deleted, _ = User.objects.filter(pk__in=batch, role=UserRole.MEMBER).delete()
             total_deleted += deleted
 
@@ -94,13 +63,18 @@ def clear_all_members(academic_year: str) -> ClearAllMembersResult:
 
     queryset = User.objects.filter(role=UserRole.MEMBER, academic_year=academic_year)
 
-    if not queryset.exists():
-        return ClearAllMembersResult(deleted=0)
+    total_deleted = 0
+    batch_ids: list[int] = []
+    for member_id in queryset.values_list("pk", flat=True).iterator(chunk_size=1000):
+        batch_ids.append(member_id)
+        if len(batch_ids) >= 1000:
+            total_deleted += _delete_members(batch_ids)
+            batch_ids = []
 
-    member_ids = list(queryset.values_list("pk", flat=True))
-    deleted = _delete_members(member_ids)
+    if batch_ids:
+        total_deleted += _delete_members(batch_ids)
 
-    return ClearAllMembersResult(deleted=deleted)
+    return ClearAllMembersResult(deleted=total_deleted)
 
 
 def bulk_delete_members(member_ids: list[int]) -> BulkMemberDeleteResult:

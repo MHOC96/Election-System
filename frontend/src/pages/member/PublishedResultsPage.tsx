@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Medal, Trophy } from 'lucide-react'
 import { fetchPublishedResults } from '@/api/elections'
+import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { MemberPageHeader } from '@/components/member/MemberPageHeader'
 import { MemberPage } from '@/components/layout/MemberPage'
@@ -41,7 +42,7 @@ function ResultsHero({ electionName }: { electionName: string }) {
 }
 
 export function PublishedResultsPage() {
-  const { data: results, isLoading } = useQuery({
+  const { data: results, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: PUBLISHED_RESULTS_QUERY_KEY,
     queryFn: fetchPublishedResults,
     staleTime: PUBLISHED_RESULTS_STALE_MS,
@@ -57,7 +58,16 @@ export function PublishedResultsPage() {
     )
   }
 
-  if (!results?.positions.length) {
+  if (isError) {
+    return (
+      <MemberPage>
+        <MemberPageHeader title="Election Results" description="Published winners and vote counts" />
+        <QueryErrorState onRetry={() => void refetch()} isRetrying={isFetching} />
+      </MemberPage>
+    )
+  }
+
+  if (!results?.positions?.length) {
     return (
       <MemberPage>
         <MemberPageHeader title="Election Results" description="Published winners and vote counts" />

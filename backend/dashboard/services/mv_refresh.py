@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 MV_STALE_SINCE_KEY = "dashboard:mv:stale_since"
 MV_LAST_REFRESH_KEY = "dashboard:mv:last_refresh"
 MV_DEBOUNCE_KEY = "dashboard:mv:refresh_debounce"
-MV_REFRESH_DEBOUNCE_SECONDS = 10
+MV_REFRESH_DEBOUNCE_SECONDS = 45
 
 
 def mark_mv_stale() -> None:

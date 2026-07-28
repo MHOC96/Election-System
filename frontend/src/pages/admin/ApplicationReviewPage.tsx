@@ -8,7 +8,7 @@ import { notifyApiError, notifySuccessMessage } from '@/lib/notify'
 import { SUCCESS_MESSAGES } from '@/lib/user-messages'
 import { fetchPositions } from '@/api/positions'
 import { fetchAllApplications, reviewApplication, type CandidateApplication } from '@/api/applications'
-import { fetchOngoingElection } from '@/api/elections'
+import { useOngoingElection } from '@/hooks/useOngoingElection'
 import { POSITIONS_QUERY_KEY, POSITIONS_STALE_MS } from '@/lib/query-sync'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -25,6 +25,7 @@ import {
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { sectionDelays, Stagger } from '@/components/motion/Stagger'
 import { DataTablePagination, getPaginationMeta } from '@/components/shared/DataTablePagination'
 import {
@@ -84,10 +85,7 @@ export function ApplicationReviewPage() {
   const [activeYearTab, setActiveYearTab] = useState<string>('2nd Year')
   const [page, setPage] = useState(1)
 
-  const { data: ongoingElection, isLoading: loadingElection } = useQuery({
-    queryKey: ['elections', 'ongoing'],
-    queryFn: fetchOngoingElection,
-  })
+  const { data: ongoingElection, isLoading: loadingElection } = useOngoingElection()
 
   const reviewOpen =
     ongoingElection?.current_phase === 'REVIEWING' ||
@@ -104,7 +102,7 @@ export function ApplicationReviewPage() {
       ? undefined
       : positions?.find((position) => position.name === selectedPosition)?.id
 
-  const { data: applicationsPage, isLoading: loadingApplications } = useQuery({
+  const { data: applicationsPage, isLoading: loadingApplications, isError: applicationsError, refetch: refetchApplications, isFetching: fetchingApplications } = useQuery({
     queryKey: [
       'applications',
       'all',
@@ -334,7 +332,9 @@ export function ApplicationReviewPage() {
 
       <Stagger delayMs={sectionDelays.tertiary}>
         <div className="space-y-4">
-          {loadingApplications ? (
+          {applicationsError ? (
+            <QueryErrorState onRetry={() => void refetchApplications()} isRetrying={fetchingApplications} />
+          ) : loadingApplications ? (
             <ApplicationsSkeleton />
           ) : !applications.length ? (
             <EmptyState

@@ -19,6 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { sectionDelays, Stagger } from '@/components/motion/Stagger'
 import { FormField } from '@/components/design-system/FormField'
@@ -49,7 +50,7 @@ export function PositionsPage() {
     defaultValues: { name: '', academic_year: undefined, max_winners: 1 },
   })
 
-  const { data: positions, isLoading } = useQuery({
+  const { data: positions, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: POSITIONS_QUERY_KEY,
     queryFn: fetchPositions,
     staleTime: POSITIONS_STALE_MS,
@@ -131,7 +132,11 @@ export function PositionsPage() {
       <Stagger delayMs={sectionDelays.primary}>
       <Card className={dataTableShellClass}>
         <CardContent className="px-4 py-0 sm:px-6">
-          {isLoading ? (
+          {isError ? (
+            <div className="p-6">
+              <QueryErrorState onRetry={() => void refetch()} isRetrying={isFetching} />
+            </div>
+          ) : isLoading ? (
             <div className="space-y-2 p-6">
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />

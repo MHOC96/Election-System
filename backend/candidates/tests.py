@@ -599,7 +599,7 @@ class ApplicationReviewAPITestCase(TestCase):
             {"action": "APPROVE"},
             format="json",
         )
-        self.assertGreaterEqual(response.status_code, 500)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
         self.application.refresh_from_db()
         self.assertEqual(self.application.status, ApplicationStatus.PENDING_REVIEW)

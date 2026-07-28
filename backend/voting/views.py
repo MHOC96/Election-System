@@ -32,8 +32,6 @@ from voting.services.vote_service import (
 )
 from config.throttling import AUTHENTICATED_API_THROTTLE_CLASSES
 from voting.throttling import VoteRateThrottle
-from audit.constants import AuditAction
-from audit.services.audit_service import log_action
 
 
 class ElectionListCreateView(generics.ListCreateAPIView):
@@ -47,12 +45,6 @@ class ElectionListCreateView(generics.ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
         election = serializer.save()
         invalidate_election_dashboard_caches()
-        log_action(
-            action=AuditAction.ELECTION_CREATED,
-            request=request,
-            actor=request.user,
-            metadata={"election_id": election.id, "name": election.name},
-        )
         return Response(
             {"success": True, "data": serializer.data},
             status=status.HTTP_201_CREATED,
@@ -121,12 +113,6 @@ class ElectionDetailView(generics.RetrieveUpdateDestroyAPIView):
             raise ValidationError(str(exc)) from exc
 
         invalidate_election_dashboard_caches(updated.id)
-        log_action(
-            action=AuditAction.ELECTION_UPDATED,
-            request=request,
-            actor=request.user,
-            metadata={"election_id": updated.id, "name": updated.name},
-        )
         return Response({"success": True, "data": ElectionSerializer(updated).data})
 
     def destroy(self, request, *args, **kwargs):
@@ -142,12 +128,6 @@ class ElectionDetailView(generics.RetrieveUpdateDestroyAPIView):
             Election.objects.filter(pk=election_id).delete()
 
         invalidate_election_dashboard_caches(election_id)
-        log_action(
-            action=AuditAction.ELECTION_DELETED,
-            request=request,
-            actor=request.user,
-            metadata={"election_id": election_id, "name": election.name},
-        )
         return Response(
             {"success": True, "message": "Election deleted successfully."},
             status=status.HTTP_200_OK,
@@ -168,12 +148,6 @@ class ElectionScheduleView(APIView):
         except ValueError as exc:
             raise ValidationError(str(exc)) from exc
         invalidate_election_dashboard_caches(election.id)
-        log_action(
-            action=AuditAction.ELECTION_SCHEDULED,
-            request=request,
-            actor=request.user,
-            metadata={"election_id": election.id, "name": election.name},
-        )
         return Response(
             {"success": True, "data": ElectionSerializer(election).data},
             status=status.HTTP_200_OK,
@@ -216,12 +190,6 @@ class ElectionStartVotingView(APIView):
         except ElectionLifecycleError as exc:
             raise ValidationError(str(exc)) from exc
         invalidate_election_dashboard_caches(election.id)
-        log_action(
-            action=AuditAction.ELECTION_VOTING_STARTED,
-            request=request,
-            actor=request.user,
-            metadata={"election_id": election.id, "name": election.name},
-        )
         return Response(
             {"success": True, "data": ElectionSerializer(election).data},
             status=status.HTTP_200_OK,
@@ -240,12 +208,6 @@ class ElectionPublishResultsView(APIView):
         except ValueError as exc:
             raise ValidationError(str(exc)) from exc
         invalidate_election_dashboard_caches(election.id)
-        log_action(
-            action=AuditAction.ELECTION_RESULTS_PUBLISHED,
-            request=request,
-            actor=request.user,
-            metadata={"election_id": election.id, "name": election.name},
-        )
         return Response(
             {"success": True, "data": ElectionSerializer(election).data},
             status=status.HTTP_200_OK,
@@ -264,12 +226,6 @@ class ElectionArchiveView(APIView):
         except ValueError as exc:
             raise ValidationError(str(exc)) from exc
         invalidate_election_dashboard_caches(election.id)
-        log_action(
-            action=AuditAction.ELECTION_ARCHIVED,
-            request=request,
-            actor=request.user,
-            metadata={"election_id": election.id, "name": election.name},
-        )
         return Response(
             {"success": True, "data": ElectionSerializer(election).data},
             status=status.HTTP_200_OK,
@@ -298,8 +254,10 @@ class ActiveElectionView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        election = Election.get_active()
-        if election is None:
+        from voting.services.ongoing_election_cache import get_active_election_payload
+
+        payload = get_active_election_payload()
+        if payload is None:
             return Response(
                 {
                     "success": True,
@@ -309,7 +267,7 @@ class ActiveElectionView(APIView):
                 status=status.HTTP_200_OK,
             )
         return Response(
-            {"success": True, "data": ElectionSerializer(election).data},
+            {"success": True, "data": payload},
             status=status.HTTP_200_OK,
         )
 
@@ -359,18 +317,6 @@ class VoteSubmitView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        log_action(
-            action=AuditAction.VOTE_SUBMITTED,
-            request=request,
-            actor=request.user,
-            metadata={
-                "vote_id": vote.id,
-                "election_id": vote.election_id,
-                "position_id": vote.position_id,
-                "candidate_id": vote.candidate_id,
-            },
-        )
-
         return Response(
             {
                 "success": True,
@@ -408,7 +354,12 @@ class BallotView(APIView):
         election = get_cached_ongoing_election()
         if election is None:
             recently_closed = Election.get_recently_closed()
-            vote_status = build_member_vote_status(request.user, None)
+            election_ended = recently_closed is not None
+            vote_status = build_member_vote_status(
+                request.user,
+                None,
+                election_ended=election_ended,
+            )
             return Response(
                 {
                     "success": True,
@@ -416,7 +367,7 @@ class BallotView(APIView):
                         "election": None,
                         "positions": [],
                         "can_vote": False,
-                        "election_ended": recently_closed is not None,
+                        "election_ended": election_ended,
                         "vote_status": vote_status,
                     },
                 },

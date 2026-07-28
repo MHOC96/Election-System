@@ -8,8 +8,13 @@ import {
 import { shouldOwnPoll } from '@/lib/tab-coordinator'
 import { useDocumentVisible } from '@/lib/useDocumentVisible'
 
+interface UseOngoingElectionOptions {
+  /** When false, read cached election state without background polling (e.g. header strip). */
+  poll?: boolean
+}
+
 /** Shared ongoing-election query for member surfaces (single poll + visibility gate). */
-export function useOngoingElection() {
+export function useOngoingElection({ poll = true }: UseOngoingElectionOptions = {}) {
   const queryClient = useQueryClient()
   const documentVisible = useDocumentVisible()
 
@@ -25,7 +30,7 @@ export function useOngoingElection() {
       return fetchOngoingElection()
     },
     staleTime: ONGOING_ELECTION_STALE_MS,
-    refetchInterval: () => (documentVisible ? ONGOING_ELECTION_POLL_MS : false),
+    refetchInterval: () => (poll && documentVisible ? ONGOING_ELECTION_POLL_MS : false),
     refetchIntervalInBackground: false,
   })
 }

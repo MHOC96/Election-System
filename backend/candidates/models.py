@@ -74,6 +74,8 @@ class CandidateApplication(models.Model):
         indexes = [
             models.Index(fields=["election", "status"], name="candapp_elect_status_idx"),
             models.Index(fields=["election", "member"], name="candapp_election_member_idx"),
+            models.Index(fields=["-submitted_at"], name="candapp_submitted_desc_idx"),
+            models.Index(fields=["cpm_number"], name="candapp_cpm_idx"),
         ]
         constraints = [
             models.UniqueConstraint(

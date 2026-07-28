@@ -44,12 +44,18 @@ import { pageLayoutClass, pageHeaderBlockClass } from '@/lib/design-tokens'
 import { PageNotice } from '@/components/shared/PageNotice'
 import { optimizeCloudinaryUrl } from '@/lib/cloudinary'
 import { candidateSchema, type CandidateForm } from '@/lib/form-schemas'
-import { markQueriesStale, refreshDashboard, POSITIONS_QUERY_KEY, POSITIONS_STALE_MS } from '@/lib/query-sync'
+import { markQueriesStale, refreshDashboard, POSITIONS_QUERY_KEY, POSITIONS_STALE_MS,
+  CANDIDATES_MODIFICATION_STATUS_POLL_MS,
+  CANDIDATES_MODIFICATION_STATUS_QUERY_KEY,
+  CANDIDATES_MODIFICATION_STATUS_STALE_MS,
+} from '@/lib/query-sync'
+import { useDocumentVisible } from '@/lib/useDocumentVisible'
 import { readFileAsObjectUrl } from '@/lib/image-crop'
 import type { AcademicYear, Candidate } from '@/types/api'
 
 export function CandidatesPage() {
   const queryClient = useQueryClient()
+  const documentVisible = useDocumentVisible()
   const fileRef = useRef<HTMLInputElement>(null)
   const declarationRef = useRef<HTMLInputElement>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -72,10 +78,11 @@ export function CandidatesPage() {
   })
 
   const { data: modificationStatus, isLoading: modificationStatusLoading } = useQuery({
-    queryKey: ['candidates-modification-status'],
+    queryKey: CANDIDATES_MODIFICATION_STATUS_QUERY_KEY,
     queryFn: fetchModificationStatus,
-    refetchInterval: 30_000,
-    staleTime: 0,
+    staleTime: CANDIDATES_MODIFICATION_STATUS_STALE_MS,
+    refetchInterval: documentVisible ? CANDIDATES_MODIFICATION_STATUS_POLL_MS : false,
+    refetchIntervalInBackground: false,
   })
 
   const canModifyCandidates = modificationStatus?.allowed !== false

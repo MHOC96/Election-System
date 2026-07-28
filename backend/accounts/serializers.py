@@ -39,6 +39,7 @@ class LoginSerializer(TokenObtainPairSerializer):
         if not user.is_active:
             raise AuthenticationFailed("Invalid CPM Number or Password.")
 
+        self.user = user
         refresh = self.get_token(user)
         return {
             "refresh": str(refresh),

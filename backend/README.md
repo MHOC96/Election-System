@@ -1,6 +1,6 @@
 # Executive Committee Election — Backend
 
-Django REST API for the Executive Committee Election Management System: secure member voting, admin election control, candidate applications, live statistics, exports, and audit logging.
+Django REST API for the Executive Committee Election Management System: secure member voting, admin election control, candidate applications, live statistics, and exports.
 
 ## Stack
 
@@ -25,7 +25,6 @@ Django REST API for the Executive Committee Election Management System: secure m
 - **Voting** — One vote per member per position per election; atomic submission; irreversible votes enforced by DB constraint
 - **Dashboard** — Summary, overview, live stats, per-position rankings; PostgreSQL materialized view for vote aggregates
 - **Reports** — CSV, XLSX, and PDF exports (results, candidates, turnout, participation)
-- **Audit logging** — Immutable action log (login, votes, imports, CRUD, election events)
 
 ## Prerequisites
 
@@ -90,7 +89,13 @@ The API is available at `http://localhost:8000/api/`.
 | `SECRET_KEY` | Yes | Django secret key |
 | `DEBUG` | Yes | `True` for local development |
 | `ALLOWED_HOSTS` | Yes | Comma-separated hostnames |
-| `DATABASE_URL` | Yes* | PostgreSQL connection string (recommended: Supabase transaction pooler, port 6543) |
+| `DATABASE_URL` | Yes* | PostgreSQL connection string |
+| `DATABASE_SESSION_URL` | No | Session-pooler URL (port 5432); overrides `DATABASE_URL` when set |
+| `DB_POOL_MODE` | No | `session` (reuse connections) or `transaction` (port 6543). Auto-detected from port if omitted |
+| `DB_CONN_MAX_AGE` | No | Seconds to keep DB connections open in session mode (default: `60` in production, `0` in tests) |
+| `DB_CONN_HEALTH_CHECKS` | No | Validate pooled connections before reuse (default: `True` when `DB_CONN_MAX_AGE` > 0) |
+| `DB_CONNECT_TIMEOUT` | No | Connection timeout in seconds (default: `10`) |
+| `DB_SSLMODE` | No | PostgreSQL SSL mode (default: `require`) |
 | `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` | Alt. | Individual DB settings if `DATABASE_URL` is not set |
 | `CORS_ALLOWED_ORIGINS` | Yes | Allowed frontend origins (comma-separated) |
 | `JWT_ACCESS_TOKEN_LIFETIME` | No | Access token lifetime in minutes (default: 30) |
@@ -230,7 +235,6 @@ Admin actions: **Schedule** → **Start Voting** → **Publish Results** → **A
 - **Votes**: `UNIQUE (member, position, election)` — one vote per member per position
 - **Applications**: one active application per member per election (excluding rejected/withdrawn)
 - **Positions**: case-insensitive unique name per academic year
-- **Audit logs**: immutable — updates and deletes are blocked at the model layer
 
 ## Project apps
 
@@ -243,7 +247,6 @@ Admin actions: **Schedule** → **Start Voting** → **Publish Results** → **A
 | `voting` | Elections, ballot, vote submission |
 | `dashboard` | Live stats, caching, materialized view |
 | `reports` | PDF / Excel / CSV exports |
-| `audit` | Immutable audit trail (internal; no public API) |
 
 ## Live stats materialized view
 
@@ -297,7 +300,11 @@ python manage.py runserver
 - Set `REDIS_URL` — required for shared cache across workers when `DEBUG=False`.
 - Point `CORS_ALLOWED_ORIGINS` at your deployed frontend URL.
 - Use a production WSGI server (e.g. Gunicorn) behind a reverse proxy.
-- With Supabase transaction pooling (port 6543), keep `CONN_MAX_AGE=0`.
+- **Database pooling (important for 50–150+ concurrent users):**
+  - **Supabase transaction pooler (port `6543`)** with `DB_POOL_MODE=transaction` — recommended default. Many HTTP clients share the same backend pool slots; Django uses `CONN_MAX_AGE=0` and returns connections after each request.
+  - **Supabase session pooler (port `5432`)** — only if your plan allows a large pool (e.g. 50+) and you run few Gunicorn workers (≤4) with `DB_CONN_MAX_AGE=60`. On most plans the session pooler is capped at **~15 connections**; exceeding that causes `EMAXCONNSESSION` errors.
+  - Port `6543` auto-enables transaction mode. Port `5432` auto-enables session mode.
+  - For production with 150 members voting at once: use transaction pooler + Redis cache + 2–4 Gunicorn workers (e.g. `gunicorn config.wsgi:application --workers 3 --threads 2`).
 - Run `python manage.py migrate` on deploy (includes `dashboard_live_vote_counts` materialized view).
 - Configure Cloudinary for candidate and application image uploads.
 

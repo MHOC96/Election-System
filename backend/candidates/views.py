@@ -22,8 +22,6 @@ from voting.services.ongoing_election_cache import get_cached_ongoing_election
 from voting.services.election_guard import ElectionGuardError, assert_candidate_changes_allowed
 from candidates.throttling import AdminUploadRateThrottle
 from config.throttling import AUTHENTICATED_API_THROTTLE_CLASSES
-from audit.constants import AuditAction
-from audit.services.audit_service import log_action
 
 
 class CandidateListCreateView(generics.ListCreateAPIView):
@@ -66,16 +64,6 @@ class CandidateListCreateView(generics.ListCreateAPIView):
             invalidate_dashboard_cache(election.id)
         else:
             invalidate_dashboard_cache()
-        log_action(
-            action=AuditAction.CANDIDATE_CREATED,
-            request=request,
-            actor=request.user,
-            metadata={
-                "candidate_id": candidate.id,
-                "position_id": candidate.position_id,
-                "election_id": candidate.election_id,
-            },
-        )
         return Response(
             {"success": True, "data": self.get_serializer(candidate).data},
             status=status.HTTP_201_CREATED,
@@ -147,12 +135,6 @@ class CandidateDetailView(generics.RetrieveUpdateDestroyAPIView):
             invalidate_dashboard_cache(instance.election_id)
         else:
             invalidate_dashboard_cache()
-        log_action(
-            action=AuditAction.CANDIDATE_UPDATED,
-            request=request,
-            actor=request.user,
-            metadata={"candidate_id": instance.id, "position_id": instance.position_id},
-        )
         return Response({"success": True, "data": serializer.data})
 
     def destroy(self, request, *args, **kwargs):
@@ -172,12 +154,6 @@ class CandidateDetailView(generics.RetrieveUpdateDestroyAPIView):
             invalidate_dashboard_cache(election_id)
         else:
             invalidate_dashboard_cache()
-        log_action(
-            action=AuditAction.CANDIDATE_DELETED,
-            request=request,
-            actor=request.user,
-            metadata={"candidate_id": candidate_id, "position_id": position_id},
-        )
         return Response(
             {"success": True, "message": "Candidate deleted successfully."},
             status=status.HTTP_200_OK,
@@ -240,18 +216,11 @@ class CandidatePhotoUploadView(APIView):
                     "error": {
                         "code": "upload_failed",
                         "message": "Failed to upload image to Cloudinary.",
-                        "details": str(exc),
+                        "details": None,
                     },
                 },
                 status=status.HTTP_502_BAD_GATEWAY,
             )
-
-        log_action(
-            action=AuditAction.CANDIDATE_PHOTO_UPLOADED,
-            request=request,
-            actor=request.user,
-            metadata={"public_id": result.get("public_id"), "photo_url": result.get("photo_url")},
-        )
 
         return Response(
             {"success": True, "data": result},
@@ -289,7 +258,7 @@ class CandidateDeclarationUploadView(APIView):
                     "error": {
                         "code": "upload_failed",
                         "message": "Failed to upload document to Cloudinary.",
-                        "details": str(exc),
+                        "details": None,
                     },
                 },
                 status=status.HTTP_502_BAD_GATEWAY,

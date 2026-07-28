@@ -6,6 +6,7 @@ import { ApplicationStatusBadge } from '@/components/applications/ApplicationSta
 import { ApplicationRejectionNotice } from '@/components/applications/ApplicationRejectionNotice'
 import { CountdownExpiryWatcher } from '@/components/shared/CountdownDisplay'
 import { VotingStartsSoonCard } from '@/components/voting/VotingStartsSoonCard'
+import { QueryErrorState } from '@/components/shared/QueryErrorState'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { MemberPageHeader } from '@/components/member/MemberPageHeader'
 import {
@@ -18,7 +19,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { sectionDelays, Stagger } from '@/components/motion/Stagger'
 import { MemberPage } from '@/components/layout/MemberPage'
-import { memberCalloutClass, memberHeroSpacingClass, memberStatusCardClass } from '@/lib/design-tokens'
+import { memberCalloutClass, memberHeroSpacingClass } from '@/lib/design-tokens'
 import { isVotingStartPending } from '@/lib/election-lifecycle-ui'
 import { ONGOING_ELECTION_QUERY_KEY } from '@/lib/query-sync'
 import { optimizeCloudinaryUrl } from '@/lib/cloudinary'
@@ -224,9 +225,9 @@ function ActiveApplicationCard({
 
 export function MemberApplicationStatusPage() {
   const queryClient = useQueryClient()
-  const { data: election, isLoading: loadingElection } = useOngoingElection()
+  const { data: election, isLoading: loadingElection, isError: electionError, refetch: refetchElection, isFetching: fetchingElection } = useOngoingElection()
 
-  const { data: myApplications, isLoading: loadingApplications } = useQuery({
+  const { data: myApplications, isLoading: loadingApplications, isError: applicationsError, refetch: refetchApplications, isFetching: fetchingApplications } = useQuery({
     queryKey: ['applications', 'me'],
     queryFn: fetchMyApplications,
     refetchInterval: (query) => {
@@ -242,12 +243,28 @@ export function MemberApplicationStatusPage() {
   const phaseCopy = getPhaseCopy(phase)
   const isPostVoting = phase === 'VOTING_CLOSED'
   const isLoading = loadingElection || loadingApplications
+  const isError = electionError || applicationsError
 
   if (isLoading) {
     return (
       <MemberPage>
         <Skeleton className="h-11 w-64 rounded-xl" />
         <Skeleton className="h-52 w-full rounded-2xl" />
+      </MemberPage>
+    )
+  }
+
+  if (isError) {
+    return (
+      <MemberPage>
+        <MemberPageHeader title="Application status" />
+        <QueryErrorState
+          onRetry={() => {
+            if (electionError) void refetchElection()
+            if (applicationsError) void refetchApplications()
+          }}
+          isRetrying={fetchingElection || fetchingApplications}
+        />
       </MemberPage>
     )
   }
@@ -300,14 +317,10 @@ export function MemberApplicationStatusPage() {
             title="No application on file"
             description="You did not submit an application for this election before the window closed."
           />
+        ) : isPostVoting ? (
+          <PostVotingOutcomeCard application={application} />
         ) : (
-          <div className={memberStatusCardClass}>
-            {isPostVoting ? (
-              <PostVotingOutcomeCard application={application} />
-            ) : (
-              <ActiveApplicationCard application={application} election={election} phase={phase} />
-            )}
-          </div>
+          <ActiveApplicationCard application={application} election={election} phase={phase} />
         )}
       </Stagger>
     </MemberPage>

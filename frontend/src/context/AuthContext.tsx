@@ -82,26 +82,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (payload: LoginPayload) => {
     const loggedInUser = await apiLogin(payload)
-    let profile: User = loggedInUser
+    setUser(loggedInUser)
+    setIsLoading(false)
 
-    // Enrich member profile (mc_number) but never fail login if this call blips.
-    if (profile.role === 'MEMBER') {
-      try {
-        profile = await fetchMe()
-        const access = getAccessToken()
-        const refresh = getRefreshToken()
-        if (access && refresh) {
-          setAuthTokens(access, refresh, profile)
-        }
-      } catch {
-        profile = loggedInUser
-      }
+    // mc_number is only on /auth/me — enrich in background so login navigation is not blocked.
+    if (loggedInUser.role === 'MEMBER' && !loggedInUser.mc_number) {
+      void refreshUser().catch(() => {
+        // Keep login session; application page can retry profile load.
+      })
     }
 
-    setUser(profile)
-    setIsLoading(false)
-    return profile
-  }, [])
+    return loggedInUser
+  }, [refreshUser])
 
   const logout = useCallback(async () => {
     setUser(null)

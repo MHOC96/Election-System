@@ -4,7 +4,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from accounts.permissions import IsAdmin, IsAdminOrReadOnly, IsMember
@@ -14,8 +14,6 @@ from candidates.services.cloudinary_service import upload_candidate_document, up
 from candidates.throttling import ApplicationUploadRateThrottle
 from config.throttling import AUTHENTICATED_API_THROTTLE_CLASSES
 from dashboard.services.stats_service import invalidate_dashboard_cache
-from audit.constants import AuditAction
-from audit.services.audit_service import log_action
 from voting.services.ongoing_election_cache import get_cached_ongoing_election
 from voting.models import ElectionPhase, ElectionStatus
 
@@ -82,17 +80,7 @@ class MemberApplicationListCreateView(generics.ListCreateAPIView):
             cpm_number=request.user.cpm_number,
         )
         invalidate_dashboard_cache(election.id)
-        log_action(
-            action=AuditAction.APPLICATION_SUBMITTED,
-            request=request,
-            actor=request.user,
-            metadata={
-                "application_id": application.id,
-                "election_id": election.id,
-                "position_id": application.position_id,
-            },
-        )
-        
+
         return Response(
             {"success": True, "data": serializer.data},
             status=status.HTTP_201_CREATED,
@@ -176,14 +164,20 @@ class AdminApplicationReviewView(APIView):
                     update_fields=["status", "approved_at", "approved_by", "updated_at"]
                 )
 
-                Candidate.objects.create(
-                    election=application.election,
-                    full_name=application.full_name,
-                    academic_year=application.member.academic_year,
-                    photo_url=application.photo_url,
-                    declaration_file=application.declaration_file,
-                    position=application.position,
-                )
+                try:
+                    Candidate.objects.create(
+                        election=application.election,
+                        full_name=application.full_name,
+                        academic_year=application.member.academic_year,
+                        photo_url=application.photo_url,
+                        declaration_file=application.declaration_file,
+                        position=application.position,
+                    )
+                except IntegrityError as exc:
+                    raise ValidationError(
+                        "Could not create the candidate record. Please verify the position "
+                        "does not already have an approved candidate for this election."
+                    ) from exc
 
             elif action == "REJECT":
                 application.status = ApplicationStatus.REJECTED
@@ -191,31 +185,6 @@ class AdminApplicationReviewView(APIView):
                 application.save(update_fields=["status", "rejection_reason", "updated_at"])
 
         invalidate_dashboard_cache(application.election_id)
-        if action == "APPROVE":
-            log_action(
-                action=AuditAction.APPLICATION_APPROVED,
-                request=request,
-                actor=request.user,
-                metadata={
-                    "application_id": application.id,
-                    "election_id": application.election_id,
-                    "position_id": application.position_id,
-                    "member_id": application.member_id,
-                },
-            )
-        else:
-            log_action(
-                action=AuditAction.APPLICATION_REJECTED,
-                request=request,
-                actor=request.user,
-                metadata={
-                    "application_id": application.id,
-                    "election_id": application.election_id,
-                    "position_id": application.position_id,
-                    "member_id": application.member_id,
-                    "rejection_reason": application.rejection_reason,
-                },
-            )
 
         return Response({"success": True, "data": CandidateApplicationSerializer(application).data})
 
@@ -251,7 +220,7 @@ class CandidateApplicationDocumentUploadView(APIView):
                     "error": {
                         "code": "upload_failed",
                         "message": "Failed to upload document to Cloudinary.",
-                        "details": str(exc),
+                        "details": None,
                     },
                 },
                 status=status.HTTP_502_BAD_GATEWAY,
@@ -294,7 +263,7 @@ class CandidateApplicationPhotoUploadView(APIView):
                     "error": {
                         "code": "upload_failed",
                         "message": "Failed to upload photo to Cloudinary.",
-                        "details": str(exc),
+                        "details": None,
                     },
                 },
                 status=status.HTTP_502_BAD_GATEWAY,

@@ -107,11 +107,11 @@ export const applicationFilterRowClass =
    so light and dark stay in sync by construction.
    ══════════════════════════════════════════════════════════════════════ */
 
-/** Outer portal shell */
-export const memberShellClass = 'flex min-h-[100dvh] min-w-0 flex-col bg-portal-canvas'
+/** Outer portal shell — same canvas as admin */
+export const memberShellClass = `flex min-h-[100dvh] min-w-0 flex-col ${shellCanvasClass}`
 
 export const memberShellHeaderClass =
-  'sticky top-0 z-40 w-full border-b border-portal-border bg-portal-surface/90 backdrop-blur-xl pt-[env(safe-area-inset-top)] transition-colors duration-300 dark:bg-portal-surface/95 dark:border-portal-border-strong/60'
+  'glass sticky top-0 z-40 w-full border-b pt-[env(safe-area-inset-top)]'
 
 /** Aligns member header content with the main page column */
 export const memberShellHeaderInnerClass =
@@ -123,6 +123,9 @@ export const memberShellMainClass =
 export const memberShellContentClass = 'mx-auto w-full min-w-0 max-w-5xl lg:max-w-6xl'
 
 export const memberPageLayoutClass = 'w-full min-w-0 space-y-7 sm:space-y-9 lg:space-y-11'
+
+/** Full-width block — matches ApplicationsStartsSoonCard / PortalPhaseHero column width */
+export const memberPageBlockClass = 'mx-auto w-full min-w-0'
 
 /** Shared card radius across member surfaces */
 export const memberCardRadiusClass = 'rounded-2xl'
@@ -141,35 +144,30 @@ export const memberPositionGridClass =
 export const memberCandidateGridClass =
   'grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3'
 
-/** Published results — position cards on wide screens */
-export const memberResultsGridClass = 'grid grid-cols-1 gap-5 lg:grid-cols-2 lg:gap-6'
+/** Published results — full-width position cards stacked like the ballot */
+export const memberResultsGridClass = 'space-y-5 lg:space-y-6'
 
-/** Centered status / outcome cards */
-export const memberStatusCardClass = 'mx-auto w-full max-w-2xl lg:max-w-3xl'
+/** Centered status / outcome cards — same width as phase hero cards */
+export const memberStatusCardClass = memberPageBlockClass
 
 export const memberSectionStackClass = 'space-y-4 sm:space-y-5'
 
 export const memberHeroSpacingClass = 'mt-5 sm:mt-7'
 
-export const memberSectionHeadingClass =
-  'portal-heading text-lg font-semibold tracking-tight sm:text-xl'
+export const memberSectionHeadingClass = sectionHeadingClass
 
-export const memberSectionIntroClass =
-  'portal-subtle mt-1.5 max-w-2xl text-sm leading-relaxed'
+export const memberSectionIntroClass = sectionDescriptionClass
 
 export const memberSectionHeaderRowClass =
   'flex min-w-0 flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4'
 
 /** Member page title block */
-export const memberPageTitleClass =
-  'portal-heading text-2xl font-bold tracking-tight sm:text-3xl'
+export const memberPageTitleClass = pageTitleClass
 
 export const memberPageDescriptionClass =
-  'portal-subtle mt-2 max-w-2xl text-pretty text-sm leading-relaxed sm:text-base'
+  'mt-1 text-pretty text-sm text-muted-foreground sm:text-base'
 
-export const memberCalloutClass =
-  'portal-surface portal-surface--muted portal-body rounded-xl px-4 py-4 text-sm leading-relaxed sm:px-5 sm:py-5'
+export const memberCalloutClass = `${insetPanelClass} text-sm leading-relaxed`
 
-/** Member empty / waiting states */
 export const memberEmptyStateClass =
-  'portal-surface flex flex-col items-center justify-center rounded-2xl p-8 text-center sm:p-12'
+  'bg-grid flex w-full flex-col items-center justify-center rounded-2xl border border-dashed bg-card/40 p-8 text-center sm:p-12'

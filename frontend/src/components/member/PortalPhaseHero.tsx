@@ -2,7 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { PortalCard, PortalIconTile } from '@/components/member/PortalCard'
 import { CountdownDisplay } from '@/components/shared/CountdownDisplay'
-import { portalCountdownInnerClass } from '@/lib/design-tokens'
+import { memberPageBlockClass, portalCountdownInnerClass } from '@/lib/design-tokens'
 import { cn } from '@/lib/utils'
 
 interface PortalPhaseHeroProps {
@@ -40,7 +40,7 @@ export function PortalPhaseHero({
   className,
 }: PortalPhaseHeroProps) {
   return (
-    <PortalCard raised className={cn('mx-auto w-full', className)} aria-live="polite">
+    <PortalCard raised className={cn(memberPageBlockClass, className)} aria-live="polite">
       <div className="px-4 py-7 sm:px-6 sm:py-9 lg:px-8 lg:py-10">
         <div
           className={cn(

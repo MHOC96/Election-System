@@ -22,7 +22,6 @@ import { MemberPage } from '@/components/layout/MemberPage'
 import { MemberPageHeader } from '@/components/member/MemberPageHeader'
 import { MemberSection } from '@/components/member/MemberSection'
 import { PositionApplyCard } from '@/components/applications/PositionApplyCard'
-import { PortalCard, PortalCardHeader } from '@/components/member/PortalCard'
 import { memberHeroSpacingClass, memberPositionGridClass } from '@/lib/design-tokens'
 import { ONGOING_ELECTION_QUERY_KEY, APPLICATIONS_STALE_MS, POSITIONS_QUERY_KEY, POSITIONS_STALE_MS } from '@/lib/query-sync'
 import { fetchPositions } from '@/api/positions'
@@ -255,23 +254,19 @@ export function CandidateApplicationPage() {
             />
           </>
         ) : (
-          <PortalCard raised>
-            <PortalCardHeader className="space-y-5">
-              <MemberPageHeader
-                title="Candidate Application"
-                description={`Apply for positions in: ${ongoingElection.name}`}
-                meta={appEnd ? `Closes ${formatDate(appEnd)}` : undefined}
-              />
-              <div className="portal-divider border-t pt-5">
-                <ElectionCountdownHero
-                  variant="applications-open"
-                  electionName={ongoingElection.name}
-                  targetAt={appEnd}
-                  inline
-                />
-              </div>
-            </PortalCardHeader>
-          </PortalCard>
+          <>
+            <MemberPageHeader
+              title="Candidate Application"
+              description={`Apply for positions in: ${ongoingElection.name}`}
+              meta={appEnd ? `Closes ${formatDate(appEnd)}` : undefined}
+            />
+            <ElectionCountdownHero
+              variant="applications-open"
+              electionName={ongoingElection.name}
+              targetAt={appEnd}
+              className={memberHeroSpacingClass}
+            />
+          </>
         )}
       </Stagger>
 

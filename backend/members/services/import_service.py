@@ -300,8 +300,16 @@ def _bulk_create_members(users: list[User]) -> int:
     return created
 
 
-def import_members(uploaded_file, academic_year: str) -> ImportResult:
-    headers, rows = parse_member_file(uploaded_file)
+def import_members(
+    uploaded_file,
+    academic_year: str,
+    *,
+    parsed: tuple[list[str], list] | None = None,
+) -> ImportResult:
+    if parsed is None:
+        headers, rows = parse_member_file(uploaded_file)
+    else:
+        headers, rows = parsed
     _validate_columns(headers)
 
     if len(rows) > MAX_IMPORT_ROWS:

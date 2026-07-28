@@ -5,6 +5,8 @@ from voting.serializers import ElectionSerializer
 
 ONGOING_ELECTION_CACHE_KEY = "elections:ongoing:payload"
 ONGOING_ELECTION_MODEL_CACHE_KEY = "elections:ongoing:instance"
+ACTIVE_ELECTION_CACHE_KEY = "elections:active:payload"
+ACTIVE_ELECTION_MODEL_CACHE_KEY = "elections:active:instance"
 ONGOING_ELECTION_CACHE_SECONDS = 10
 _MISSING = "__none__"
 
@@ -43,6 +45,42 @@ def get_ongoing_election_payload() -> dict | None:
     return payload
 
 
+def get_cached_active_election() -> Election | None:
+    """Return the active (non-archived) election model, cached briefly."""
+    cached = cache.get(ACTIVE_ELECTION_MODEL_CACHE_KEY)
+    if cached == _MISSING:
+        return None
+    if cached is not None:
+        return cached
+
+    election = Election.get_active()
+    if election is None:
+        cache.set(ACTIVE_ELECTION_MODEL_CACHE_KEY, _MISSING, ONGOING_ELECTION_CACHE_SECONDS)
+        return None
+
+    cache.set(ACTIVE_ELECTION_MODEL_CACHE_KEY, election, ONGOING_ELECTION_CACHE_SECONDS)
+    return election
+
+
+def get_active_election_payload() -> dict | None:
+    cached = cache.get(ACTIVE_ELECTION_CACHE_KEY)
+    if cached == _MISSING:
+        return None
+    if cached is not None:
+        return cached
+
+    election = get_cached_active_election()
+    if election is None:
+        cache.set(ACTIVE_ELECTION_CACHE_KEY, _MISSING, ONGOING_ELECTION_CACHE_SECONDS)
+        return None
+
+    payload = ElectionSerializer(election).data
+    cache.set(ACTIVE_ELECTION_CACHE_KEY, payload, ONGOING_ELECTION_CACHE_SECONDS)
+    return payload
+
+
 def invalidate_ongoing_election_cache() -> None:
     cache.delete(ONGOING_ELECTION_CACHE_KEY)
     cache.delete(ONGOING_ELECTION_MODEL_CACHE_KEY)
+    cache.delete(ACTIVE_ELECTION_CACHE_KEY)
+    cache.delete(ACTIVE_ELECTION_MODEL_CACHE_KEY)

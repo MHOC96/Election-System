@@ -64,20 +64,16 @@ export function LoginPage() {
       })
 
       const target = loggedIn.role === 'ADMIN' ? '/admin' : '/'
-
-      // Prefetch is best-effort — a failure here must not look like a bad login.
-      try {
-        const { prepareAdminEntry, prepareMemberEntry } = await import('@/lib/prefetch')
-        if (loggedIn.role === 'ADMIN') {
-          await prepareAdminEntry(queryClient)
-        } else {
-          await prepareMemberEntry(queryClient)
-        }
-      } catch {
-        // Portal still loads; warmMemberConsole / warmAdminConsole will retry.
-      }
-
       navigate(target, { replace: true })
+
+      // Warm the portal in the background — do not block navigation after login succeeds.
+      void import('@/lib/prefetch').then(({ prepareAdminEntry, prepareMemberEntry }) => {
+        if (loggedIn.role === 'ADMIN') {
+          void prepareAdminEntry(queryClient)
+        } else {
+          void prepareMemberEntry(queryClient)
+        }
+      })
     } catch (error) {
       notifyApiError(error, 'login')
     } finally {

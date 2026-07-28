@@ -53,38 +53,34 @@
     --gradient-brand: linear-gradient(135deg, hsl(224 76% 54%), hsl(262 68% 58%));
     --surface-highlight: hsl(var(--foreground) / 0.06);
 
-    /* ── Member portal palette (light) ──────────────────────────────
-       Every portal colour resolves through these tokens so light and
-       dark share one contract and only the values change. */
-    --portal-canvas: 220 26% 96%;
-    --portal-surface: 0 0% 100%;
-    --portal-surface-muted: 220 24% 97%;
-    --portal-surface-hover: 220 26% 94%;
-    --portal-header: 220 28% 98%;
+    /* ── Member portal palette — mirrors admin semantic tokens ───── */
+    --portal-canvas: 220 24% 97%;
+    --portal-surface: 220 20% 99%;
+    --portal-surface-muted: 210 40% 96%;
+    --portal-surface-hover: 210 40% 96%;
+    --portal-header: 210 40% 96%;
     --portal-border: 220 16% 88%;
     --portal-border-strong: 220 14% 78%;
-    --portal-heading: 222 44% 13%;
-    --portal-body: 222 24% 26%;
-    --portal-subtle: 218 14% 43%;
+    --portal-heading: 222 47% 11%;
+    --portal-body: 222 47% 11%;
+    --portal-subtle: 215 18% 40%;
 
-    /* Accent channels — phase classes override only these.
-       `readable-l` is the shifted lightness for text on tinted fills. */
+    /* Accent follows admin primary */
     --portal-accent-h: 224;
-    --portal-accent-s: 74%;
+    --portal-accent-s: 76%;
     --portal-accent-l: 48%;
-    --portal-accent-readable-l: 36%;
-    --portal-accent-soft-alpha: 0.08;
-    --portal-accent-border-alpha: 0.28;
-    --portal-accent-veil-alpha: 0.05;
+    --portal-accent-readable-l: 38%;
+    --portal-accent-soft-alpha: 0.1;
+    --portal-accent-border-alpha: 0.25;
+    --portal-accent-veil-alpha: 0;
 
-    /* Portal elevation — intentionally softer than the app-wide scale */
-    --portal-shadow: 0 1px 2px 0 hsl(var(--shadow-color) / 0.04),
-      0 8px 20px -14px hsl(var(--shadow-color) / 0.1);
-    --portal-shadow-raised: 0 2px 4px -1px hsl(var(--shadow-color) / 0.05),
-      0 18px 40px -20px hsl(var(--shadow-color) / 0.14);
+    --portal-shadow: var(--shadow-sm);
+    --portal-shadow-raised: var(--shadow-md);
 
     /* Shared duration for the light↔dark cross-fade */
-    --portal-fade: 240ms cubic-bezier(0.4, 0, 0.2, 1);
+    --portal-fade: 320ms cubic-bezier(0.4, 0, 0.2, 1);
+    --theme-switch-duration: 320ms;
+    --theme-switch-ease: cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dark {
@@ -132,33 +128,28 @@
     --gradient-brand: linear-gradient(135deg, hsl(217 91% 62%), hsl(262 72% 66%));
     --surface-highlight: hsl(var(--foreground) / 0.04);
 
-    /* ── Member portal palette (dark) ───────────────────────────────
-       Raised surfaces step up in lightness (not down) so depth reads
-       without heavy shadows. Borders and secondary text are pushed
-       brighter for WCAG-friendly contrast on deep backgrounds. */
+    /* ── Member portal palette (dark) — mirrors admin semantic tokens */
     --portal-canvas: 224 38% 7%;
-    --portal-surface: 224 28% 13%;
-    --portal-surface-muted: 223 24% 18%;
-    --portal-surface-hover: 223 22% 23%;
-    --portal-header: 224 26% 15%;
-    --portal-border: 218 18% 28%;
-    --portal-border-strong: 216 18% 38%;
-    --portal-heading: 210 42% 98%;
-    --portal-body: 213 28% 90%;
-    --portal-subtle: 216 20% 73%;
+    --portal-surface: 224 32% 10%;
+    --portal-surface-muted: 217 28% 15%;
+    --portal-surface-hover: 217 33% 18%;
+    --portal-header: 217 28% 15%;
+    --portal-border: 216 18% 22%;
+    --portal-border-strong: 216 18% 28%;
+    --portal-heading: 210 40% 96%;
+    --portal-body: 210 40% 96%;
+    --portal-subtle: 216 18% 68%;
 
     --portal-accent-h: 217;
     --portal-accent-s: 91%;
     --portal-accent-l: 66%;
     --portal-accent-readable-l: 76%;
-    --portal-accent-soft-alpha: 0.18;
-    --portal-accent-border-alpha: 0.42;
-    --portal-accent-veil-alpha: 0.09;
+    --portal-accent-soft-alpha: 0.15;
+    --portal-accent-border-alpha: 0.35;
+    --portal-accent-veil-alpha: 0;
 
-    --portal-shadow: 0 1px 2px 0 hsl(var(--shadow-color) / 0.4),
-      0 10px 24px -16px hsl(var(--shadow-color) / 0.6);
-    --portal-shadow-raised: 0 2px 6px -1px hsl(var(--shadow-color) / 0.5),
-      0 22px 46px -22px hsl(var(--shadow-color) / 0.72);
+    --portal-shadow: var(--shadow-sm);
+    --portal-shadow-raised: var(--shadow-md);
   }
 }
 
@@ -174,6 +165,26 @@
     transition: none !important;
   }
 
+  /* Synchronized colour cross-fade when View Transitions API is unavailable */
+  html.theme-switching,
+  html.theme-switching *,
+  html.theme-switching *::before,
+  html.theme-switching *::after {
+    transition-property: background-color, border-color, color, fill, stroke, box-shadow, outline-color,
+      text-decoration-color !important;
+    transition-duration: var(--theme-switch-duration) !important;
+    transition-timing-function: var(--theme-switch-ease) !important;
+    transition-delay: 0s !important;
+  }
+
+  html {
+    overflow-x: hidden;
+    background-color: hsl(var(--background));
+    transition:
+      background-color var(--portal-fade),
+      color var(--portal-fade);
+  }
+
   body {
     @apply bg-background font-sans text-foreground antialiased;
     font-feature-settings: 'kern', 'liga';
@@ -184,10 +195,6 @@
     transition:
       background-color var(--portal-fade),
       color var(--portal-fade);
-  }
-
-  html {
-    overflow-x: hidden;
   }
 
   h1,
@@ -290,6 +297,7 @@
     background-color: hsl(var(--card) / 0.78);
     backdrop-filter: saturate(160%) blur(14px);
     -webkit-backdrop-filter: saturate(160%) blur(14px);
+    transition: background-color var(--theme-switch-duration) var(--theme-switch-ease);
   }
 
   .dark .glass {
@@ -422,28 +430,14 @@
     --portal-accent-veil-alpha: 0.05;
   }
 
-  /* ── Page canvas ───────────────────────────────────────────────── */
+  /* ── Page canvas — same layered background as admin ───────────── */
   .portal-canvas {
-    background-color: hsl(var(--portal-canvas));
+    @apply bg-muted/25 dark:bg-background;
     transition: background-color var(--portal-fade);
   }
 
-  /* A single wide accent wash at the top of the page. Replaces the old
-     blurred glow blobs — no filters, so it stays cheap to repaint. */
   .portal-canvas::before {
-    content: '';
-    position: absolute;
-    inset-inline: 0;
-    top: 0;
-    height: 22rem;
-    pointer-events: none;
-    z-index: 0;
-    background-image: radial-gradient(
-      120% 100% at 50% 0%,
-      hsl(var(--portal-accent-h) var(--portal-accent-s) var(--portal-accent-l) / var(--portal-accent-veil-alpha)) 0%,
-      transparent 70%
-    );
-    transition: background-image var(--portal-fade);
+    display: none;
   }
 
   .portal-canvas > * {
@@ -451,13 +445,9 @@
     z-index: 1;
   }
 
-  /* ── Base surface ──────────────────────────────────────────────── */
+  /* ── Base surface — same as admin cards ────────────────────────── */
   .portal-surface {
-    position: relative;
-    border: 1px solid hsl(var(--portal-border));
-    background-color: hsl(var(--portal-surface));
-    color: hsl(var(--portal-body));
-    box-shadow: var(--portal-shadow);
+    @apply surface-card text-card-foreground;
     transition:
       background-color var(--portal-fade),
       border-color var(--portal-fade),
@@ -466,19 +456,16 @@
   }
 
   .portal-surface--raised {
-    box-shadow: var(--portal-shadow-raised);
+    @apply surface-raised;
   }
 
-  /* Nested panel — recedes from its parent surface in both themes */
   .portal-surface--muted {
-    background-color: hsl(var(--portal-surface-muted));
+    @apply rounded-xl border border-border/60 bg-muted/10 dark:bg-muted/20;
     box-shadow: none;
   }
 
-  /* Header band inside a surface */
   .portal-surface__header {
-    background-color: hsl(var(--portal-header));
-    border-bottom: 1px solid hsl(var(--portal-border));
+    @apply border-b border-border/60 bg-muted/20;
     transition:
       background-color var(--portal-fade),
       border-color var(--portal-fade);
@@ -502,8 +489,7 @@
   }
 
   .portal-surface--interactive:hover:not(:disabled) {
-    background-color: hsl(var(--portal-surface-hover));
-    border-color: hsl(var(--portal-border-strong));
+    @apply border-border bg-muted/30;
   }
 
   .portal-surface--interactive:active:not(:disabled) {
@@ -538,13 +524,12 @@
   }
 
   .portal-accent-fill {
-    background-color: hsl(var(--portal-accent-h) var(--portal-accent-s) var(--portal-accent-l));
-    color: hsl(0 0% 100%);
+    @apply bg-gradient-brand text-primary-foreground;
     transition: background-color var(--portal-fade);
   }
 
   .dark .portal-accent-fill {
-    color: hsl(224 44% 6%);
+    @apply text-primary-foreground;
     font-weight: 600;
   }
 
@@ -573,32 +558,28 @@
     transition: border-color var(--portal-fade);
   }
 
-  /* ── Text roles ────────────────────────────────────────────────── */
   .portal-heading {
-    color: hsl(var(--portal-heading));
+    @apply text-foreground;
     transition: color var(--portal-fade);
   }
 
   .portal-body {
-    color: hsl(var(--portal-body));
+    @apply text-foreground;
     transition: color var(--portal-fade);
   }
 
   .portal-subtle {
-    color: hsl(var(--portal-subtle));
+    @apply text-muted-foreground;
     transition: color var(--portal-fade);
   }
 
-  /* ── Divider ───────────────────────────────────────────────────── */
   .portal-divider {
-    border-color: hsl(var(--portal-border));
+    @apply border-border;
     transition: border-color var(--portal-fade);
   }
 
-  /* ── Countdown ─────────────────────────────────────────────────── */
   .portal-digit {
-    background-color: hsl(var(--portal-surface-muted));
-    border: 1px solid hsl(var(--portal-border));
+    @apply rounded-xl border border-border/60 bg-muted/30;
     transition:
       background-color var(--portal-fade),
       border-color var(--portal-fade),
@@ -606,14 +587,11 @@
   }
 
   .dark .portal-digit {
-    background-color: hsl(var(--portal-surface-muted));
-    border-color: hsl(var(--portal-border-strong));
+    @apply bg-muted/20;
   }
 
-  /* Solid accent colour — never gradient-clipped text, so the digits
-     stay legible and high-contrast in both themes. */
   .portal-digit__value {
-    color: hsl(var(--portal-accent-h) var(--portal-accent-s) var(--portal-accent-readable-l));
+    @apply text-foreground;
     font-variant-numeric: tabular-nums;
     transition: color var(--portal-fade);
   }
@@ -796,5 +774,14 @@
 
   .mobile-card-list > .mobile-card-item:active {
     background: hsl(var(--muted));
+  }
+}
+
+/* Whole-page cross-fade when toggling light/dark (View Transitions API) */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: var(--theme-switch-duration);
+    animation-timing-function: var(--theme-switch-ease);
   }
 }

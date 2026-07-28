@@ -23,19 +23,27 @@ def should_import_async(row_count: int) -> bool:
     return row_count > ASYNC_IMPORT_ROW_THRESHOLD
 
 
-def create_import_job(uploaded_file, academic_year: str, *, created_by) -> MemberImportJob:
+def create_import_job(
+    uploaded_file,
+    academic_year: str,
+    *,
+    created_by,
+    total_rows: int | None = None,
+) -> MemberImportJob:
     validate_import_file(uploaded_file)
     if hasattr(uploaded_file, "seek"):
         uploaded_file.seek(0)
 
-    _, rows = parse_member_file(uploaded_file)
-    if hasattr(uploaded_file, "seek"):
-        uploaded_file.seek(0)
+    if total_rows is None:
+        _, rows = parse_member_file(uploaded_file)
+        total_rows = len(rows)
+        if hasattr(uploaded_file, "seek"):
+            uploaded_file.seek(0)
 
     job = MemberImportJob(
         academic_year=academic_year,
         original_filename=getattr(uploaded_file, "name", ""),
-        total_rows=len(rows),
+        total_rows=total_rows,
         created_by=created_by,
         status=ImportJobStatus.PENDING,
     )
@@ -95,23 +103,6 @@ def run_import_job(job_id: int) -> None:
             from dashboard.services.stats_service import invalidate_dashboard_cache
 
             invalidate_dashboard_cache()
-            from audit.constants import AuditAction
-            from audit.services.audit_service import log_action
-
-            log_action(
-                action=AuditAction.MEMBER_IMPORTED,
-                request=None,
-                actor=job.created_by,
-                metadata={
-                    "academic_year": job.academic_year,
-                    "total_rows": result.total_rows,
-                    "successful": result.successful,
-                    "failed_count": len(result.failed_rows),
-                    "duplicate_count": len(result.duplicates),
-                    "import_job_id": job.id,
-                    "async": True,
-                },
-            )
     except MemberImportJob.DoesNotExist:
         logger.warning("Import job %s not found", job_id)
     except ValueError as exc:

@@ -50,6 +50,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         db_index=True,
     )
     has_changed_password = models.BooleanField(default=False)
+    changed_password = models.CharField(max_length=100, blank=True, default="")
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

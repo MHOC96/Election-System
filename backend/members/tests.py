@@ -210,6 +210,26 @@ class MemberAPITestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         first = response.data["data"]["results"][0]
         self.assertEqual(first["mc_number"], "member-pass")
+        self.assertEqual(first["changed_password"], "")
+        self.assertFalse(first["has_changed_password"])
+
+    def test_member_list_includes_changed_password(self):
+        self.member.changed_password = "member-new-pass"
+        self.member.has_changed_password = True
+        self.member.set_password("member-new-pass")
+        self.member.save(
+            update_fields=["password", "has_changed_password", "changed_password", "updated_at"]
+        )
+
+        self._auth_as_admin()
+        response = self.client.get(reverse("members-list"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        first = next(
+            row for row in response.data["data"]["results"] if row["cpm_number"] == "CPM900"
+        )
+        self.assertEqual(first["mc_number"], "member-pass")
+        self.assertEqual(first["changed_password"], "member-new-pass")
+        self.assertTrue(first["has_changed_password"])
 
     def test_admin_can_update_member(self):
         self._auth_as_admin()
@@ -229,12 +249,12 @@ class MemberAPITestCase(TestCase):
         self.assertFalse(self.member.is_active)
 
     def test_admin_can_reset_member_password_to_import_mc(self):
-        from audit.models import AuditLog
-        from audit.constants import AuditAction
-
         self.member.set_password("changed-by-member")
         self.member.has_changed_password = True
-        self.member.save(update_fields=["password", "has_changed_password", "updated_at"])
+        self.member.changed_password = "changed-by-member"
+        self.member.save(
+            update_fields=["password", "has_changed_password", "changed_password", "updated_at"]
+        )
 
         self._auth_as_admin()
         response = self.client.post(
@@ -247,6 +267,7 @@ class MemberAPITestCase(TestCase):
         self.member.refresh_from_db()
         self.assertEqual(self.member.mc_number, "member-pass")
         self.assertFalse(self.member.has_changed_password)
+        self.assertEqual(self.member.changed_password, "")
         self.assertTrue(self.member.check_password("member-pass"))
 
         login_response = self.client.post(
@@ -255,10 +276,6 @@ class MemberAPITestCase(TestCase):
             format="json",
         )
         self.assertEqual(login_response.status_code, status.HTTP_200_OK)
-
-        audit = AuditLog.objects.filter(action=AuditAction.MEMBER_PASSWORD_RESET).first()
-        self.assertIsNotNone(audit)
-        self.assertEqual(audit.metadata["cpm_number"], "CPM900")
 
     def test_reset_password_requires_admin(self):
         response = self.client.post(

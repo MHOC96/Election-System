@@ -1,6 +1,5 @@
 from collections import defaultdict
 import logging
-import time
 
 from django.core.cache import cache
 from django.db.models import Count, Q
@@ -21,9 +20,9 @@ from voting.services.vote_service import count_votable_positions
 
 logger = logging.getLogger(__name__)
 
-LIVE_STATS_CACHE_SECONDS = 10
-SUMMARY_CACHE_SECONDS = 10
-OVERVIEW_CACHE_SECONDS = 10
+LIVE_STATS_CACHE_SECONDS = 25
+SUMMARY_CACHE_SECONDS = 25
+OVERVIEW_CACHE_SECONDS = 25
 
 
 def _cache_version(scope: str | int) -> int:
@@ -38,21 +37,25 @@ def _bump_cache_version(scope: str | int) -> None:
         cache.set(key, 1, timeout=None)
 
 
+def _year_cache_segment(academic_year: str | None) -> str:
+    if not academic_year:
+        return ""
+    # Keep cache keys Redis-safe (no spaces in key segments).
+    return f":{academic_year.replace(' ', '-')}"
+
+
 def _summary_cache_key(election_id: int | None, academic_year: str | None = None) -> str:
     scope = election_id if election_id is not None else "default"
-    year_suffix = f":{academic_year}" if academic_year else ""
-    return f"dashboard:summary:{scope}{year_suffix}:v{_cache_version(scope)}"
+    return f"dashboard:summary:{scope}{_year_cache_segment(academic_year)}:v{_cache_version(scope)}"
 
 
 def _live_stats_cache_key(election_id: int, academic_year: str | None = None) -> str:
-    year_suffix = f":{academic_year}" if academic_year else ""
-    return f"dashboard:live_stats:{election_id}{year_suffix}:v{_cache_version(election_id)}"
+    return f"dashboard:live_stats:{election_id}{_year_cache_segment(academic_year)}:v{_cache_version(election_id)}"
 
 
 def _overview_cache_key(election_id: int | None, academic_year: str | None = None) -> str:
     scope = election_id if election_id is not None else "default"
-    year_suffix = f":{academic_year}" if academic_year else ""
-    return f"dashboard:overview:{scope}{year_suffix}:v{_cache_version(scope)}"
+    return f"dashboard:overview:{scope}{_year_cache_segment(academic_year)}:v{_cache_version(scope)}"
 
 
 def _resolve_election(election_id: int | None = None) -> Election | None:
@@ -75,39 +78,23 @@ def get_dashboard_overview(
 ) -> dict:
     """Return summary and live stats in one response (single round trip)."""
     cache_key = _overview_cache_key(election_id, academic_year)
-    lock_key = None
-    acquired_lock = False
     if use_cache:
         cached = cache.get(cache_key)
         if cached is not None:
             return cached
 
-        lock_key = f"{cache_key}:lock"
-        if cache.add(lock_key, 1, timeout=30):
-            acquired_lock = True
-        else:
-            for _ in range(40):
-                time.sleep(0.05)
-                cached = cache.get(cache_key)
-                if cached is not None:
-                    return cached
-
-    try:
-        election = _resolve_election(election_id)
-        result = {
-            "summary": get_dashboard_summary(
-                election_id, use_cache=False, election=election, academic_year=academic_year
-            ),
-            "live": get_live_stats(
-                election_id, use_cache=False, election=election, academic_year=academic_year
-            ),
-        }
-        if use_cache:
-            cache.set(cache_key, result, OVERVIEW_CACHE_SECONDS)
-        return result
-    finally:
-        if acquired_lock and lock_key is not None:
-            cache.delete(lock_key)
+    election = _resolve_election(election_id)
+    result = {
+        "summary": get_dashboard_summary(
+            election_id, use_cache=use_cache, election=election, academic_year=academic_year
+        ),
+        "live": get_live_stats(
+            election_id, use_cache=use_cache, election=election, academic_year=academic_year
+        ),
+    }
+    if use_cache:
+        cache.set(cache_key, result, OVERVIEW_CACHE_SECONDS)
+    return result
 
 
 def get_dashboard_summary(
@@ -367,24 +354,43 @@ def get_position_rankings(position_id: int, election_id: int | None = None) -> d
     except Position.DoesNotExist:
         return None
 
-    live_stats = get_live_stats(election.id, use_cache=True)
-    for item in live_stats["positions"]:
-        if item["position_id"] == position_id:
-            return {
-                "election": live_stats["election"],
-                "position_id": position.id,
-                "position_name": position.name,
-                "total_votes": item["total_votes"],
-                "rankings": item["rankings"],
-                "winners": item["winners"],
+    vote_filter = Q(votes__election_id=election.id)
+    candidates = (
+        Candidate.objects.select_related("position")
+        .filter(election_id=election.id, position_id=position_id)
+        .annotate(vote_count=Count("votes", filter=vote_filter))
+        .order_by("-vote_count", "full_name")
+    )
+
+    rankings = []
+    total_votes = 0
+    for rank, candidate in enumerate(candidates, start=1):
+        total_votes += candidate.vote_count
+        rankings.append(
+            {
+                "candidate_id": candidate.id,
+                "full_name": candidate.full_name,
+                "position_id": candidate.position_id,
+                "position_name": candidate.position.name,
+                "vote_count": candidate.vote_count,
+                "vote_percentage": 0.0,
+                "rank": rank,
             }
+        )
+
+    if total_votes > 0:
+        for item in rankings:
+            item["vote_percentage"] = _pct(item["vote_count"], total_votes)
+
+    winners = rankings[: position.max_winners]
+
     return {
-        "election": live_stats["election"],
+        "election": _election_payload(election),
         "position_id": position.id,
         "position_name": position.name,
-        "total_votes": 0,
-        "rankings": [],
-        "winners": [],
+        "total_votes": total_votes,
+        "rankings": rankings,
+        "winners": winners,
     }
 
 

@@ -165,6 +165,7 @@ class ChangePasswordAPITestCase(TestCase):
         self.member.refresh_from_db()
         self.assertTrue(self.member.check_password("new-secret-1"))
         self.assertTrue(self.member.has_changed_password)
+        self.assertEqual(self.member.changed_password, "new-secret-1")
 
         old_refresh_response = self.client.post(
             reverse("auth-refresh"),

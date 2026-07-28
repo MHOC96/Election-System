@@ -8,7 +8,10 @@ import {
   DASHBOARD_STALE_MS,
   dashboardOverviewQueryKey,
   MEMBERS_STALE_MS,
+  MEMBERS_DELETION_STATUS_QUERY_KEY,
+  MEMBERS_DELETION_STATUS_STALE_MS,
   ONGOING_ELECTION_QUERY_KEY,
+  ONGOING_ELECTION_STALE_MS,
   POSITIONS_QUERY_KEY,
   POSITIONS_STALE_MS,
   REPORTS_STATUS_QUERY_KEY,
@@ -85,38 +88,34 @@ export async function prepareMemberEntry(queryClient: QueryClient) {
     import('@/api/elections'),
   ])
 
-  const election = await queryClient.ensureQueryData({
-    queryKey: ONGOING_ELECTION_QUERY_KEY,
-    queryFn: fetchOngoingElection,
-  })
-
-  const tasks: Promise<unknown>[] = [preloadMemberShell()]
+  const [election] = await Promise.all([
+    queryClient.ensureQueryData({
+      queryKey: ONGOING_ELECTION_QUERY_KEY,
+      queryFn: fetchOngoingElection,
+      staleTime: ONGOING_ELECTION_STALE_MS,
+    }),
+    preloadMemberShell(),
+  ])
 
   if (shouldPrefetchBallot(election?.current_phase)) {
-    tasks.push(
-      queryClient.ensureQueryData({
-        queryKey: BALLOT_QUERY_KEY,
-        queryFn: fetchBallot,
-        staleTime: BALLOT_STALE_MS,
-      }),
-    )
+    void queryClient.prefetchQuery({
+      queryKey: BALLOT_QUERY_KEY,
+      queryFn: fetchBallot,
+      staleTime: BALLOT_STALE_MS,
+    })
   }
 
   if (shouldPrefetchApplications(election?.current_phase)) {
     prefetchApplicationPageData(queryClient)
   }
-
-  await Promise.all(tasks)
 }
 
 export function prefetchAdminLanding(queryClient: QueryClient) {
-  for (const year of ['3rd Year', '2nd Year'] as const) {
-    void queryClient.prefetchQuery({
-      queryKey: dashboardOverviewQueryKey(year),
-      queryFn: () => fetchDashboardOverview(undefined, year),
-      staleTime: DASHBOARD_STALE_MS,
-    })
-  }
+  void queryClient.prefetchQuery({
+    queryKey: dashboardOverviewQueryKey(DASHBOARD_DEFAULT_ACADEMIC_YEAR),
+    queryFn: () => fetchDashboardOverview(undefined, DASHBOARD_DEFAULT_ACADEMIC_YEAR),
+    staleTime: DASHBOARD_STALE_MS,
+  })
 }
 
 export function prefetchPositions(queryClient: QueryClient) {
@@ -137,8 +136,9 @@ function prefetchMembersData(queryClient: QueryClient) {
       staleTime: MEMBERS_STALE_MS,
     })
     void queryClient.prefetchQuery({
-      queryKey: ['members-deletion-status'],
+      queryKey: MEMBERS_DELETION_STATUS_QUERY_KEY,
       queryFn: fetchMemberDeletionStatus,
+      staleTime: MEMBERS_DELETION_STATUS_STALE_MS,
     })
   })
 }
@@ -289,27 +289,27 @@ export function prefetchMemberNavRoute(to: string, queryClient: QueryClient) {
 }
 
 export function prefetchMemberLanding(queryClient: QueryClient) {
-  void import('@/api/elections').then(({ fetchOngoingElection }) => {
-    void queryClient
-      .fetchQuery({
+  void Promise.all([import('@/api/elections'), import('@/api/votes')]).then(
+    async ([{ fetchOngoingElection }, { fetchBallot }]) => {
+      const election = await queryClient.ensureQueryData({
         queryKey: ONGOING_ELECTION_QUERY_KEY,
         queryFn: fetchOngoingElection,
+        staleTime: ONGOING_ELECTION_STALE_MS,
       })
-      .then((election) => {
-        if (shouldPrefetchBallot(election?.current_phase)) {
-          void import('@/api/votes').then(({ fetchBallot }) => {
-            void queryClient.prefetchQuery({
-              queryKey: BALLOT_QUERY_KEY,
-              queryFn: fetchBallot,
-              staleTime: BALLOT_STALE_MS,
-            })
-          })
-        }
-        if (shouldPrefetchApplications(election?.current_phase)) {
-          prefetchApplicationPageData(queryClient)
-        }
-      })
-  })
+
+      if (shouldPrefetchBallot(election?.current_phase)) {
+        void queryClient.prefetchQuery({
+          queryKey: BALLOT_QUERY_KEY,
+          queryFn: fetchBallot,
+          staleTime: BALLOT_STALE_MS,
+        })
+      }
+
+      if (shouldPrefetchApplications(election?.current_phase)) {
+        prefetchApplicationPageData(queryClient)
+      }
+    },
+  )
 }
 
 export function handleNavPrefetch(

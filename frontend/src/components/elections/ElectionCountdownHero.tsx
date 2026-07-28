@@ -139,7 +139,7 @@ export function ElectionCountdownHero({
       meta={targetAt ? `${copy.targetPrefix} · ${formatDate(targetAt)}` : undefined}
       countdownTargetAt={targetAt}
       countdownLabel={copy.countdownLabel}
-      className={cn('max-w-3xl', className)}
+      className={className}
       footer={
         variant === 'voting-upcoming' ? (
           <VotingScheduleDetails

@@ -107,12 +107,14 @@ def build_member_vote_status(
     votes: list[Vote] | None = None,
     positions_total: int | None = None,
     current_phase: str | None = None,
+    election_ended: bool | None = None,
 ) -> dict:
     if positions_total is None:
         positions_total = count_votable_positions(member, election_id=election.id if election else None)
-    recently_closed = Election.get_recently_closed()
 
     if election is None:
+        if election_ended is None:
+            election_ended = Election.get_recently_closed() is not None
         return {
             "election": None,
             "votes": [],
@@ -121,7 +123,7 @@ def build_member_vote_status(
             "positions_remaining": positions_total,
             "all_positions_voted": False,
             "can_vote": False,
-            "election_ended": recently_closed is not None,
+            "election_ended": election_ended,
         }
 
     if votes is None:

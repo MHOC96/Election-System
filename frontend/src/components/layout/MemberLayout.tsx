@@ -9,6 +9,8 @@ import {
   memberShellHeaderClass,
   memberShellHeaderInnerClass,
   memberShellMainClass,
+  brandMarkClass,
+  shellHeaderBarClass,
 } from '@/lib/design-tokens'
 import { warmMemberConsole, resetConsoleWarmupState } from '@/lib/prefetch'
 import { useOngoingElection } from '@/hooks/useOngoingElection'
@@ -16,55 +18,21 @@ import { ShellActions } from '@/components/layout/ShellActions'
 import { MemberPhaseStrip } from '@/components/member/MemberPhaseStrip'
 import { SkipToContent } from '@/components/shared/SkipToContent'
 import { MAIN_CONTENT_ID } from '@/lib/a11y'
-import { memberPhaseAccent } from '@/lib/member-phase-ui'
-import { accentScope } from '@/lib/portal-accent'
 import { notifyError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 
-function MemberBrandMark({
-  cpmNumber,
-  electionName,
-  compact = false,
-}: {
-  cpmNumber?: string
-  electionName?: string
-  compact?: boolean
-}) {
+function MemberBrandMark() {
   return (
-    <Link
-      to="/"
-      className="group flex min-w-0 items-center gap-3 overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal-accent focus-visible:ring-offset-2 focus-visible:ring-offset-portal-surface"
-    >
-      <span
-        className={cn(
-          'portal-accent-fill flex shrink-0 items-center justify-center rounded-xl',
-          compact ? 'h-10 w-10' : 'h-10 w-10 sm:h-11 sm:w-11',
-        )}
-        aria-hidden="true"
-      >
-        <Vote className="h-[1.15rem] w-[1.15rem]" />
-      </span>
-      <span className="min-w-0 leading-tight">
-        <span
-          className={cn(
-            'portal-heading block truncate font-semibold tracking-tight',
-            compact ? 'text-sm' : 'text-sm sm:text-base',
-          )}
-        >
-          Member Portal
-        </span>
-        <span className="portal-subtle mt-0.5 block truncate text-[11px] sm:text-xs">
-          {cpmNumber ? `CPM ${cpmNumber}` : 'Executive Committee Election'}
-          {electionName ? (
-            <>
-              <span className="mx-1.5 opacity-50" aria-hidden="true">
-                ·
-              </span>
-              {electionName}
-            </>
-          ) : null}
-        </span>
-      </span>
+    <Link to="/" className="group flex shrink-0 items-center gap-2.5 rounded-xl">
+      <div className={cn(brandMarkClass, 'h-9 w-9 shrink-0')}>
+        <Vote className="h-4 w-4" aria-hidden="true" />
+      </div>
+      <div className="shrink-0 leading-none">
+        <p className="whitespace-nowrap text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          Election System
+        </p>
+        <p className="mt-0.5 whitespace-nowrap text-sm font-semibold leading-tight">Member Portal</p>
+      </div>
     </Link>
   )
 }
@@ -75,9 +43,8 @@ export function MemberLayout() {
   const queryClient = useQueryClient()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
-  const { data: ongoingElection } = useOngoingElection()
+  const { data: ongoingElection } = useOngoingElection({ poll: false })
   const phase = ongoingElection?.current_phase
-  const electionName = ongoingElection?.name
 
   useEffect(() => {
     warmMemberConsole(queryClient)
@@ -101,17 +68,14 @@ export function MemberLayout() {
   }, [isLoggingOut, logout, navigate, queryClient])
 
   return (
-    // The phase accent lives on the shell so the header, canvas wash, and
-    // every card below inherit the same hue for the current election stage.
-    <div className={cn(memberShellClass, accentScope(memberPhaseAccent(phase)))}>
+    <div className={memberShellClass}>
       <SkipToContent />
 
       <header className={memberShellHeaderClass}>
-        <div className={cn(memberShellHeaderInnerClass, 'gap-2.5 py-3 sm:py-3.5')}>
-          {/* Mobile */}
+        <div className={cn(memberShellHeaderInnerClass, 'gap-2.5 py-3 sm:py-0')}>
           <div className="flex flex-col gap-2.5 sm:hidden">
             <div className="flex items-center justify-between gap-3">
-              <MemberBrandMark cpmNumber={user?.cpm_number} electionName={electionName} compact />
+              <MemberBrandMark />
               <ShellActions
                 compact
                 cpmNumber={user?.cpm_number}
@@ -122,21 +86,16 @@ export function MemberLayout() {
             {phase ? <MemberPhaseStrip phase={phase} /> : null}
           </div>
 
-          {/* Tablet and up */}
-          <div className="hidden sm:grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center sm:gap-x-4 lg:gap-x-6">
-            <MemberBrandMark cpmNumber={user?.cpm_number} electionName={electionName} />
-
-            {phase ? (
-              <MemberPhaseStrip phase={phase} variant="pill" className="justify-self-center" />
-            ) : (
-              <span className="justify-self-center" aria-hidden="true" />
-            )}
-
+          <div className={cn(shellHeaderBarClass, 'hidden w-full gap-3 sm:flex')}>
+            <MemberBrandMark />
+            <div className="flex min-w-0 flex-1 justify-center overflow-hidden px-2">
+              {phase ? <MemberPhaseStrip phase={phase} variant="pill" /> : null}
+            </div>
             <ShellActions
               cpmNumber={user?.cpm_number}
               onLogout={() => void handleLogout()}
               isLoggingOut={isLoggingOut}
-              className="justify-self-end"
+              showMenuButton={false}
             />
           </div>
         </div>

@@ -50,7 +50,7 @@ export function ElectionProgressCard({
   const isComplete = total > 0 && votedCount === total
 
   return (
-    <PortalCard>
+    <PortalCard raised>
       <PortalCardHeader>
         <div className="flex min-w-0 flex-col items-start justify-between gap-3 sm:flex-row sm:items-center sm:gap-4">
           <div className="min-w-0">

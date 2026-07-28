@@ -23,6 +23,7 @@ if (import.meta.env.PROD && API_URL.startsWith('/')) {
 export const api = axios.create({
   baseURL: API_URL,
   headers: { 'Content-Type': 'application/json' },
+  timeout: 30_000,
 })
 
 let refreshPromise: Promise<string | null> | null = null

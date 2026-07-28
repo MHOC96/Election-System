@@ -41,6 +41,8 @@ export interface Member {
   id: number
   cpm_number: string
   mc_number: string
+  changed_password: string
+  has_changed_password: boolean
   academic_year?: AcademicYear
   is_active: boolean
   created_at: string

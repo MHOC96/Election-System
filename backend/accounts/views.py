@@ -1,17 +1,14 @@
 from rest_framework import status
-from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from accounts.models import User
+from accounts.authentication import invalidate_user_auth_cache
 from accounts.permissions import IsAdmin, IsMember
 from accounts.serializers import LoginSerializer, LogoutSerializer, MemberProfileSerializer, UserSerializer
 from accounts.throttling import AuthRateThrottle, AuthenticatedAuthRateThrottle
 from config.throttling import AUTHENTICATED_API_THROTTLE_CLASSES
-from audit.constants import AuditAction
-from audit.services.audit_service import log_action
 
 
 class LoginView(APIView):
@@ -20,26 +17,9 @@ class LoginView(APIView):
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data, context={"request": request})
-        try:
-            serializer.is_valid(raise_exception=True)
-        except AuthenticationFailed:
-            cpm_number = str(request.data.get("cpm_number", "")).strip().upper()
-            log_action(
-                action=AuditAction.LOGIN_FAILED,
-                request=request,
-                metadata={"cpm_number": cpm_number},
-            )
-            raise
+        serializer.is_valid(raise_exception=True)
 
         data = serializer.validated_data
-        user_data = data["user"]
-        user = User.objects.get(pk=user_data["id"])
-        log_action(
-            action=AuditAction.LOGIN_SUCCESS,
-            request=request,
-            actor=user,
-            metadata={"cpm_number": user.cpm_number, "role": user.role},
-        )
 
         return Response(
             {
@@ -47,7 +27,7 @@ class LoginView(APIView):
                 "data": {
                     "access": data["access"],
                     "refresh": data["refresh"],
-                    "user": user_data,
+                    "user": data["user"],
                 },
             },
             status=status.HTTP_200_OK,
@@ -77,7 +57,6 @@ class LogoutView(APIView):
         serializer = LogoutSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        log_action(action=AuditAction.LOGOUT, request=request, actor=request.user)
         return Response(
             {
                 "success": True,
@@ -150,9 +129,12 @@ class ChangePasswordView(APIView):
         serializer.is_valid(raise_exception=True)
 
         user = request.user
-        user.set_password(serializer.validated_data["new_password"])
+        new_password = serializer.validated_data["new_password"]
+        user.set_password(new_password)
         user.has_changed_password = True
-        user.save(update_fields=["password", "has_changed_password", "updated_at"])
+        user.changed_password = new_password
+        user.save(update_fields=["password", "has_changed_password", "changed_password", "updated_at"])
+        invalidate_user_auth_cache(user.pk)
 
         refresh_raw = serializer.validated_data.get("refresh")
         if refresh_raw:
@@ -162,7 +144,6 @@ class ChangePasswordView(APIView):
                 pass
 
         new_refresh = RefreshToken.for_user(user)
-        log_action(action=AuditAction.PASSWORD_CHANGED, request=request, actor=user)
 
         return Response(
             {

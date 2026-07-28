@@ -1,4 +1,5 @@
 import { forwardRef, type HTMLAttributes, type ReactNode } from 'react'
+import { memberPageBlockClass } from '@/lib/design-tokens'
 import { accentScope, type PortalAccent } from '@/lib/portal-accent'
 import { cn } from '@/lib/utils'
 
@@ -49,7 +50,8 @@ export const PortalCard = forwardRef<HTMLDivElement, PortalCardProps>(function P
       ref={ref}
       className={cn(
         portalSurfaceClass({ tone, raised, interactive, selected }),
-        'min-w-0 overflow-hidden rounded-2xl',
+        memberPageBlockClass,
+        'overflow-hidden rounded-2xl',
         accent && accentScope(accent),
         className,
       )}

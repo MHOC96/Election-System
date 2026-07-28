@@ -5,6 +5,7 @@ import sys
 import environ
 
 from config import py314_compat  # noqa: F401  — Django 5.1 + Python 3.14 admin fix
+from config.database import build_databases
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -40,7 +41,6 @@ INSTALLED_APPS = [
     "voting",
     "dashboard",
     "reports",
-    "audit",
 ]
 
 MIDDLEWARE = [
@@ -75,30 +75,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-# Supabase transaction pooler: use DATABASE_URL (port 6543).
-# CONN_MAX_AGE must be 0 with transaction pooling (PgBouncer).
-_database_url = env("DATABASE_URL", default="")
-if _database_url:
-    DATABASES = {"default": env.db("DATABASE_URL")}
-    DATABASES["default"]["CONN_MAX_AGE"] = 0
-    DATABASES["default"].setdefault("OPTIONS", {})
-    DATABASES["default"]["OPTIONS"].setdefault("sslmode", "require")
-    DATABASES["default"]["OPTIONS"].setdefault("connect_timeout", 10)
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": env("DB_NAME"),
-            "USER": env("DB_USER"),
-            "PASSWORD": env("DB_PASSWORD"),
-            "HOST": env("DB_HOST", default="localhost"),
-            "PORT": env("DB_PORT", default="5432"),
-            "CONN_MAX_AGE": 60,
-            "OPTIONS": {
-                "connect_timeout": 10,
-            },
-        }
-    }
+DATABASES = build_databases(env)
 
 AUTH_USER_MODEL = "accounts.User"
 
@@ -136,9 +113,11 @@ CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
 CORS_ALLOW_CREDENTIALS = True
 CORS_PREFLIGHT_MAX_AGE = 86400
 
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "accounts.authentication.CachedJWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
@@ -231,6 +210,8 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=False)
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+    CSRF_COOKIE_SAMESITE = "Lax"
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_BROWSER_XSS_FILTER = True
     X_FRAME_OPTIONS = "DENY"
@@ -267,3 +248,31 @@ LOGGING = {
         },
     },
 }
+
+_WEAK_SECRET_KEYS = frozenset(
+    {
+        "change-me",
+        "change-me-to-a-long-random-string",
+        "dev",
+        "secret",
+        "django-insecure",
+    }
+)
+
+if not _is_test and not DEBUG:
+    from django.core.exceptions import ImproperlyConfigured
+
+    if not SECRET_KEY or len(SECRET_KEY) < 50 or SECRET_KEY.lower() in _WEAK_SECRET_KEYS:
+        raise ImproperlyConfigured(
+            "SECRET_KEY must be a strong random string (50+ characters) when DEBUG=False."
+        )
+
+    if set(ALLOWED_HOSTS) <= {"localhost", "127.0.0.1", "testserver"}:
+        raise ImproperlyConfigured(
+            "Set ALLOWED_HOSTS to your production domain(s) when DEBUG=False."
+        )
+
+    if not CORS_ALLOWED_ORIGINS:
+        raise ImproperlyConfigured(
+            "CORS_ALLOWED_ORIGINS must list your frontend origin(s) when DEBUG=False."
+        )

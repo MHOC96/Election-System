@@ -14,4 +14,5 @@ def reset_member_password(member: User) -> None:
 
     member.set_password(member.mc_number)
     member.has_changed_password = False
-    member.save(update_fields=["password", "has_changed_password", "updated_at"])
+    member.changed_password = ""
+    member.save(update_fields=["password", "has_changed_password", "changed_password", "updated_at"])

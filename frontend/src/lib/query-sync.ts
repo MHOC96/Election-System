@@ -16,14 +16,14 @@ export function dashboardOverviewQueryKey(
   return [...DASHBOARD_QUERY_KEY, academicYear] as const
 }
 
-/** Poll active dashboard every 10s (matches backend overview cache). */
-export const DASHBOARD_POLL_MS = 10_000
+/** Poll active dashboard every 25s (matches backend overview cache). */
+export const DASHBOARD_POLL_MS = 25_000
 
 /** Poll dashboard summary when election is not live. */
-export const DASHBOARD_SUMMARY_POLL_MS = 15_000
+export const DASHBOARD_SUMMARY_POLL_MS = 30_000
 
-/** Align with backend overview TTL (10s); keep below poll interval. */
-export const DASHBOARD_STALE_MS = 9_000
+/** Align with backend overview TTL (25s); keep below poll interval. */
+export const DASHBOARD_STALE_MS = 22_000
 
 /** Ballot cache TTL — stable while the member reviews candidates. */
 export const BALLOT_STALE_MS = 30_000
@@ -46,13 +46,26 @@ export const PUBLISHED_RESULTS_STALE_MS = 5 * 60 * 1000
 /** Member application list while applications are open. */
 export const APPLICATIONS_STALE_MS = 30_000
 
+export const MEMBERS_DELETION_STATUS_QUERY_KEY = ['members-deletion-status'] as const
+
+/** Deletion allowed only changes with election lifecycle — invalidate on mutations. */
+export const MEMBERS_DELETION_STATUS_STALE_MS = 60_000
+
+export const MEMBERS_DELETION_STATUS_POLL_MS = 60_000
+
+export const CANDIDATES_MODIFICATION_STATUS_QUERY_KEY = ['candidates-modification-status'] as const
+
+export const CANDIDATES_MODIFICATION_STATUS_STALE_MS = 60_000
+
+export const CANDIDATES_MODIFICATION_STATUS_POLL_MS = 60_000
+
 export const ONGOING_ELECTION_QUERY_KEY = ['elections', 'ongoing'] as const
 
-/** Poll ongoing election for member phase routing (15s). */
-export const ONGOING_ELECTION_POLL_MS = 15_000
+/** Poll ongoing election for member phase routing (30s). */
+export const ONGOING_ELECTION_POLL_MS = 30_000
 
 /** Keep below poll interval to avoid redundant refetches across member surfaces. */
-export const ONGOING_ELECTION_STALE_MS = 12_000
+export const ONGOING_ELECTION_STALE_MS = 25_000
 
 export const REPORTS_STATUS_QUERY_KEY = ['reports-status'] as const
 

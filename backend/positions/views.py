@@ -12,8 +12,6 @@ from positions.cache import (
 )
 from positions.models import Position
 from positions.serializers import PositionSerializer
-from audit.constants import AuditAction
-from audit.services.audit_service import log_action
 
 
 class PositionListCreateView(generics.ListCreateAPIView):
@@ -40,12 +38,6 @@ class PositionListCreateView(generics.ListCreateAPIView):
         position = serializer.save()
         bump_positions_list_cache()
         invalidate_dashboard_cache()
-        log_action(
-            action=AuditAction.POSITION_CREATED,
-            request=request,
-            actor=request.user,
-            metadata={"position_id": position.id, "name": position.name},
-        )
         return Response(
             {"success": True, "data": serializer.data},
             status=status.HTTP_201_CREATED,
@@ -79,12 +71,6 @@ class PositionDetailView(generics.RetrieveUpdateDestroyAPIView):
         serializer.save()
         bump_positions_list_cache()
         invalidate_dashboard_cache()
-        log_action(
-            action=AuditAction.POSITION_UPDATED,
-            request=request,
-            actor=request.user,
-            metadata={"position_id": instance.id, "name": instance.name},
-        )
         return Response({"success": True, "data": serializer.data})
 
     def destroy(self, request, *args, **kwargs):
@@ -98,12 +84,6 @@ class PositionDetailView(generics.RetrieveUpdateDestroyAPIView):
         instance.delete()
         bump_positions_list_cache()
         invalidate_dashboard_cache()
-        log_action(
-            action=AuditAction.POSITION_DELETED,
-            request=request,
-            actor=request.user,
-            metadata={"position_id": position_id, "name": name},
-        )
         return Response(
             {"success": True, "message": "Position deleted successfully."},
             status=status.HTTP_200_OK,

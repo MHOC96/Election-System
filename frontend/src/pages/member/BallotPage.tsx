@@ -309,7 +309,7 @@ const PositionSection = memo(function PositionSection({
   )
 
   return (
-    <PortalCard as="section">
+    <PortalCard raised as="section">
       <PortalCardHeader
         // A completed position turns green so members can scan the ballot.
         className={cn(item.has_voted && accentScope('success'))}
