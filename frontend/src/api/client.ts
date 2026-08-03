@@ -149,7 +149,7 @@ export async function apiUpload<T>(url: string, formData: FormData) {
 
 export async function downloadReport(
   type: 'results' | 'candidates' | 'turnout' | 'participation',
-  format: 'csv' | 'xlsx' | 'pdf',
+  format: 'pdf',
   electionId?: number,
   academicYear?: string,
 ) {

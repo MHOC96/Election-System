@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import type { ExportFormat, ReportType } from '@/types/api'
+import type { ReportType } from '@/types/api'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { PageNotice } from '@/components/shared/PageNotice'
@@ -25,14 +25,13 @@ import { pageHeaderBlockClass, pageLayoutClass } from '@/lib/design-tokens'
 import { REPORTS_STATUS_QUERY_KEY, REPORTS_STATUS_STALE_MS } from '@/lib/query-sync'
 
 const reports: { type: ReportType; title: string; description: string }[] = [
-  { type: 'results', title: 'Election Results', description: 'Vote counts and winners per position' },
-  { type: 'candidates', title: 'Candidate List', description: 'All registered candidates for the archived election' },
+  { type: 'results', title: 'Election Results', description: 'Vote counts and winners grouped by position' },
+  { type: 'candidates', title: 'Candidate List', description: 'All registered candidates grouped by position' },
   { type: 'turnout', title: 'Turnout Report', description: 'Voter turnout statistics by position' },
   { type: 'participation', title: 'Participation List', description: 'Members who voted and their ballot status' },
 ]
 
 export function ReportsPage() {
-  const [format, setFormat] = useState<ExportFormat>('pdf')
   const [activeTab, setActiveTab] = useState('2nd Year')
   const [loading, setLoading] = useState<ReportType | null>(null)
   const [selectedElectionId, setSelectedElectionId] = useState<number | null>(null)
@@ -70,7 +69,7 @@ export function ReportsPage() {
     if (!selectedElection) return
     setLoading(type)
     try {
-      await exportReport(type, format, selectedElection.id, activeTab)
+      await exportReport(type, 'pdf', selectedElection.id, activeTab)
       notifySuccessMessage(SUCCESS_MESSAGES.reportDownloaded)
     } catch (error) {
       notifyApiError(error, 'report')
@@ -82,7 +81,7 @@ export function ReportsPage() {
   if (statusQuery.isError) {
     return (
       <div className={pageLayoutClass}>
-        <PageHeader title="Reports" description="Export election data in PDF, Excel, or CSV" />
+        <PageHeader title="Reports" description="Export election data as PDF reports" />
         <QueryErrorState
           title="Failed to load report availability"
           onRetry={() => void statusQuery.refetch()}
@@ -95,7 +94,7 @@ export function ReportsPage() {
   if (isInitialLoad) {
     return (
       <div className={pageLayoutClass}>
-        <PageHeader title="Reports" description="Export election data in PDF, Excel, or CSV" />
+        <PageHeader title="Reports" description="Export election data as PDF reports" />
         <Card>
           <CardContent
             className="flex min-h-[12rem] flex-col items-center justify-center gap-3 p-8 text-center text-sm text-muted-foreground"
@@ -117,38 +116,24 @@ export function ReportsPage() {
         <div className={pageHeaderBlockClass}>
           <PageHeader
             title="Reports"
-            description="Export archived election data in PDF, Excel, or CSV"
+            description="Export archived election data as PDF reports"
             action={
-              reportsAvailable ? (
-                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-                  {archivedElections.length > 1 ? (
-                    <Select
-                      value={selectedElection ? String(selectedElection.id) : undefined}
-                      onValueChange={(value) => setSelectedElectionId(Number(value))}
-                    >
-                      <SelectTrigger className="w-full sm:w-56">
-                        <SelectValue placeholder="Select election" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {archivedElections.map((election) => (
-                          <SelectItem key={election.id} value={String(election.id)}>
-                            {election.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : null}
-                  <Select value={format} onValueChange={(v) => setFormat(v as ExportFormat)}>
-                    <SelectTrigger className="w-full sm:w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pdf">PDF</SelectItem>
-                      <SelectItem value="xlsx">Excel</SelectItem>
-                      <SelectItem value="csv">CSV</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              reportsAvailable && archivedElections.length > 1 ? (
+                <Select
+                  value={selectedElection ? String(selectedElection.id) : undefined}
+                  onValueChange={(value) => setSelectedElectionId(Number(value))}
+                >
+                  <SelectTrigger className="w-full sm:w-56">
+                    <SelectValue placeholder="Select election" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {archivedElections.map((election) => (
+                      <SelectItem key={election.id} value={String(election.id)}>
+                        {election.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               ) : null
             }
           />
@@ -216,7 +201,7 @@ export function ReportsPage() {
                       disabled={loading === report.type || !selectedElection}
                     >
                       <Download className="h-4 w-4" />
-                      {loading === report.type ? 'Exporting...' : `Download ${format.toUpperCase()}`}
+                      {loading === report.type ? 'Exporting...' : 'Download PDF'}
                     </Button>
                   </CardContent>
                 </Card>

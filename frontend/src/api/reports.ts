@@ -1,5 +1,5 @@
 import { apiGet, downloadReport } from '@/api/client'
-import type { ExportFormat, ReportElectionSummary, ReportsStatus, ReportType } from '@/types/api'
+import type { ReportElectionSummary, ReportsStatus, ReportType } from '@/types/api'
 
 export async function fetchReportsStatus() {
   return apiGet<ReportsStatus>('/reports/status/')
@@ -7,7 +7,7 @@ export async function fetchReportsStatus() {
 
 export function exportReport(
   type: ReportType,
-  format: ExportFormat,
+  format: 'pdf',
   electionId: number,
   academicYear?: string,
 ) {

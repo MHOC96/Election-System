@@ -66,6 +66,7 @@ def get_results_report_data(election_id: int | None = None, academic_year: str |
     return {
         "title": title,
         "election": stats["election"],
+        "academic_year": academic_year or "",
         "rows": rows,
         "total_votes": stats["total_votes"],
     }
@@ -98,6 +99,7 @@ def get_candidates_report_data(election_id: int | None = None, academic_year: st
             "name": election.name,
             "status": election.status,
         },
+        "academic_year": academic_year or "",
         "rows": rows,
     }
 
@@ -120,6 +122,7 @@ def get_turnout_report_data(election_id: int | None = None, academic_year: str |
     return {
         "title": title,
         "election": summary["election"],
+        "academic_year": academic_year or "",
         "summary": {
             "total_members": summary["total_members"],
             "votes_cast": summary["votes_cast"],
@@ -196,5 +199,6 @@ def get_participation_report_data(election_id: int | None = None, academic_year:
             "name": election.name,
             "status": election.status,
         },
+        "academic_year": academic_year or "",
         "rows": rows,
     }

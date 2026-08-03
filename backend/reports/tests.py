@@ -64,33 +64,28 @@ class ReportsAPITestCase(TestCase):
             HTTP_AUTHORIZATION=f"Bearer {response.data['data']['access']}"
         )
 
-    def test_results_csv_export(self):
-        response = self.client.get(reverse("reports-results"), {"export_format": "csv"})
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response["Content-Type"], "text/csv")
-        self.assertIn("attachment", response["Content-Disposition"])
-        self.assertIn(b"Candidate", response.content)
-
-    def test_results_xlsx_export(self):
-        response = self.client.get(reverse("reports-results"), {"export_format": "xlsx"})
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn("spreadsheetml", response["Content-Type"])
-
     def test_results_pdf_export(self):
         response = self.client.get(reverse("reports-results"), {"export_format": "pdf"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response["Content-Type"], "application/pdf")
         self.assertTrue(response.content.startswith(b"%PDF"))
 
-    def test_candidates_export(self):
-        response = self.client.get(reverse("reports-candidates"), {"export_format": "csv"})
+    def test_results_default_format_is_pdf(self):
+        response = self.client.get(reverse("reports-results"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn(b"Alice", response.content)
+        self.assertEqual(response["Content-Type"], "application/pdf")
 
-    def test_turnout_export(self):
-        response = self.client.get(reverse("reports-turnout"), {"export_format": "csv"})
+    def test_candidates_pdf_export(self):
+        response = self.client.get(reverse("reports-candidates"), {"export_format": "pdf"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn(b"Turnout", response.content)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertTrue(response.content.startswith(b"%PDF"))
+
+    def test_turnout_pdf_export(self):
+        response = self.client.get(reverse("reports-turnout"), {"export_format": "pdf"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertTrue(response.content.startswith(b"%PDF"))
 
     def test_turnout_report_data_matches_summary(self):
         from reports.services.report_data import get_turnout_report_data
@@ -102,14 +97,14 @@ class ReportsAPITestCase(TestCase):
         self.assertEqual(data["rows"][0]["position"], "President")
         self.assertEqual(data["rows"][0]["votes_cast"], 1)
 
-    def test_participation_export(self):
+    def test_participation_pdf_export(self):
         response = self.client.get(
             reverse("reports-participation"),
-            {"export_format": "csv", "academic_year": "2nd Year"},
+            {"export_format": "pdf", "academic_year": "2nd Year"},
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn(b"CPM500", response.content)
-        self.assertIn(b"Complete", response.content)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertTrue(response.content.startswith(b"%PDF"))
 
     def test_participation_report_data_statuses(self):
         from reports.services.report_data import get_participation_report_data
@@ -123,6 +118,14 @@ class ReportsAPITestCase(TestCase):
         response = self.client.get(reverse("reports-results"), {"export_format": "doc"})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_csv_format_rejected(self):
+        response = self.client.get(reverse("reports-results"), {"export_format": "csv"})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_xlsx_format_rejected(self):
+        response = self.client.get(reverse("reports-results"), {"export_format": "xlsx"})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_member_cannot_export(self):
         response = self.client.post(
             reverse("auth-login"),
@@ -132,13 +135,13 @@ class ReportsAPITestCase(TestCase):
         self.client.credentials(
             HTTP_AUTHORIZATION=f"Bearer {response.data['data']['access']}"
         )
-        response = self.client.get(reverse("reports-results"), {"export_format": "csv"})
+        response = self.client.get(reverse("reports-results"), {"export_format": "pdf"})
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_no_election_error(self):
         Vote.objects.all().delete()
         Election.objects.all().delete()
-        response = self.client.get(reverse("reports-results"), {"export_format": "csv"})
+        response = self.client.get(reverse("reports-results"), {"export_format": "pdf"})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data["error"]["code"], "no_election")
 
@@ -153,7 +156,7 @@ class ReportsAPITestCase(TestCase):
         )
         response = self.client.get(
             reverse("reports-results"),
-            {"export_format": "csv", "election_id": active.id},
+            {"export_format": "pdf", "election_id": active.id},
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data["error"]["code"], "election_not_archived")

@@ -6,32 +6,37 @@ import { transitionInteractive } from '@/lib/design-tokens'
 import { cn, formatPercent } from '@/lib/utils'
 import type { CandidateRanking } from '@/types/api'
 
+/* ── Rank colours ──────────────────────────────────────────────────
+   Use the system primary at decreasing opacities so the bars blend
+   naturally with both light and dark themes.  The CSS variables
+   --primary / --primary-foreground switch automatically. */
+
 const COLORS = [
-  'bg-chart-1',
-  'bg-chart-2',
-  'bg-chart-3',
-  'bg-chart-4',
+  'bg-primary',
+  'bg-primary/70',
+  'bg-primary/45',
+  'bg-primary/25',
 ]
 
 const TEXT_COLORS = [
-  'text-chart-1',
-  'text-chart-2',
-  'text-chart-3',
-  'text-chart-4',
+  'text-primary',
+  'text-primary/80',
+  'text-primary/60',
+  'text-primary/50',
 ]
 
 const BORDER_COLORS = [
-  'border-chart-1/35 bg-chart-1/10',
-  'border-chart-2/35 bg-chart-2/10',
-  'border-chart-3/35 bg-chart-3/10',
-  'border-chart-4/35 bg-chart-4/10',
+  'border-primary/35 bg-primary/10',
+  'border-primary/25 bg-primary/7',
+  'border-primary/18 bg-primary/5',
+  'border-primary/12 bg-primary/[0.03]',
 ]
 
 const ICON_BG_COLORS = [
-  'bg-chart-1/20',
-  'bg-chart-2/20',
-  'bg-chart-3/20',
-  'bg-chart-4/20',
+  'bg-primary/20',
+  'bg-primary/14',
+  'bg-primary/10',
+  'bg-primary/7',
 ]
 
 interface PositionLiveResultCardProps {

@@ -45,29 +45,29 @@ export function Countdown({ targetDate, label = 'Starts in' }: CountdownProps) {
   }
 
   return (
-    <Card className="bg-primary/5 border-primary/20 shadow-sm overflow-hidden relative">
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-primary/50" />
+    <Card className="overflow-hidden border-border/70 shadow-sm relative">
+      <div className="absolute top-0 left-0 w-full h-1 bg-primary/60" />
       <CardContent className="p-6 flex flex-col items-center justify-center">
         <div className="flex items-center gap-2 text-primary font-medium mb-4">
           <Clock className="w-5 h-5 animate-pulse" />
           <p>{label}</p>
         </div>
-        <div className="grid grid-cols-4 gap-4 text-center w-full max-w-sm">
-          <div className="surface-card flex flex-col rounded-lg p-2">
-            <span className="text-2xl font-bold text-foreground">{timeLeft.days}</span>
-            <span className="text-xs text-muted-foreground uppercase tracking-wider">Days</span>
+        <div className="grid grid-cols-4 gap-3 text-center w-full max-w-sm">
+          <div className="portal-digit flex flex-col items-center justify-center rounded-xl px-2 py-3">
+            <span className="portal-digit__value text-2xl font-bold leading-none">{timeLeft.days}</span>
+            <span className="portal-digit__label mt-1.5 text-[10px] font-semibold uppercase tracking-[0.12em]">Days</span>
           </div>
-          <div className="surface-card flex flex-col rounded-lg p-2">
-            <span className="text-2xl font-bold text-foreground">{timeLeft.hours}</span>
-            <span className="text-xs text-muted-foreground uppercase tracking-wider">Hrs</span>
+          <div className="portal-digit flex flex-col items-center justify-center rounded-xl px-2 py-3">
+            <span className="portal-digit__value text-2xl font-bold leading-none">{timeLeft.hours}</span>
+            <span className="portal-digit__label mt-1.5 text-[10px] font-semibold uppercase tracking-[0.12em]">Hrs</span>
           </div>
-          <div className="surface-card flex flex-col rounded-lg p-2">
-            <span className="text-2xl font-bold text-foreground">{timeLeft.minutes}</span>
-            <span className="text-xs text-muted-foreground uppercase tracking-wider">Mins</span>
+          <div className="portal-digit flex flex-col items-center justify-center rounded-xl px-2 py-3">
+            <span className="portal-digit__value text-2xl font-bold leading-none">{timeLeft.minutes}</span>
+            <span className="portal-digit__label mt-1.5 text-[10px] font-semibold uppercase tracking-[0.12em]">Mins</span>
           </div>
-          <div className="surface-card flex flex-col rounded-lg p-2">
-            <span className="text-2xl font-bold text-foreground">{timeLeft.seconds}</span>
-            <span className="text-xs text-muted-foreground uppercase tracking-wider">Secs</span>
+          <div className="portal-digit portal-digit--pulse flex flex-col items-center justify-center rounded-xl px-2 py-3">
+            <span className="portal-digit__value text-2xl font-bold leading-none">{timeLeft.seconds}</span>
+            <span className="portal-digit__label mt-1.5 text-[10px] font-semibold uppercase tracking-[0.12em]">Secs</span>
           </div>
         </div>
       </CardContent>

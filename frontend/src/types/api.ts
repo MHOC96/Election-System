@@ -234,7 +234,7 @@ export interface LiveStats {
 }
 
 export type ReportType = 'results' | 'candidates' | 'turnout' | 'participation'
-export type ExportFormat = 'csv' | 'xlsx' | 'pdf'
+export type ExportFormat = 'pdf'
 
 export interface ReportElectionSummary {
   id: number

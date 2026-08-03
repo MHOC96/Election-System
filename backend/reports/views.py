@@ -77,14 +77,14 @@ class BaseReportView(APIView):
         raise NotImplementedError
 
     def get(self, request):
-        export_format = request.query_params.get("export_format", "csv").lower()
+        export_format = request.query_params.get("export_format", "pdf").lower()
         if export_format not in SUPPORTED_FORMATS:
             return Response(
                 {
                     "success": False,
                     "error": {
                         "code": "invalid_format",
-                        "message": "export_format must be csv, xlsx, or pdf.",
+                        "message": "export_format must be pdf.",
                         "details": None,
                     },
                 },
