@@ -82,23 +82,23 @@ export function LoginPage() {
   }
 
   return (
-    <div className="bg-grid relative flex min-h-[100dvh] flex-col surface-page">
+    <div className="bg-grid relative flex min-h-screen min-h-[100dvh] flex-col surface-page">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 -z-0 h-72 bg-gradient-to-b from-primary/[0.07] to-transparent dark:from-primary/[0.12]"
       />
       <SkipToContent />
 
-      <header className="relative flex justify-end p-4">
+      <header className="relative flex justify-end p-4 pt-[max(1rem,env(safe-area-inset-top))] pr-[max(1rem,env(safe-area-inset-right))]">
         <ThemeToggle />
       </header>
 
       <main
         id={MAIN_CONTENT_ID}
         tabIndex={-1}
-        className="relative flex flex-1 flex-col items-center justify-start px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-4 outline-none sm:justify-center sm:py-8"
+        className="relative flex flex-1 flex-col items-center justify-center px-4 py-6 pb-[max(2rem,env(safe-area-inset-bottom))] outline-none sm:py-8"
       >
-        <Card className="surface-raised w-full max-w-md animate-scale-in max-sm:scroll-mt-4">
+        <Card className="surface-raised my-auto w-full max-w-md animate-scale-in max-sm:scroll-mt-4">
           <CardHeader className="text-center">
             <div className={cn(brandMarkClass, 'mx-auto mb-3 h-14 w-14 rounded-2xl shadow-md')}>
               <Vote className="h-7 w-7" aria-hidden="true" />
