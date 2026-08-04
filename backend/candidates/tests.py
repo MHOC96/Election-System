@@ -112,7 +112,7 @@ class CandidateAPITestCase(TestCase):
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("position", response.data["data"])
+        self.assertIn("position", response.data["error"]["details"])
 
     def test_non_cloudinary_url_rejected(self):
         self._login("ADM200", "admin-pass")
