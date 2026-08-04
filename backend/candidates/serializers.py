@@ -66,6 +66,27 @@ class CandidateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"declaration_file": "Declaration file is required."}
             )
+
+        position = attrs.get(
+            "position",
+            getattr(self.instance, "position", None) if self.instance else None,
+        )
+        academic_year = attrs.get(
+            "academic_year",
+            getattr(self.instance, "academic_year", None) if self.instance else None,
+        )
+        if (
+            position
+            and getattr(position, "academic_year", None)
+            and academic_year
+            and position.academic_year != academic_year
+        ):
+            raise serializers.ValidationError(
+                {
+                    "position": f"Position '{position.name}' is designated for {position.academic_year} candidates."
+                }
+            )
+
         return attrs
 
 

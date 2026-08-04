@@ -94,6 +94,26 @@ class CandidateAPITestCase(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_mismatched_position_academic_year_rejected(self):
+        from voting.models import Election, ElectionStatus
+
+        Election.objects.create(name="2026 EC", status=ElectionStatus.SCHEDULED)
+        pos_3rd = Position.objects.create(name="President", academic_year=AcademicYear.THIRD_YEAR)
+        self._login("ADM200", "admin-pass")
+        response = self.client.post(
+            reverse("candidates-list-create"),
+            {
+                "full_name": "Jane Doe",
+                "academic_year": AcademicYear.SECOND_YEAR,
+                "photo_url": self.photo_url,
+                "declaration_file": self.declaration_url,
+                "position": pos_3rd.pk,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("position", response.data["data"])
+
     def test_non_cloudinary_url_rejected(self):
         self._login("ADM200", "admin-pass")
         response = self.client.post(

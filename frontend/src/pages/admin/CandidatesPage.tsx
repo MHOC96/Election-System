@@ -125,6 +125,11 @@ export function CandidatesPage() {
   const academicYear = watch('academic_year')
   const positionId = watch('position')
 
+  const filteredPositions = useMemo(() => {
+    if (!positions) return []
+    return positions.filter((p) => !p.academic_year || p.academic_year === academicYear)
+  }, [positions, academicYear])
+
   const saveMutation = useMutation({
     mutationFn: (data: CandidateForm) => {
       if (editing) return updateCandidate(editing.id, data)
@@ -205,10 +210,22 @@ export function CandidatesPage() {
       return
     }
     setEditing(null)
+    const preferredPosition = preferredPositionId
+      ? positions.find((p) => p.id === preferredPositionId)
+      : undefined
+    const initialYear: AcademicYear = (preferredPosition?.academic_year as AcademicYear | undefined) ?? '2nd Year'
+    const matchingPositions = positions.filter(
+      (p) => !p.academic_year || p.academic_year === initialYear,
+    )
+    const initialPositionId =
+      preferredPositionId && matchingPositions.some((p) => p.id === preferredPositionId)
+        ? preferredPositionId
+        : (matchingPositions[0]?.id ?? positions[0].id)
+
     reset({
       full_name: '',
-      academic_year: '2nd Year',
-      position: preferredPositionId ?? positions[0].id,
+      academic_year: initialYear,
+      position: initialPositionId,
       photo_url: '',
       declaration_file: '',
     })
@@ -409,9 +426,20 @@ export function CandidatesPage() {
               <NativeSelect
                 id="academic_year"
                 value={academicYear}
-                onChange={(e) =>
-                  setValue('academic_year', e.target.value as AcademicYear, { shouldValidate: true })
-                }
+                onChange={(e) => {
+                  const newYear = e.target.value as AcademicYear
+                  setValue('academic_year', newYear, { shouldValidate: true })
+                  const matchingPositions = (positions ?? []).filter(
+                    (p) => !p.academic_year || p.academic_year === newYear,
+                  )
+                  if (matchingPositions.length > 0) {
+                    if (!matchingPositions.some((p) => p.id === positionId)) {
+                      setValue('position', matchingPositions[0].id, { shouldValidate: true })
+                    }
+                  } else {
+                    setValue('position', 0, { shouldValidate: true })
+                  }
+                }}
               >
                 <option value="2nd Year">2nd Year</option>
                 <option value="3rd Year">3rd Year</option>
@@ -425,17 +453,31 @@ export function CandidatesPage() {
             >
               <NativeSelect
                 id="position"
-                value={positionId ? String(positionId) : String(positions?.[0]?.id ?? '')}
+                value={
+                  positionId && filteredPositions.some((p) => p.id === positionId)
+                    ? String(positionId)
+                    : String(filteredPositions[0]?.id ?? '')
+                }
                 onChange={(e) =>
                   setValue('position', Number(e.target.value), { shouldValidate: true })
                 }
+                disabled={filteredPositions.length === 0}
               >
-                {positions?.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
+                {filteredPositions.length === 0 ? (
+                  <option value="">No positions available for {academicYear}</option>
+                ) : (
+                  filteredPositions.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))
+                )}
               </NativeSelect>
+              {filteredPositions.length === 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  No executive positions created for {academicYear}. Please add a position for {academicYear} first.
+                </p>
+              )}
             </FormField>
             <FormField label="Profile Photo" error={errors.photo_url?.message} required>
               <input
