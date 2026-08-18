@@ -11,7 +11,6 @@ export function AppToaster() {
       theme={theme}
       closeButton
       position="top-center"
-      className="sm:!top-auto sm:!right-4 sm:!left-auto"
       duration={TOAST_DURATION_MS}
       visibleToasts={3}
       offset={16}
@@ -19,7 +18,6 @@ export function AppToaster() {
       containerAriaLabel="Notifications"
       style={
         {
-          // Never wider than the viewport on small/odd resolutions.
           '--width': 'min(356px, calc(100vw - 24px))',
         } as CSSProperties
       }

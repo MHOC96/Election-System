@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, Vote } from 'lucide-react'
@@ -10,12 +10,13 @@ import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
 import { FormField } from '@/components/design-system/FormField'
 import { SkipToContent } from '@/components/shared/SkipToContent'
+import { FormErrorAlert } from '@/components/shared/FormErrorAlert'
 
 import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import { useAuth } from '@/context/AuthContext'
 import { MAIN_CONTENT_ID } from '@/lib/a11y'
 import { loginSchema, type LoginForm } from '@/lib/login-schema'
-import { notifyApiError } from '@/lib/notify'
+import { resolveApiUserMessage, type UserMessage } from '@/lib/user-messages'
 import { brandMarkClass } from '@/lib/design-tokens'
 import { PageLoader } from '@/components/shared/PageLoader'
 import { cn } from '@/lib/utils'
@@ -30,11 +31,13 @@ export function LoginPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const submitInFlightRef = useRef(false)
+  const [loginError, setLoginError] = useState<UserMessage | null>(null)
 
   const {
     control,
     handleSubmit,
     formState: { errors, isSubmitting, touchedFields },
+    watch,
   } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     mode: 'onBlur',
@@ -48,6 +51,13 @@ export function LoginPage() {
     navigate(user.role === 'ADMIN' ? '/admin' : '/', { replace: true })
   }, [isLoading, isAuthenticated, user, navigate])
 
+  const cpmNumber = watch('cpm_number')
+  const mcNumber = watch('mc_number')
+
+  useEffect(() => {
+    if (loginError) setLoginError(null)
+  }, [cpmNumber, mcNumber])
+
   if (isLoading) {
     return <PageLoader fullScreen shell />
   }
@@ -55,6 +65,7 @@ export function LoginPage() {
   const onSubmit = async (data: LoginForm) => {
     if (submitInFlightRef.current) return
     submitInFlightRef.current = true
+    setLoginError(null)
 
     try {
       queryClient.clear()
@@ -75,7 +86,10 @@ export function LoginPage() {
         }
       })
     } catch (error) {
-      notifyApiError(error, 'login')
+      setLoginError(resolveApiUserMessage(error, 'login'))
+      requestAnimationFrame(() => {
+        document.getElementById('login-form-error')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      })
     } finally {
       submitInFlightRef.current = false
     }
@@ -114,6 +128,7 @@ export function LoginPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-4" noValidate>
+              {loginError ? <FormErrorAlert id="login-form-error" message={loginError} /> : null}
               <FormField
                 label="CPM Number"
                 htmlFor="cpm_number"

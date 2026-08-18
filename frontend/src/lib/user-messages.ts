@@ -187,7 +187,7 @@ function isGenericBackendMessage(message: string): boolean {
   )
 }
 
-function messageFromStatus(status: number | undefined): UserMessage | null {
+function messageFromStatus(status: number | undefined, context: ApiErrorContext): UserMessage | null {
   if (status === 429) {
     return {
       title: ERROR_TITLES.throttled,
@@ -195,6 +195,9 @@ function messageFromStatus(status: number | undefined): UserMessage | null {
     }
   }
   if (status === 401) {
+    if (context === 'login') {
+      return CONTEXT_FALLBACKS.login
+    }
     return {
       title: ERROR_TITLES.not_authenticated,
       description: ERROR_DESCRIPTIONS.not_authenticated,
@@ -235,7 +238,7 @@ export function resolveApiUserMessage(
       }
     }
 
-    const statusMessage = messageFromStatus(error.response.status)
+    const statusMessage = messageFromStatus(error.response.status, context)
     const apiError = error.response.data?.error
 
     if (apiError?.details && typeof apiError.details === 'object') {
@@ -248,12 +251,10 @@ export function resolveApiUserMessage(
 
     if (apiError?.code) {
       const title = ERROR_TITLES[apiError.code] ?? fallback.title
+      const backendMessage =
+        apiError.message && !isGenericBackendMessage(apiError.message) ? apiError.message : null
       const mappedDescription = ERROR_DESCRIPTIONS[apiError.code]
-      const description =
-        mappedDescription ??
-        (apiError.message && !isGenericBackendMessage(apiError.message)
-          ? apiError.message
-          : fallback.description)
+      const description = backendMessage ?? mappedDescription ?? fallback.description
 
       return { title, description }
     }

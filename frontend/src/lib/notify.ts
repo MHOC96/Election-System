@@ -1,6 +1,6 @@
 import { toast } from 'sonner'
 
-import { TOAST_DURATION_MS } from '@/lib/toast-config'
+import { TOAST_DURATION_MS, ERROR_TOAST_DURATION_MS } from '@/lib/toast-config'
 import {
   formatUserMessage,
   resolveApiUserMessage,
@@ -9,6 +9,7 @@ import {
 } from '@/lib/user-messages'
 
 const toastOptions = { duration: TOAST_DURATION_MS } as const
+const errorToastOptions = { duration: ERROR_TOAST_DURATION_MS } as const
 
 function showToast(
   type: 'success' | 'error' | 'warning' | 'info',
@@ -25,7 +26,7 @@ function showToast(
       toast.success(title, options)
       break
     case 'error':
-      toast.error(title, options)
+      toast.error(title, { ...errorToastOptions, ...(description ? { description } : {}) })
       break
     case 'warning':
       toast.warning(title, options)
