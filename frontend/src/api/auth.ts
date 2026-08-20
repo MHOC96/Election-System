@@ -1,8 +1,7 @@
 import axios from 'axios'
-import { apiGet, apiPost, setLoggingOut } from '@/api/client'
+import { apiGet, apiPost, getApiBaseUrl, setLoggingOut } from '@/api/client'
 import { clearAuth, getRefreshToken, markFreshLogin, setAuthTokens } from '@/lib/auth-storage'
 import type { User } from '@/types/api'
-
 export interface LoginPayload {
   cpm_number: string
   mc_number: string
@@ -13,8 +12,6 @@ export interface LoginResult {
   refresh: string
   user: User
 }
-
-const API_URL = import.meta.env.VITE_API_URL ?? '/api'
 
 export async function login(payload: LoginPayload): Promise<User> {
   const data = await apiPost<LoginResult>('/auth/login/', payload)
@@ -30,7 +27,7 @@ export async function logout(): Promise<void> {
 
   try {
     if (refresh) {
-      await axios.post(`${API_URL}/auth/logout/`, { refresh }, {
+      await axios.post(`${getApiBaseUrl()}/auth/logout/`, { refresh }, {
         headers: { 'Content-Type': 'application/json' },
       })
     }

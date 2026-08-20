@@ -11,13 +11,28 @@ import {
 import { dispatchAuthSessionExpired } from '@/lib/auth-events'
 import type { ApiFailure, ApiResponse } from '@/types/api'
 
-const API_URL = import.meta.env.VITE_API_URL ?? '/api'
+function normalizeApiBaseUrl(raw: string): string {
+  let url = raw.trim()
+  if (!url) return '/api'
+  // Avoid double slashes when paths are joined (e.g. .../api/ + /auth/login/).
+  url = url.replace(/\/+$/, '')
+  if (import.meta.env.PROD && url.startsWith('http://')) {
+    url = `https://${url.slice(7)}`
+  }
+  return url
+}
+
+const API_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_URL ?? '/api')
 
 if (import.meta.env.PROD && API_URL.startsWith('/')) {
   console.error(
     '[API] VITE_API_URL is relative (%s). Set it in Vercel to your Railway API URL, e.g. https://your-service.up.railway.app/api',
     API_URL,
   )
+}
+
+export function getApiBaseUrl(): string {
+  return API_URL
 }
 
 export const api = axios.create({

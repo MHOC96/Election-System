@@ -215,6 +215,13 @@ function messageFromStatus(status: number | undefined, context: ApiErrorContext)
       description: ERROR_DESCRIPTIONS.not_found,
     }
   }
+  if (status === 405) {
+    return {
+      title: 'Sign-in failed',
+      description:
+        'The API rejected the request method. Ensure VITE_API_URL uses https:// and ends with /api, then redeploy the frontend.',
+    }
+  }
   if (status && status >= 500) {
     return {
       title: 'Server error',
