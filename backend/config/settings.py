@@ -127,8 +127,8 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ),
     "DEFAULT_THROTTLE_CLASSES": (
-        "rest_framework.throttling.AnonRateThrottle",
-        "rest_framework.throttling.UserRateThrottle",
+        "config.throttling.SafeAnonRateThrottle",
+        "config.throttling.SafeUserRateThrottle",
     ),
     "DEFAULT_THROTTLE_RATES": {
         "anon": "60/min",
@@ -188,6 +188,7 @@ if not DEBUG and not _is_test and not _redis_url:
     )
 
 if _redis_url:
+    # Passed to redis.ConnectionPool.from_url (Django RedisCache backend).
     _redis_options: dict = {
         "socket_connect_timeout": 5,
         "socket_timeout": 5,
@@ -195,7 +196,8 @@ if _redis_url:
     if _redis_url.startswith("rediss://"):
         import ssl
 
-        _redis_options["connection_pool_kwargs"] = {"ssl_cert_reqs": ssl.CERT_NONE}
+        # Upstash / managed Redis often use TLS; disable cert verify for pooler endpoints.
+        _redis_options["ssl_cert_reqs"] = ssl.CERT_NONE
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.redis.RedisCache",

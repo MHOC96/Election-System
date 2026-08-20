@@ -1,5 +1,9 @@
+import logging
+
 from django.core.cache import cache
 from rest_framework_simplejwt.authentication import JWTAuthentication
+
+logger = logging.getLogger(__name__)
 
 USER_AUTH_CACHE_SECONDS = 60
 
@@ -9,7 +13,10 @@ def user_auth_cache_key(user_id: int) -> str:
 
 
 def invalidate_user_auth_cache(user_id: int) -> None:
-    cache.delete(user_auth_cache_key(user_id))
+    try:
+        cache.delete(user_auth_cache_key(user_id))
+    except Exception as exc:
+        logger.warning("Auth cache delete failed (%s)", exc)
 
 
 class CachedJWTAuthentication(JWTAuthentication):
@@ -21,10 +28,16 @@ class CachedJWTAuthentication(JWTAuthentication):
             return super().get_user(validated_token)
 
         cache_key = user_auth_cache_key(user_id)
-        cached_user = cache.get(cache_key)
-        if cached_user is not None:
-            return cached_user
+        try:
+            cached_user = cache.get(cache_key)
+            if cached_user is not None:
+                return cached_user
+        except Exception as exc:
+            logger.warning("Auth cache read failed (%s)", exc)
 
         user = super().get_user(validated_token)
-        cache.set(cache_key, user, USER_AUTH_CACHE_SECONDS)
+        try:
+            cache.set(cache_key, user, USER_AUTH_CACHE_SECONDS)
+        except Exception as exc:
+            logger.warning("Auth cache write failed (%s)", exc)
         return user

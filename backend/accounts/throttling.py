@@ -1,13 +1,13 @@
-from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
+from config.throttling import SafeAnonRateThrottle, SafeUserRateThrottle
 
 
-class AuthRateThrottle(AnonRateThrottle):
+class AuthRateThrottle(SafeAnonRateThrottle):
     """Login / token refresh — keyed by client IP."""
 
     scope = "auth"
 
 
-class AuthenticatedAuthRateThrottle(UserRateThrottle):
+class AuthenticatedAuthRateThrottle(SafeUserRateThrottle):
     """Sensitive authenticated auth actions (password change)."""
 
     scope = "auth_user"

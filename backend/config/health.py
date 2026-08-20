@@ -1,7 +1,11 @@
+import logging
+
 from django.core.cache import cache
 from django.db import connection
 from django.http import JsonResponse
 from django.views import View
+
+logger = logging.getLogger(__name__)
 
 
 class HealthLiveView(View):
@@ -27,8 +31,9 @@ class HealthView(View):
         try:
             cache.set("health:ping", "1", timeout=5)
             checks["cache"] = "ok" if cache.get("health:ping") == "1" else "error"
-        except Exception:
+        except Exception as exc:
             checks["cache"] = "error"
+            logger.warning("Health check cache probe failed: %s", exc)
 
         healthy = all(value == "ok" for value in checks.values())
         return JsonResponse(
