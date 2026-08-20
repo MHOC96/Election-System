@@ -55,7 +55,7 @@ export function LoginPage() {
   const mcNumber = watch('mc_number')
 
   useEffect(() => {
-    if (loginError) setLoginError(null)
+    setLoginError((prev) => (prev ? null : null))
   }, [cpmNumber, mcNumber])
 
   if (isLoading) {
@@ -96,38 +96,38 @@ export function LoginPage() {
   }
 
   return (
-    <div className="bg-grid relative flex min-h-screen min-h-[100dvh] flex-col surface-page">
+    <div className="bg-grid relative flex min-h-screen min-h-[100dvh] flex-col justify-center items-center surface-page overflow-x-hidden">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 -z-0 h-72 bg-gradient-to-b from-primary/[0.07] to-transparent dark:from-primary/[0.12]"
       />
       <SkipToContent />
 
-      <header className="relative flex justify-end p-4 pt-[max(1rem,env(safe-area-inset-top))] pr-[max(1rem,env(safe-area-inset-right))]">
+      <header className="absolute right-3 top-3 z-10 pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] sm:right-4 sm:top-4">
         <ThemeToggle />
       </header>
 
       <main
         id={MAIN_CONTENT_ID}
         tabIndex={-1}
-        className="relative flex flex-1 flex-col items-center justify-center px-4 py-6 pb-[max(2rem,env(safe-area-inset-bottom))] outline-none sm:py-8"
+        className="relative flex w-full flex-1 flex-col items-center justify-center p-4 py-3 sm:py-6 pb-[max(1rem,env(safe-area-inset-bottom))] outline-none"
       >
-        <Card className="surface-raised my-auto w-full max-w-md animate-scale-in max-sm:scroll-mt-4">
-          <CardHeader className="text-center">
-            <div className={cn(brandMarkClass, 'mx-auto mb-3 h-14 w-14 rounded-2xl shadow-md')}>
-              <Vote className="h-7 w-7" aria-hidden="true" />
+        <Card className="surface-raised w-full max-w-sm sm:max-w-md animate-scale-in">
+          <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-3 text-center">
+            <div className={cn(brandMarkClass, 'mx-auto mb-2 sm:mb-3 h-11 w-11 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl shadow-md')}>
+              <Vote className="h-5 w-5 sm:h-7 sm:w-7" aria-hidden="true" />
             </div>
-            <h1 className="text-2xl font-semibold leading-none tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-semibold leading-none tracking-tight">
               {isSubmitting ? 'Signing in…' : 'Member Sign In'}
             </h1>
-            <CardDescription>
+            <CardDescription className="mt-1 sm:mt-1.5 text-xs sm:text-sm">
               {isSubmitting
                 ? 'Verifying your credentials…'
-                : 'Sign in with your CPM Number. On your first login, use your MC Number as your password.'}
+                : 'Sign in with your CPM Number to access the election portal.'}
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-4" noValidate>
+          <CardContent className="p-4 pt-1 sm:p-6 sm:pt-0">
+            <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-3 sm:space-y-4" noValidate>
               {loginError ? <FormErrorAlert id="login-form-error" message={loginError} /> : null}
               <FormField
                 label="CPM Number"
@@ -151,7 +151,7 @@ export function LoginPage() {
                       inputMode="text"
                       enterKeyHint="next"
                       disabled={isSubmitting}
-                      className="scroll-mt-24"
+                      className="h-10 text-sm sm:h-11 sm:text-base scroll-mt-24"
                     />
                   )}
                 />
@@ -162,7 +162,7 @@ export function LoginPage() {
                 error={errors.mc_number?.message}
                 valid={Boolean(touchedFields.mc_number && !errors.mc_number)}
                 required
-                hint="First-time sign-in: enter your MC Number. After changing your password, use the new password here."
+                hint="First-time sign-in: enter your MC Number."
               >
                 <Controller
                   name="mc_number"
@@ -178,12 +178,12 @@ export function LoginPage() {
                       inputMode="text"
                       enterKeyHint="done"
                       disabled={isSubmitting}
-                      className="scroll-mt-24"
+                      className="h-10 text-sm sm:h-11 sm:text-base scroll-mt-24"
                     />
                   )}
                 />
               </FormField>
-              <Button type="submit" className="w-full" disabled={isSubmitting} aria-busy={isSubmitting}>
+              <Button type="submit" className="w-full h-10 sm:h-11 text-sm sm:text-base mt-1 sm:mt-2" disabled={isSubmitting} aria-busy={isSubmitting}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
