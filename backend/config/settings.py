@@ -1,5 +1,6 @@
 from datetime import timedelta
 from pathlib import Path
+import os
 import sys
 
 import environ
@@ -212,7 +213,9 @@ else:
 
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-    SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=True)
+    # Railway terminates TLS at the edge; internal health checks use HTTP on $PORT.
+    _on_railway = bool(os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("RAILWAY_PUBLIC_DOMAIN"))
+    SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=not _on_railway)
     SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=31_536_000)
     SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True)
     SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=False)
