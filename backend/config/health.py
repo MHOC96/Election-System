@@ -4,8 +4,15 @@ from django.http import JsonResponse
 from django.views import View
 
 
+class HealthLiveView(View):
+    """Liveness probe — 200 when Django is serving. Use for Railway deploy healthchecks."""
+
+    def get(self, request):
+        return JsonResponse({"status": "ok"})
+
+
 class HealthView(View):
-    """Liveness/readiness probe for load balancers and deploy hooks."""
+    """Readiness probe — checks database and cache (may return 503 when degraded)."""
 
     def get(self, request):
         checks: dict[str, str] = {}

@@ -20,6 +20,9 @@ environ.Env.read_env(BASE_DIR / ".env")
 SECRET_KEY = env("SECRET_KEY")
 DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
+# Railway and other platforms probe liveness from internal hosts.
+_ALLOW_INTERNAL_HOSTS = ("127.0.0.1", "localhost", "healthcheck.railway.app")
+ALLOWED_HOSTS = list(dict.fromkeys([*ALLOWED_HOSTS, *_ALLOW_INTERNAL_HOSTS]))
 if "test" in sys.argv and "testserver" not in ALLOWED_HOSTS:
     ALLOWED_HOSTS = [*ALLOWED_HOSTS, "testserver"]
 
@@ -184,14 +187,19 @@ if not DEBUG and not _is_test and not _redis_url:
     )
 
 if _redis_url:
+    _redis_options: dict = {
+        "socket_connect_timeout": 5,
+        "socket_timeout": 5,
+    }
+    if _redis_url.startswith("rediss://"):
+        import ssl
+
+        _redis_options["connection_pool_kwargs"] = {"ssl_cert_reqs": ssl.CERT_NONE}
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.redis.RedisCache",
             "LOCATION": _redis_url,
-            "OPTIONS": {
-                "socket_connect_timeout": 5,
-                "socket_timeout": 5,
-            },
+            "OPTIONS": _redis_options,
         }
     }
 else:
