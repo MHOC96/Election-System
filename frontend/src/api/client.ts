@@ -15,7 +15,7 @@ const API_URL = import.meta.env.VITE_API_URL ?? '/api'
 
 if (import.meta.env.PROD && API_URL.startsWith('/')) {
   console.error(
-    '[API] VITE_API_URL is relative (%s). Set it in Vercel to your Render URL, e.g. https://your-service.onrender.com/api',
+    '[API] VITE_API_URL is relative (%s). Set it in Vercel to your Railway API URL, e.g. https://your-service.up.railway.app/api',
     API_URL,
   )
 }

@@ -295,17 +295,43 @@ python manage.py runserver
 
 ## Deployment notes
 
+**Architecture:** Frontend on Vercel, backend on Railway, **database on Supabase** (external).
+
+### Railway (backend)
+
+1. New project → connect GitHub repo → set **Root Directory** to `backend`.
+2. Add **Redis** on Railway (required when `DEBUG=False`). Do **not** add Railway Postgres if you use Supabase.
+3. Set environment variables (see `.env.example`). Minimum production set:
+   - `SECRET_KEY`, `DEBUG=False`
+   - `ALLOWED_HOSTS` — your Railway domain (e.g. `your-app.up.railway.app`)
+   - `CORS_ALLOWED_ORIGINS` — your **Vercel** frontend URL (e.g. `https://your-app.vercel.app`)
+   - `CSRF_TRUSTED_ORIGINS` — same Vercel URL(s)
+   - `DATABASE_URL` — Supabase **transaction pooler** URI (port `6543`)
+   - `DB_POOL_MODE=transaction`
+   - `REDIS_URL` — from Railway Redis
+   - Cloudinary credentials
+4. Deploy uses `railway.toml` / `Procfile`: Gunicorn start + `migrate` on release.
+5. Health check: `GET /api/health/`
+
+**Supabase connection (Railway env):** Project Settings → Database → Connection string → **Transaction pooler** → copy URI into `DATABASE_URL`. Use port `6543` and `DB_POOL_MODE=transaction` so Gunicorn workers do not exhaust Supabase’s ~15 session pool slots.
+
+### Vercel (frontend only)
+
+- Set `VITE_API_URL=https://your-railway-service.up.railway.app/api`
+- Redeploy frontend after the Railway URL is live.
+
+### General
+
 - Set `DEBUG=False` in production.
 - Use a strong `SECRET_KEY` and restrict `ALLOWED_HOSTS`.
-- Set `REDIS_URL` — required for shared cache across workers when `DEBUG=False`.
-- Point `CORS_ALLOWED_ORIGINS` at your deployed frontend URL.
-- Use a production WSGI server (e.g. Gunicorn) behind a reverse proxy.
+- Set `REDIS_URL` — required for shared cache across Gunicorn workers when `DEBUG=False`.
+- Use a production WSGI server (Gunicorn — configured in `Procfile` / `railway.toml`).
 - **Database pooling (important for 50–150+ concurrent users):**
   - **Supabase transaction pooler (port `6543`)** with `DB_POOL_MODE=transaction` — recommended default. Many HTTP clients share the same backend pool slots; Django uses `CONN_MAX_AGE=0` and returns connections after each request.
   - **Supabase session pooler (port `5432`)** — only if your plan allows a large pool (e.g. 50+) and you run few Gunicorn workers (≤4) with `DB_CONN_MAX_AGE=60`. On most plans the session pooler is capped at **~15 connections**; exceeding that causes `EMAXCONNSESSION` errors.
   - Port `6543` auto-enables transaction mode. Port `5432` auto-enables session mode.
   - For production with 150 members voting at once: use transaction pooler + Redis cache + 2–4 Gunicorn workers (e.g. `gunicorn config.wsgi:application --workers 3 --threads 2`).
-- Run `python manage.py migrate` on deploy (includes `dashboard_live_vote_counts` materialized view).
+- Run `python manage.py migrate` on deploy (handled by Railway `releaseCommand`; includes `dashboard_live_vote_counts` materialized view).
 - Configure Cloudinary for candidate and application image uploads.
 
 ## API response format

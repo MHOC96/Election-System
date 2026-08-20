@@ -1,0 +1,12 @@
+# Railway deploy config (root directory: backend/)
+# Frontend remains on Vercel — set CORS_ALLOWED_ORIGINS to your Vercel URL.
+
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --threads 2 --timeout 60"
+releaseCommand = "python manage.py migrate --noinput"
+healthcheckPath = "/api/health/"
+healthcheckTimeout = 30
+restartPolicyType = "on_failure"
