@@ -28,7 +28,7 @@ export function ElectionNextStepBanner({ step, className }: ElectionNextStepBann
   )
 
   const classNames = cn(
-    'flex w-full min-w-0 flex-col gap-2.5 rounded-xl border border-primary/15 bg-gradient-to-br from-primary/5 via-transparent to-accent/30 px-3.5 py-3.5 sm:flex-row sm:items-start sm:gap-3 sm:px-4 sm:py-3.5',
+    'flex w-full min-w-0 flex-col gap-2.5 rounded-xl border border-primary/15 bg-gradient-to-br from-primary/5 via-transparent to-muted/30 px-3.5 py-3.5 sm:flex-row sm:items-start sm:gap-3 sm:px-4 sm:py-3.5',
     step.href && 'transition-colors hover:border-primary/25 hover:bg-primary/8',
     className,
   )

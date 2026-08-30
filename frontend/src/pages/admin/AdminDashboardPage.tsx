@@ -317,7 +317,7 @@ export function AdminDashboardPage() {
           <div className="grid gap-8 lg:grid-cols-2 lg:items-stretch">
 
             <div className="flex flex-col gap-4">
-              <div className="relative h-60 w-full overflow-hidden rounded-2xl border bg-gradient-to-br from-white via-card to-muted/25 p-3 ring-1 ring-border/70 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.75)] dark:border-border/70 dark:from-[hsl(224_34%_10%)] dark:via-card dark:to-muted/10 dark:ring-border/80 dark:shadow-none sm:h-64">
+              <div className="relative h-60 w-full overflow-hidden rounded-2xl border bg-gradient-to-br from-card via-card to-muted/25 p-3 ring-1 ring-border/70 shadow-[inset_0_1px_0_var(--portal-surface-inset)] dark:border-border/70 dark:from-card dark:via-card dark:to-muted/15 dark:ring-border/80 dark:shadow-none sm:h-64">
                 <div
                   aria-hidden
                   className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-primary/8 blur-2xl dark:bg-primary/15"

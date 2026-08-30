@@ -32,7 +32,7 @@ export function ApplicationProfileFrame({
   return (
     <div
       className={cn(
-        'relative shrink-0 rounded-[1.4rem] bg-gradient-to-br from-white/90 via-card to-muted/40 p-[3px] shadow-[0_12px_32px_-16px_hsl(var(--shadow-color)/0.22),inset_0_1px_0_hsl(0_0%_100%/0.85)] ring-1 ring-border/70 dark:from-white/[0.08] dark:via-card dark:to-muted/20 dark:shadow-[0_12px_32px_-16px_hsl(var(--shadow-color)/0.65)] dark:ring-border/80',
+        'relative shrink-0 rounded-[1.4rem] bg-gradient-to-br from-card via-card to-muted/40 p-[3px] shadow-[0_12px_32px_-16px_hsl(var(--shadow-color)/0.22),inset_0_1px_0_var(--portal-surface-inset)] ring-1 ring-border/70 dark:from-card dark:via-card dark:to-muted/25 dark:shadow-[0_12px_32px_-16px_hsl(var(--shadow-color)/0.65)] dark:ring-border/80',
         dimensions.shell,
         className,
       )}

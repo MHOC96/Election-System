@@ -25,10 +25,24 @@ function normalizeApiBaseUrl(raw: string): string {
 const API_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_URL ?? '/api')
 
 if (import.meta.env.PROD && API_URL.startsWith('/')) {
-  console.error(
-    '[API] VITE_API_URL is relative (%s). Set it in Vercel to your Railway API URL, e.g. https://your-service.up.railway.app/api',
-    API_URL,
-  )
+  console.info('[API] Using same-origin API base:', API_URL, '(requires Vercel /api proxy or dev proxy)')
+}
+
+if (import.meta.env.PROD && API_URL.startsWith('http')) {
+  try {
+    const apiHost = new URL(API_URL, window.location.origin).hostname
+    const pageHost = window.location.hostname
+    if (apiHost.endsWith('.vercel.app') && apiHost !== pageHost) {
+      console.error(
+        '[API] VITE_API_URL points at another Vercel deployment (%s) which is not your Railway backend. ' +
+          'Fix: set BACKEND_URL to your Railway URL, VITE_API_URL=/api, then redeploy — or set ' +
+          'VITE_API_URL=https://<your-service>.up.railway.app/api',
+        API_URL,
+      )
+    }
+  } catch {
+    /* ignore invalid URL during SSR/tests */
+  }
 }
 
 export function getApiBaseUrl(): string {

@@ -24,7 +24,7 @@ export function memberPhaseLabel(phase: ElectionPhase | string): string {
 
 /**
  * Accent scope for a phase. Green means "open, act now", amber means "we are
- * working on it", blue means voting, violet means results, grey means idle.
+ * working on it", blue means voting, steel blue means results, grey means idle.
  * Every phase page wraps itself in this so the whole screen shifts colour
  * together instead of tinting elements one by one.
  */

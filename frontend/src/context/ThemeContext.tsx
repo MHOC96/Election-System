@@ -24,8 +24,8 @@ const THEME_SWITCH_MS = 320
 
 /** Browser chrome colour — matches admin `--background` for each theme. */
 const THEME_COLOR: Record<Theme, string> = {
-  light: 'hsl(220 24% 97%)',
-  dark: 'hsl(224 38% 7%)',
+  light: 'hsl(215 22% 97%)',
+  dark: 'hsl(222 38% 7%)',
 }
 
 function getInitialTheme(): Theme {

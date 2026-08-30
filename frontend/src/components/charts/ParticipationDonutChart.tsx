@@ -90,7 +90,7 @@ export function ParticipationDonutChart({
       <div className="relative h-full min-h-0 w-full flex-1">
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-8 rounded-full bg-gradient-to-br from-primary/[0.07] via-transparent to-success/[0.06] blur-2xl"
+          className="pointer-events-none absolute inset-8 rounded-full bg-gradient-to-br from-primary/[0.06] via-transparent to-primary/[0.03] blur-2xl"
         />
         <ResponsiveContainer width="100%" height="100%">
           <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>

@@ -44,7 +44,7 @@ export function SegmentedControl<T extends string>({
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
               isActive
                 ? 'bg-card text-foreground shadow-[inset_0_1px_0_hsl(0_0%_100%/0.85),0_2px_10px_hsl(var(--primary)/0.12)] ring-1 ring-primary/20 dark:shadow-[inset_0_1px_0_hsl(var(--foreground)/0.08),0_4px_16px_hsl(var(--primary)/0.14)] dark:ring-primary/25'
-                : 'text-muted-foreground hover:bg-white/60 hover:text-foreground active:scale-[0.98] dark:hover:bg-foreground/[0.03]',
+                : 'text-muted-foreground hover:bg-card/60 hover:text-foreground active:scale-[0.98] dark:hover:bg-foreground/[0.03]',
             )}
           >
             {option.label}

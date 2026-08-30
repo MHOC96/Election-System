@@ -40,7 +40,7 @@ export function SidebarNav({
               'group relative flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm font-medium transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
               isActive
                 ? 'bg-primary/[0.08] text-foreground shadow-[inset_0_1px_0_hsl(0_0%_100%/0.65),0_0_0_1px_hsl(var(--primary)/0.12)] ring-1 ring-primary/20 dark:bg-primary/[0.14] dark:shadow-[inset_0_1px_0_hsl(var(--foreground)/0.07),0_0_0_1px_hsl(var(--primary)/0.2)] dark:ring-primary/30'
-                : 'text-muted-foreground hover:bg-white/70 hover:text-foreground active:scale-[0.99] dark:hover:bg-foreground/[0.04]',
+                : 'text-muted-foreground hover:bg-card/70 hover:text-foreground active:scale-[0.99] dark:hover:bg-foreground/[0.04]',
             )
           }
         >

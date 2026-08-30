@@ -23,42 +23,21 @@ export function ApplicationStatusBadge({
   switch (status) {
     case 'PENDING_REVIEW':
       return (
-        <Badge
-          variant="warning"
-          className={cn(
-            sizeClass,
-            'border-warning/25 bg-warning/10 text-warning shadow-[inset_0_1px_0_hsl(0_0%_100%/0.45)] dark:bg-warning/14 dark:shadow-none',
-            className,
-          )}
-        >
+        <Badge variant="warning" className={cn(sizeClass, className)}>
           <Clock aria-hidden="true" />
           Pending review
         </Badge>
       )
     case 'APPROVED':
       return (
-        <Badge
-          variant="success"
-          className={cn(
-            sizeClass,
-            'border-success/25 bg-success/10 text-success shadow-[inset_0_1px_0_hsl(0_0%_100%/0.45)] dark:bg-success/14 dark:shadow-none',
-            className,
-          )}
-        >
+        <Badge variant="success" className={cn(sizeClass, className)}>
           <CheckCircle2 aria-hidden="true" />
           Accepted
         </Badge>
       )
     case 'REJECTED':
       return (
-        <Badge
-          variant="destructive"
-          className={cn(
-            sizeClass,
-            'border-destructive/25 bg-destructive/10 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.4)] dark:bg-destructive/14 dark:shadow-none',
-            className,
-          )}
-        >
+        <Badge variant="destructive" className={cn(sizeClass, className)}>
           <XCircle aria-hidden="true" />
           Not approved
         </Badge>

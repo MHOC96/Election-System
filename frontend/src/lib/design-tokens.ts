@@ -65,7 +65,7 @@ export const adminKpiGridClass =
 
 /** Double-bezel shell for admin KPI tiles */
 export const adminKpiTileShellClass =
-  'rounded-2xl bg-white/60 p-[3px] ring-1 ring-border/70 shadow-[0_10px_28px_-14px_hsl(var(--shadow-color)/0.14)] dark:bg-white/[0.03] dark:ring-border/80 dark:shadow-[0_8px_24px_-12px_hsl(var(--shadow-color)/0.8)]'
+  'rounded-2xl bg-card/80 p-[3px] ring-1 ring-border/70 shadow-[0_10px_28px_-14px_hsl(var(--shadow-color)/0.14)] dark:bg-card/40 dark:ring-border/80 dark:shadow-[0_8px_24px_-12px_hsl(var(--shadow-color)/0.8)]'
 
 /** Admin sidebar surface */
 export const adminSidebarClass =
@@ -86,7 +86,7 @@ export const iconTileClass =
 
 /** Brand logo mark — consistent radius across shells */
 export const brandMarkClass =
-  'flex items-center justify-center rounded-xl bg-gradient-brand text-primary-foreground shadow-sm'
+  'flex items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[0_4px_14px_hsl(var(--primary)/0.28)]'
 
 /** Shared border radius for text inputs, selects, and similar form controls */
 export const formControlClass = 'rounded-lg'
