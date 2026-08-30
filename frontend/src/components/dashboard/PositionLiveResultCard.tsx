@@ -62,7 +62,7 @@ function VoteShareBar({
 }) {
   return (
     <div
-      className="h-2.5 w-full overflow-hidden rounded-full bg-muted"
+      className="h-2.5 w-full overflow-hidden rounded-full bg-muted/90 ring-1 ring-inset ring-border/40 dark:bg-muted/40 dark:ring-border/40"
       role="progressbar"
       aria-valuenow={Math.round(value)}
       aria-valuemin={0}
@@ -157,11 +157,11 @@ export const PositionLiveResultCard = memo(function PositionLiveResultCard({
       className={cn(
         'overflow-hidden',
         transitionInteractive,
-        'hover:shadow-md',
+        'hover:shadow-md hover:shadow-primary/[0.06] dark:hover:shadow-lg dark:hover:shadow-primary/5',
         className,
       )}
     >
-      <CardHeader className="space-y-3 border-b border-border/60 bg-muted/20 px-4 pb-4 sm:px-6">
+      <CardHeader className="space-y-3 border-b border-border/70 bg-muted/25 px-4 pb-4 dark:border-border/70 dark:bg-muted/10 sm:px-6">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base font-semibold leading-tight">{positionName}</CardTitle>
           {hasVotes && (
@@ -171,7 +171,7 @@ export const PositionLiveResultCard = memo(function PositionLiveResultCard({
           )}
         </div>
 
-        <div className="rounded-xl border bg-card p-2.5 sm:p-3">
+        <div className="rounded-xl border border-border/70 bg-card p-2.5 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.65)] dark:border-border/70 dark:bg-muted/15 dark:shadow-none sm:p-3">
           <div className="mb-2 flex items-end justify-between gap-2">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

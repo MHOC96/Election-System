@@ -6,11 +6,13 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
 import { adminNavItems } from '@/lib/navigation'
 import {
+  adminShellClass,
   shellContentClass,
-  shellCanvasClass,
   brandMarkClass,
   shellHeaderBarClass,
   shellMobileHeaderClass,
+  adminSidebarClass,
+  adminSidebarSectionLabelClass,
 } from '@/lib/design-tokens'
 import { warmAdminConsole, resetConsoleWarmupState } from '@/lib/prefetch'
 import { MobileNavSheet } from '@/components/layout/MobileNavSheet'
@@ -67,22 +69,23 @@ export function AdminLayout() {
   }, [isLoggingOut, logout, navigate, queryClient])
 
   return (
-    <div className={cn('flex min-h-screen min-w-0', shellCanvasClass)}>
+    <div className={cn('flex min-h-screen min-w-0', adminShellClass)}>
       <SkipToContent />
-      <aside className="hidden w-64 shrink-0 flex-col border-r bg-background lg:flex">
-        <div className={cn(shellHeaderBarClass, 'border-b px-6')}>
+      <aside className={cn('hidden w-[17rem] shrink-0 flex-col lg:flex', adminSidebarClass)}>
+        <div className={cn(shellHeaderBarClass, 'border-b border-border/60 px-5')}>
           <AdminBrandMark />
         </div>
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto px-3 py-4">
+          <p className={adminSidebarSectionLabelClass}>Console</p>
           <SidebarNav items={adminNavItems} prefetchScope="admin" />
         </div>
-        <div className="border-t p-4">
+        <div className="border-t border-border/60 p-4">
           <AdminSidebarFooter />
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="glass sticky top-0 z-40 w-full border-b">
+        <header className="glass sticky top-0 z-40 w-full border-b border-border/75 dark:border-border/60">
           <div className={cn(shellMobileHeaderClass, 'lg:hidden')}>
             <Button
               type="button"

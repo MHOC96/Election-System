@@ -1,5 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton'
-import { contentGridClass, pageLayoutClass, statGridClass } from '@/lib/design-tokens'
+import { adminKpiGridClass, adminKpiTileShellClass, contentGridClass, pageLayoutClass } from '@/lib/design-tokens'
+import { cn } from '@/lib/utils'
 
 export function DashboardSkeleton() {
   return (
@@ -9,11 +10,13 @@ export function DashboardSkeleton() {
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-4 w-72" />
         </div>
-        <Skeleton className="h-8 w-40 rounded-full" />
+        <Skeleton className="h-10 w-full max-w-xs rounded-xl sm:w-52" />
       </div>
-      <div className={statGridClass}>
+      <div className={adminKpiGridClass}>
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-32 rounded-xl" />
+          <div key={i} className={cn(adminKpiTileShellClass, 'p-[3px]')}>
+            <Skeleton className="h-[8rem] rounded-[calc(1rem-0.3rem)]" />
+          </div>
         ))}
       </div>
       <div className={contentGridClass}>

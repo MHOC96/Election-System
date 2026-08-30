@@ -1,37 +1,89 @@
-import { Clock, CheckCircle2, XCircle } from 'lucide-react'
+import { Clock, CheckCircle2, XCircle, Ban } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import type { CandidateApplication } from '@/api/applications'
+import { cn } from '@/lib/utils'
+
+const SIZE_CLASS = {
+  sm: 'h-auto gap-1.5 px-2.5 py-1 text-xs [&_svg]:size-3',
+  md: 'h-auto gap-2 px-3 py-1.5 text-sm [&_svg]:size-3.5',
+  lg: 'h-auto gap-2 px-3.5 py-1.5 text-sm sm:text-base [&_svg]:size-4',
+} as const
 
 export function ApplicationStatusBadge({
   status,
   className,
+  size = 'md',
 }: {
   status: CandidateApplication['status']
   className?: string
+  size?: keyof typeof SIZE_CLASS
 }) {
+  const sizeClass = SIZE_CLASS[size]
+
   switch (status) {
     case 'PENDING_REVIEW':
       return (
-        <Badge variant="warning" className={className}>
-          <Clock className="mr-1 h-3 w-3" aria-hidden="true" />
+        <Badge
+          variant="warning"
+          className={cn(
+            sizeClass,
+            'border-warning/25 bg-warning/10 text-warning shadow-[inset_0_1px_0_hsl(0_0%_100%/0.45)] dark:bg-warning/14 dark:shadow-none',
+            className,
+          )}
+        >
+          <Clock aria-hidden="true" />
           Pending review
         </Badge>
       )
     case 'APPROVED':
       return (
-        <Badge variant="success" className={className}>
-          <CheckCircle2 className="mr-1 h-3 w-3" aria-hidden="true" />
+        <Badge
+          variant="success"
+          className={cn(
+            sizeClass,
+            'border-success/25 bg-success/10 text-success shadow-[inset_0_1px_0_hsl(0_0%_100%/0.45)] dark:bg-success/14 dark:shadow-none',
+            className,
+          )}
+        >
+          <CheckCircle2 aria-hidden="true" />
           Accepted
         </Badge>
       )
     case 'REJECTED':
       return (
-        <Badge variant="destructive" className={className}>
-          <XCircle className="mr-1 h-3 w-3" aria-hidden="true" />
+        <Badge
+          variant="destructive"
+          className={cn(
+            sizeClass,
+            'border-destructive/25 bg-destructive/10 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.4)] dark:bg-destructive/14 dark:shadow-none',
+            className,
+          )}
+        >
+          <XCircle aria-hidden="true" />
           Not approved
         </Badge>
       )
+    case 'WITHDRAWN':
+      return (
+        <Badge
+          variant="muted"
+          className={cn(sizeClass, 'border-border/70 ring-1 ring-inset ring-border/50', className)}
+        >
+          <Ban aria-hidden="true" />
+          Withdrawn
+        </Badge>
+      )
+    case 'DRAFT':
+      return (
+        <Badge variant="outline" className={cn(sizeClass, className)}>
+          Draft
+        </Badge>
+      )
     default:
-      return <Badge className={className}>{status}</Badge>
+      return (
+        <Badge className={cn(sizeClass, className)}>
+          {status}
+        </Badge>
+      )
   }
 }

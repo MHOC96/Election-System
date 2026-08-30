@@ -19,7 +19,7 @@ export const pageHeaderBlockClass = 'space-y-4'
 
 /** Inset panel for nested dashboard / chart sections */
 export const insetPanelClass =
-  'rounded-xl border border-border/60 bg-muted/10 p-4 dark:bg-muted/20 sm:p-5'
+  'rounded-xl border border-border/70 bg-muted/15 p-4 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.65)] dark:border-border/80 dark:bg-muted/15 dark:shadow-[inset_0_1px_0_hsl(var(--foreground)/0.04)] sm:p-5'
 
 /** Election / countdown hero cards — shared portal surface styling */
 export const electionCountdownCardClass =
@@ -32,7 +32,10 @@ export const portalCountdownInnerClass = 'portal-countdown-inner'
 export const shellContentClass = 'mx-auto w-full max-w-7xl'
 
 /** App canvas behind cards (admin + member shells) */
-export const shellCanvasClass = 'bg-muted/25 dark:bg-background'
+export const shellCanvasClass = 'bg-background text-foreground'
+
+/** Admin shell with ambient mesh */
+export const adminShellClass = 'admin-canvas bg-background text-foreground'
 
 /** Fixed height for admin sidebar brand + top shell header (must match) */
 export const shellHeaderBarClass = 'flex h-14 shrink-0 items-center'
@@ -43,7 +46,7 @@ export const shellMobileHeaderClass =
 
 /** Unified header action cluster — theme, logout, and optional menu */
 export const shellActionToolbarClass =
-  'flex shrink-0 items-center gap-0.5 rounded-xl border border-border/70 bg-background/80 p-0.5 shadow-sm backdrop-blur-sm'
+  'flex shrink-0 items-center gap-0.5 rounded-xl border border-border/80 bg-card/85 p-0.5 shadow-sm backdrop-blur-sm shadow-[inset_0_1px_0_hsl(0_0%_100%/0.75)] dark:border-border/80 dark:bg-card/70 dark:shadow-[inset_0_1px_0_hsl(var(--foreground)/0.05)]'
 
 /** Page title — PageHeader */
 export const pageTitleClass = 'text-lg font-semibold tracking-tight sm:text-xl md:text-2xl'
@@ -56,6 +59,22 @@ export const sectionDescriptionClass = 'text-sm text-muted-foreground'
 /** Dashboard + stat grids */
 export const statGridClass = 'grid grid-cols-2 items-stretch gap-3 sm:gap-4 xl:grid-cols-4'
 
+/** Dense admin KPI row — tighter rhythm than legacy StatCard grid */
+export const adminKpiGridClass =
+  'grid grid-cols-1 items-stretch gap-2.5 min-[480px]:grid-cols-2 sm:gap-3 xl:grid-cols-4'
+
+/** Double-bezel shell for admin KPI tiles */
+export const adminKpiTileShellClass =
+  'rounded-2xl bg-white/60 p-[3px] ring-1 ring-border/70 shadow-[0_10px_28px_-14px_hsl(var(--shadow-color)/0.14)] dark:bg-white/[0.03] dark:ring-border/80 dark:shadow-[0_8px_24px_-12px_hsl(var(--shadow-color)/0.8)]'
+
+/** Admin sidebar surface */
+export const adminSidebarClass =
+  'border-r border-border/75 bg-gradient-to-b from-card via-background to-muted/30 shadow-[inset_-1px_0_0_hsl(var(--border)/0.35)] dark:border-border/80 dark:from-card dark:via-background dark:to-muted/20 dark:shadow-[inset_-1px_0_0_hsl(var(--border)/0.5)]'
+
+/** Admin sidebar nav section label */
+export const adminSidebarSectionLabelClass =
+  'mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75 dark:text-muted-foreground/90'
+
 export const contentGridClass = 'grid gap-4 sm:gap-5 lg:grid-cols-2'
 
 /** Standard interactive transition */
@@ -63,7 +82,7 @@ export const transitionInteractive = 'transition-all duration-200 ease-out-expo'
 
 /** Icon containers in cards (stats, charts) */
 export const iconTileClass =
-  'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-inset ring-primary/15'
+  'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary ring-1 ring-inset ring-primary/20 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.5)] dark:bg-primary/15 dark:ring-primary/25'
 
 /** Brand logo mark — consistent radius across shells */
 export const brandMarkClass =
@@ -107,18 +126,19 @@ export const applicationFilterRowClass =
    so light and dark stay in sync by construction.
    ══════════════════════════════════════════════════════════════════════ */
 
-/** Outer portal shell — same canvas as admin */
-export const memberShellClass = `flex min-h-[100dvh] min-w-0 flex-col ${shellCanvasClass}`
+/** Outer portal shell — ambient mesh canvas */
+export const memberShellClass =
+  'app-canvas flex min-h-[100dvh] min-w-0 flex-col bg-background text-foreground'
 
 export const memberShellHeaderClass =
-  'glass sticky top-0 z-40 w-full border-b pt-[env(safe-area-inset-top)]'
+  'glass sticky top-0 z-40 w-full border-b border-border/75 pt-[env(safe-area-inset-top)]'
 
 /** Aligns member header content with the main page column */
 export const memberShellHeaderInnerClass =
   'mx-auto flex w-full min-w-0 max-w-5xl flex-col px-4 sm:px-6 lg:max-w-6xl lg:px-8'
 
 export const memberShellMainClass =
-  'portal-canvas relative min-w-0 flex-1 overflow-x-hidden px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-9 lg:px-8 lg:py-12'
+  'relative min-w-0 flex-1 overflow-x-hidden px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-9 lg:px-8 lg:py-12'
 
 export const memberShellContentClass = 'mx-auto w-full min-w-0 max-w-5xl lg:max-w-6xl'
 
@@ -170,4 +190,4 @@ export const memberPageDescriptionClass =
 export const memberCalloutClass = `${insetPanelClass} text-sm leading-relaxed`
 
 export const memberEmptyStateClass =
-  'bg-grid flex w-full flex-col items-center justify-center rounded-2xl border border-dashed bg-card/40 p-8 text-center sm:p-12'
+  'bg-grid flex w-full flex-col items-center justify-center rounded-2xl border border-dashed border-border/70 bg-card/50 p-8 text-center shadow-[inset_0_1px_0_var(--portal-surface-inset)] sm:p-12 dark:border-border/60 dark:bg-card/30'

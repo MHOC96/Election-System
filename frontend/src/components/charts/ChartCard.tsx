@@ -29,8 +29,8 @@ export function ChartCard({
   contentClassName,
 }: ChartCardProps) {
   return (
-    <Card className={cn('overflow-hidden', transitionInteractive, 'hover:shadow-md', className)}>
-      <CardHeader className="border-b border-border/60 bg-muted/20 pb-4">
+    <Card className={cn('overflow-hidden', transitionInteractive, 'hover:shadow-md hover:shadow-primary/[0.06] dark:hover:shadow-lg dark:hover:shadow-primary/5', className)}>
+      <CardHeader className="border-b border-border/70 bg-muted/25 pb-4 dark:border-border/70 dark:bg-muted/10">
         <div className="flex items-start gap-3">
           <span className={iconTileClass}>
             <BarChart3 className="h-4 w-4" aria-hidden="true" />

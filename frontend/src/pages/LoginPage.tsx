@@ -96,11 +96,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="bg-grid relative flex min-h-screen min-h-[100dvh] flex-col justify-center items-center surface-page overflow-x-hidden">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 -z-0 h-72 bg-gradient-to-b from-primary/[0.07] to-transparent dark:from-primary/[0.12]"
-      />
+    <div className="app-canvas bg-grid relative flex min-h-[100dvh] flex-col items-center justify-center overflow-x-hidden surface-page">
       <SkipToContent />
 
       <header className="absolute right-3 top-3 z-10 pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] sm:right-4 sm:top-4">
@@ -112,7 +108,7 @@ export function LoginPage() {
         tabIndex={-1}
         className="relative flex w-full flex-1 flex-col items-center justify-center p-4 py-3 sm:py-6 pb-[max(1rem,env(safe-area-inset-bottom))] outline-none"
       >
-        <Card className="surface-raised w-full max-w-sm sm:max-w-md animate-scale-in">
+        <Card className="surface-raised w-full max-w-sm sm:max-w-md animate-scale-in ring-1 ring-border/50">
           <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-3 text-center">
             <div className={cn(brandMarkClass, 'mx-auto mb-2 sm:mb-3 h-11 w-11 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl shadow-md')}>
               <Vote className="h-5 w-5 sm:h-7 sm:w-7" aria-hidden="true" />

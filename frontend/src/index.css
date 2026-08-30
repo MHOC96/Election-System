@@ -7,32 +7,32 @@
     color-scheme: light;
 
     /* Surfaces & text — calm, layered light theme (not pure white) */
-    --background: 220 24% 97%;
+    --background: 220 26% 96%;
     --foreground: 222 47% 11%;
-    --card: 220 20% 99%;
+    --card: 220 25% 99.5%;
     --card-foreground: 222 47% 11%;
-    --popover: 220 20% 99%;
+    --popover: 220 25% 99.5%;
     --popover-foreground: 222 47% 11%;
 
     /* Brand + semantic (tuned for WCAG AA on their foregrounds) */
-    --primary: 224 76% 48%;
+    --primary: 224 76% 46%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 40% 96%;
+    --secondary: 210 42% 95%;
     --secondary-foreground: 222 47% 11%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 18% 40%;
-    --accent: 214 95% 96%;
-    --accent-foreground: 224 76% 38%;
+    --muted: 210 38% 94.5%;
+    --muted-foreground: 215 18% 38%;
+    --accent: 214 92% 95%;
+    --accent-foreground: 224 76% 36%;
     --destructive: 0 72% 45%;
     --destructive-foreground: 0 0% 100%;
-    --success: 152 62% 32%;
+    --success: 152 62% 30%;
     --success-foreground: 0 0% 100%;
-    --warning: 32 92% 40%;
+    --warning: 32 92% 38%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 220 16% 88%;
-    --input: 220 14% 86%;
-    --ring: 224 76% 48%;
+    --border: 220 18% 86%;
+    --input: 220 16% 84%;
+    --ring: 224 76% 46%;
     --radius: 0.625rem;
 
     /* Chart palette (theme-aware) */
@@ -43,27 +43,36 @@
     --chart-5: 199 89% 44%;
 
     /* Elevation — theme-aware, soft and layered */
-    --shadow-color: 220 43% 11%;
-    --shadow-xs: 0 1px 2px 0 hsl(var(--shadow-color) / 0.05);
-    --shadow-sm: 0 1px 3px 0 hsl(var(--shadow-color) / 0.08), 0 1px 2px -1px hsl(var(--shadow-color) / 0.06);
-    --shadow-md: 0 6px 16px -4px hsl(var(--shadow-color) / 0.1), 0 2px 6px -2px hsl(var(--shadow-color) / 0.06);
-    --shadow-lg: 0 14px 32px -8px hsl(var(--shadow-color) / 0.14), 0 6px 14px -6px hsl(var(--shadow-color) / 0.08);
-    --shadow-xl: 0 28px 56px -14px hsl(var(--shadow-color) / 0.2), 0 10px 24px -10px hsl(var(--shadow-color) / 0.1);
+    --shadow-color: 224 45% 18%;
+    --shadow-xs: 0 1px 2px 0 hsl(var(--shadow-color) / 0.06);
+    --shadow-sm: 0 1px 3px 0 hsl(var(--shadow-color) / 0.09), 0 1px 2px -1px hsl(var(--shadow-color) / 0.07);
+    --shadow-md: 0 8px 18px -4px hsl(var(--shadow-color) / 0.11), 0 2px 8px -2px hsl(var(--shadow-color) / 0.07);
+    --shadow-lg: 0 16px 34px -8px hsl(var(--shadow-color) / 0.14), 0 6px 16px -6px hsl(var(--shadow-color) / 0.09);
+    --shadow-xl: 0 30px 58px -14px hsl(var(--shadow-color) / 0.18), 0 10px 26px -10px hsl(var(--shadow-color) / 0.11);
 
-    --gradient-brand: linear-gradient(135deg, hsl(224 76% 54%), hsl(262 68% 58%));
-    --surface-highlight: hsl(var(--foreground) / 0.06);
+    --gradient-brand: linear-gradient(135deg, hsl(224 76% 52%), hsl(262 68% 56%));
+    --surface-highlight: hsl(0 0% 100% / 0.72);
 
-    /* ── Member portal palette — mirrors admin semantic tokens ───── */
-    --portal-canvas: 220 24% 97%;
-    --portal-surface: 220 20% 99%;
-    --portal-surface-muted: 210 40% 96%;
-    --portal-surface-hover: 210 40% 96%;
-    --portal-header: 210 40% 96%;
-    --portal-border: 220 16% 88%;
-    --portal-border-strong: 220 14% 78%;
+    /* Admin console ambient accents (light) */
+    --admin-glow-primary: 224 76% 48%;
+    --admin-glow-violet: 262 68% 58%;
+    --admin-surface-inset: hsl(0 0% 100% / 0.75);
+    --admin-border-glow: hsl(var(--primary) / 0.14);
+
+    /* ── Member portal palette — synced with semantic tokens ─────── */
+    --portal-canvas: 220 26% 96%;
+    --portal-surface: 220 25% 99.5%;
+    --portal-surface-muted: 210 38% 94%;
+    --portal-surface-hover: 210 40% 93%;
+    --portal-header: 220 25% 99%;
+    --portal-border: 220 18% 86%;
+    --portal-border-strong: 220 16% 78%;
     --portal-heading: 222 47% 11%;
     --portal-body: 222 47% 11%;
-    --portal-subtle: 215 18% 40%;
+    --portal-subtle: 215 18% 38%;
+    --portal-glow-primary: 224 76% 48%;
+    --portal-glow-violet: 262 68% 58%;
+    --portal-surface-inset: hsl(0 0% 100% / 0.75);
 
     /* Accent follows admin primary */
     --portal-accent-h: 224;
@@ -86,59 +95,69 @@
   .dark {
     color-scheme: dark;
 
-    --background: 224 38% 7%;
-    --foreground: 210 40% 96%;
-    --card: 224 32% 10%;
-    --card-foreground: 210 40% 96%;
-    --popover: 224 30% 12%;
-    --popover-foreground: 210 40% 96%;
+    /* OLED-adjacent base with clearer surface separation */
+    --background: 224 42% 5.5%;
+    --foreground: 210 40% 97%;
+    --card: 224 34% 9.5%;
+    --card-foreground: 210 40% 97%;
+    --popover: 224 32% 11%;
+    --popover-foreground: 210 40% 97%;
 
-    --primary: 217 91% 66%;
-    --primary-foreground: 224 44% 8%;
-    --secondary: 217 28% 15%;
+    --primary: 217 91% 68%;
+    --primary-foreground: 224 44% 6%;
+    --secondary: 217 30% 14%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217 28% 15%;
-    --muted-foreground: 216 18% 68%;
-    --accent: 217 33% 18%;
-    --accent-foreground: 213 96% 82%;
-    --destructive: 0 72% 62%;
-    --destructive-foreground: 224 44% 8%;
-    --success: 152 58% 52%;
-    --success-foreground: 224 44% 8%;
-    --warning: 38 92% 60%;
-    --warning-foreground: 224 44% 8%;
+    --muted: 217 28% 13%;
+    --muted-foreground: 216 16% 72%;
+    --accent: 217 32% 17%;
+    --accent-foreground: 213 96% 84%;
+    --destructive: 0 72% 64%;
+    --destructive-foreground: 224 44% 6%;
+    --success: 152 58% 54%;
+    --success-foreground: 224 44% 6%;
+    --warning: 38 92% 62%;
+    --warning-foreground: 224 44% 6%;
 
-    --border: 216 18% 22%;
-    --input: 216 16% 24%;
-    --ring: 217 91% 66%;
+    --border: 216 20% 26%;
+    --input: 216 18% 28%;
+    --ring: 217 91% 68%;
 
-    --chart-1: 217 91% 66%;
-    --chart-2: 152 58% 55%;
-    --chart-3: 262 76% 72%;
-    --chart-4: 38 92% 62%;
-    --chart-5: 199 89% 62%;
+    --chart-1: 217 91% 68%;
+    --chart-2: 152 58% 58%;
+    --chart-3: 262 76% 74%;
+    --chart-4: 38 92% 64%;
+    --chart-5: 199 89% 64%;
 
-    --shadow-color: 224 60% 2%;
-    --shadow-xs: 0 1px 2px 0 hsl(var(--shadow-color) / 0.4);
-    --shadow-sm: 0 1px 3px 0 hsl(var(--shadow-color) / 0.5), 0 1px 2px -1px hsl(var(--shadow-color) / 0.4);
-    --shadow-md: 0 6px 18px -4px hsl(var(--shadow-color) / 0.6), 0 2px 6px -2px hsl(var(--shadow-color) / 0.45);
-    --shadow-lg: 0 16px 36px -8px hsl(var(--shadow-color) / 0.7), 0 6px 14px -6px hsl(var(--shadow-color) / 0.5);
-    --shadow-xl: 0 30px 60px -14px hsl(var(--shadow-color) / 0.78), 0 12px 26px -10px hsl(var(--shadow-color) / 0.6);
+    --shadow-color: 224 65% 2%;
+    --shadow-xs: 0 1px 2px 0 hsl(var(--shadow-color) / 0.45);
+    --shadow-sm: 0 1px 3px 0 hsl(var(--shadow-color) / 0.55), 0 1px 2px -1px hsl(var(--shadow-color) / 0.45);
+    --shadow-md: 0 8px 20px -4px hsl(var(--shadow-color) / 0.65), 0 2px 8px -2px hsl(var(--shadow-color) / 0.5);
+    --shadow-lg: 0 18px 40px -8px hsl(var(--shadow-color) / 0.75), 0 6px 16px -6px hsl(var(--shadow-color) / 0.55);
+    --shadow-xl: 0 32px 64px -14px hsl(var(--shadow-color) / 0.82), 0 12px 28px -10px hsl(var(--shadow-color) / 0.65);
 
-    --gradient-brand: linear-gradient(135deg, hsl(217 91% 62%), hsl(262 72% 66%));
-    --surface-highlight: hsl(var(--foreground) / 0.04);
+    --gradient-brand: linear-gradient(135deg, hsl(217 91% 64%), hsl(262 72% 68%));
+    --surface-highlight: hsl(var(--foreground) / 0.06);
 
-    /* ── Member portal palette (dark) — mirrors admin semantic tokens */
-    --portal-canvas: 224 38% 7%;
-    --portal-surface: 224 32% 10%;
-    --portal-surface-muted: 217 28% 15%;
-    --portal-surface-hover: 217 33% 18%;
-    --portal-header: 217 28% 15%;
-    --portal-border: 216 18% 22%;
-    --portal-border-strong: 216 18% 28%;
-    --portal-heading: 210 40% 96%;
-    --portal-body: 210 40% 96%;
-    --portal-subtle: 216 18% 68%;
+    /* Admin console ambient accents */
+    --admin-glow-primary: 217 91% 68%;
+    --admin-glow-violet: 262 72% 68%;
+    --admin-surface-inset: hsl(var(--foreground) / 0.06);
+    --admin-border-glow: hsl(var(--primary) / 0.22);
+
+    /* ── Member portal palette (dark) — synced with semantic tokens */
+    --portal-canvas: 224 42% 5.5%;
+    --portal-surface: 224 34% 9.5%;
+    --portal-surface-muted: 217 28% 13%;
+    --portal-surface-hover: 217 32% 17%;
+    --portal-header: 224 34% 9.5%;
+    --portal-border: 216 20% 26%;
+    --portal-border-strong: 216 18% 32%;
+    --portal-heading: 210 40% 97%;
+    --portal-body: 210 40% 97%;
+    --portal-subtle: 216 16% 72%;
+    --portal-glow-primary: 217 91% 68%;
+    --portal-glow-violet: 262 72% 68%;
+    --portal-surface-inset: hsl(var(--foreground) / 0.06);
 
     --portal-accent-h: 217;
     --portal-accent-s: 91%;
@@ -248,6 +267,11 @@
     color: hsl(var(--foreground));
   }
 
+  .dark ::selection {
+    background-color: hsl(var(--primary) / 0.35);
+    color: hsl(var(--foreground));
+  }
+
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
   input:-webkit-autofill:focus,
@@ -273,15 +297,57 @@
 @layer components {
   /* Layered surfaces — background → section → card → raised */
   .surface-page {
-    @apply bg-muted/25 dark:bg-background;
+    @apply bg-background text-foreground;
   }
 
   .surface-card {
     @apply rounded-xl border border-border/70 bg-card text-card-foreground shadow-sm;
+    border-color: hsl(var(--border) / 0.9);
+    background: linear-gradient(
+      165deg,
+      hsl(var(--card)) 0%,
+      hsl(220 24% 97.5%) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 var(--admin-surface-inset),
+      var(--shadow-sm);
+  }
+
+  .dark .surface-card {
+    border-color: hsl(var(--border) / 0.9);
+    background: linear-gradient(
+      165deg,
+      hsl(var(--card)) 0%,
+      hsl(224 34% 8.5%) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 var(--admin-surface-inset),
+      var(--shadow-sm);
   }
 
   .surface-raised {
     @apply rounded-xl border border-border/80 bg-card text-card-foreground shadow-md;
+    border-color: hsl(var(--border));
+    background: linear-gradient(
+      165deg,
+      hsl(0 0% 100%) 0%,
+      hsl(220 24% 97%) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 var(--admin-surface-inset),
+      0 10px 28px -10px hsl(var(--shadow-color) / 0.12);
+  }
+
+  .dark .surface-raised {
+    border-color: hsl(var(--border));
+    background: linear-gradient(
+      165deg,
+      hsl(224 34% 10.5%) 0%,
+      hsl(224 34% 8.5%) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 var(--admin-surface-inset),
+      0 8px 24px -8px hsl(var(--shadow-color) / 0.7);
   }
 
   .section-heading {
@@ -294,16 +360,23 @@
 
   /* Frosted glass surface for premium headers/overlays */
   .glass {
-    background-color: hsl(var(--card) / 0.78);
-    backdrop-filter: saturate(160%) blur(14px);
-    -webkit-backdrop-filter: saturate(160%) blur(14px);
+    background-color: hsl(var(--card) / 0.82);
+    backdrop-filter: saturate(170%) blur(16px);
+    -webkit-backdrop-filter: saturate(170%) blur(16px);
     transition: background-color var(--theme-switch-duration) var(--theme-switch-ease);
+    box-shadow:
+      inset 0 1px 0 var(--admin-surface-inset),
+      0 1px 0 hsl(var(--border) / 0.55);
   }
 
   .dark .glass {
-    background-color: hsl(var(--card) / 0.88);
-    backdrop-filter: saturate(140%) blur(16px);
-    -webkit-backdrop-filter: saturate(140%) blur(16px);
+    background-color: hsl(var(--card) / 0.82);
+    border-color: hsl(var(--border) / 0.65);
+    backdrop-filter: saturate(150%) blur(18px);
+    -webkit-backdrop-filter: saturate(150%) blur(18px);
+    box-shadow:
+      inset 0 1px 0 hsl(var(--foreground) / 0.05),
+      0 1px 0 hsl(var(--border) / 0.4);
   }
 
   .bg-gradient-brand {
@@ -430,16 +503,41 @@
     --portal-accent-veil-alpha: 0.05;
   }
 
-  /* ── Page canvas — same layered background as admin ───────────── */
+  /* ── Page canvas — ambient mesh (admin, member, auth) ─────────── */
+  .app-canvas,
+  .admin-canvas,
   .portal-canvas {
-    @apply bg-muted/25 dark:bg-background;
+    position: relative;
+    isolation: isolate;
+    background-color: hsl(var(--background));
     transition: background-color var(--portal-fade);
   }
 
+  .app-canvas::before,
+  .admin-canvas::before,
   .portal-canvas::before {
-    display: none;
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 75% 50% at 6% -8%, hsl(var(--portal-glow-primary) / 0.07), transparent 55%),
+      radial-gradient(ellipse 60% 42% at 94% 0%, hsl(var(--portal-glow-violet) / 0.05), transparent 50%),
+      radial-gradient(ellipse 55% 38% at 50% 105%, hsl(var(--portal-glow-primary) / 0.04), transparent 46%);
   }
 
+  .dark .app-canvas::before,
+  .dark .admin-canvas::before,
+  .dark .portal-canvas::before {
+    background:
+      radial-gradient(ellipse 70% 45% at 8% -5%, hsl(var(--portal-glow-primary) / 0.1), transparent 52%),
+      radial-gradient(ellipse 55% 38% at 92% 2%, hsl(var(--portal-glow-violet) / 0.08), transparent 48%),
+      radial-gradient(ellipse 50% 35% at 50% 100%, hsl(var(--portal-glow-primary) / 0.05), transparent 42%);
+  }
+
+  .app-canvas > *,
+  .admin-canvas > *,
   .portal-canvas > * {
     position: relative;
     z-index: 1;
@@ -460,15 +558,51 @@
   }
 
   .portal-surface--muted {
-    @apply rounded-xl border border-border/60 bg-muted/10 dark:bg-muted/20;
-    box-shadow: none;
+    @apply rounded-xl border;
+    border-color: hsl(var(--border) / 0.75);
+    background: linear-gradient(
+      165deg,
+      hsl(var(--muted) / 0.38) 0%,
+      hsl(var(--muted) / 0.22) 100%
+    );
+    box-shadow: inset 0 1px 0 var(--portal-surface-inset);
+    transition:
+      background-color var(--portal-fade),
+      border-color var(--portal-fade),
+      box-shadow var(--portal-fade);
+  }
+
+  .dark .portal-surface--muted {
+    border-color: hsl(var(--border) / 0.65);
+    background: linear-gradient(
+      165deg,
+      hsl(var(--muted) / 0.32) 0%,
+      hsl(var(--muted) / 0.16) 100%
+    );
   }
 
   .portal-surface__header {
-    @apply border-b border-border/60 bg-muted/20;
+    @apply border-b;
+    border-color: hsl(var(--border) / 0.7);
+    background: linear-gradient(
+      180deg,
+      hsl(var(--muted) / 0.45) 0%,
+      hsl(var(--muted) / 0.28) 100%
+    );
+    box-shadow: inset 0 1px 0 var(--portal-surface-inset);
     transition:
       background-color var(--portal-fade),
-      border-color var(--portal-fade);
+      border-color var(--portal-fade),
+      box-shadow var(--portal-fade);
+  }
+
+  .dark .portal-surface__header {
+    border-color: hsl(var(--border) / 0.6);
+    background: linear-gradient(
+      180deg,
+      hsl(var(--muted) / 0.38) 0%,
+      hsl(var(--muted) / 0.2) 100%
+    );
   }
 
   /* Accent-tinted surface — picks up the inherited accent scope */
@@ -533,7 +667,15 @@
     font-weight: 600;
   }
 
-  /* Chips and soft fills need a hairline in dark so they don't melt into cards */
+  /* Chips and soft fills need a hairline so they don't melt into cards */
+  .portal-accent-soft.portal-accent-border {
+    box-shadow: inset 0 0 0 1px
+      hsl(
+        var(--portal-accent-h) var(--portal-accent-s) var(--portal-accent-l) /
+          calc(var(--portal-accent-border-alpha) * 0.5)
+      );
+  }
+
   .dark .portal-accent-soft.portal-accent-border {
     box-shadow: inset 0 0 0 1px
       hsl(
@@ -579,15 +721,28 @@
   }
 
   .portal-digit {
-    @apply rounded-xl border border-border/60 bg-muted/30;
+    @apply rounded-xl border;
+    border-color: hsl(var(--border) / 0.7);
+    background: linear-gradient(
+      180deg,
+      hsl(var(--card)) 0%,
+      hsl(var(--muted) / 0.42) 100%
+    );
+    box-shadow: inset 0 1px 0 var(--portal-surface-inset);
     transition:
       background-color var(--portal-fade),
       border-color var(--portal-fade),
-      color var(--portal-fade);
+      color var(--portal-fade),
+      box-shadow var(--portal-fade);
   }
 
   .dark .portal-digit {
-    @apply bg-muted/20;
+    border-color: hsl(var(--border) / 0.65);
+    background: linear-gradient(
+      180deg,
+      hsl(224 34% 10.5%) 0%,
+      hsl(224 34% 8.5%) 100%
+    );
   }
 
   .portal-digit__value {
@@ -657,8 +812,37 @@
 
   /* Subtle dotted grid background for hero/empty canvases */
   .bg-grid {
+    background-color: hsl(var(--background) / 0.65);
     background-image: radial-gradient(hsl(var(--muted-foreground) / 0.12) 1px, transparent 1px);
     background-size: 22px 22px;
+  }
+
+  .dark .bg-grid {
+    background-image: radial-gradient(hsl(var(--muted-foreground) / 0.16) 1px, transparent 1px);
+    background-color: hsl(var(--background) / 0.55);
+  }
+
+  /* KPI tile inner surface — machined bezel */
+  .admin-kpi-inner {
+    background: linear-gradient(
+      155deg,
+      hsl(0 0% 100%) 0%,
+      hsl(220 24% 98%) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 var(--admin-surface-inset),
+      inset 0 -1px 0 hsl(var(--border) / 0.45);
+  }
+
+  .dark .admin-kpi-inner {
+    background: linear-gradient(
+      155deg,
+      hsl(224 34% 10.5%) 0%,
+      hsl(224 34% 8.5%) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 var(--admin-surface-inset),
+      inset 0 -1px 0 hsl(var(--shadow-color) / 0.35);
   }
 }
 
