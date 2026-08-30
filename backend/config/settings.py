@@ -24,6 +24,10 @@ ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 # Railway and other platforms probe liveness from internal hosts.
 _ALLOW_INTERNAL_HOSTS = ("127.0.0.1", "localhost", "healthcheck.railway.app")
 ALLOWED_HOSTS = list(dict.fromkeys([*ALLOWED_HOSTS, *_ALLOW_INTERNAL_HOSTS]))
+# Railway injects RAILWAY_PUBLIC_DOMAIN (e.g. your-service.up.railway.app).
+_railway_public_domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "").strip()
+if _railway_public_domain:
+    ALLOWED_HOSTS = list(dict.fromkeys([*ALLOWED_HOSTS, _railway_public_domain]))
 if "test" in sys.argv and "testserver" not in ALLOWED_HOSTS:
     ALLOWED_HOSTS = [*ALLOWED_HOSTS, "testserver"]
 
