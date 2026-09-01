@@ -1,4 +1,4 @@
-function resolveBackendBase(): string {
+function resolveBackendBase() {
   const raw =
     process.env.BACKEND_URL?.trim() ||
     process.env.RAILWAY_PUBLIC_DOMAIN?.trim() ||
@@ -13,7 +13,8 @@ function resolveBackendBase(): string {
   return url.replace(/\/api$/, '')
 }
 
-export default async function proxy(request: Request): Promise<Response> {
+/** @param {Request} request */
+export default async function proxy(request) {
   const backendBase = resolveBackendBase()
   if (!backendBase) {
     return Response.json(
@@ -39,8 +40,7 @@ export default async function proxy(request: Request): Promise<Response> {
     method: request.method,
     headers,
     body: hasBody ? request.body : undefined,
-    // Required when forwarding a request body in Node.js fetch.
-    ...(hasBody ? { duplex: 'half' as const } : {}),
+    ...(hasBody ? { duplex: 'half' } : {}),
   })
 
   return new Response(upstream.body, {

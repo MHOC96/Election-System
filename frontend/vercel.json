@@ -3,7 +3,7 @@
   "installCommand": "npm ci",
   "buildCommand": "npm run build",
   "proxy": {
-    "entrypoint": "proxy.ts",
+    "entrypoint": "proxy.js",
     "matcher": "/api/:path*"
   },
   "rewrites": [
