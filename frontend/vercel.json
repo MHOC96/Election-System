@@ -4,6 +4,10 @@
   "buildCommand": "npm run build",
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "https://election-system.up.railway.app/api/:path*"
+    },
+    {
       "source": "/((?!api/|assets/|robots\\.txt|sitemap\\.xml|manifest\\.json|favicon\\.svg|icons\\.svg).*)",
       "destination": "/index.html"
     }
