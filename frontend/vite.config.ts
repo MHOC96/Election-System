@@ -1,9 +1,28 @@
 import path from 'path'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { resolveProductionApiUrl } from './scripts/resolve-production-api.ts'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const resolvedApiUrl = mode === 'production' ? resolveProductionApiUrl(process.env) : null
+
+  if (resolvedApiUrl) {
+    process.env.VITE_API_URL = resolvedApiUrl
+    console.log(`[build] Baking VITE_API_URL=${resolvedApiUrl} into client bundle`)
+  } else if (mode === 'production' && process.env.VERCEL) {
+    const viteApi = (process.env.VITE_API_URL ?? '/api').trim()
+    if (viteApi === '/api' || !viteApi.startsWith('http')) {
+      console.warn(
+        '[build] WARNING: Set BACKEND_URL on Vercel — relative VITE_API_URL=/api will 404 in production.',
+      )
+    }
+  }
+
+  return {
   plugins: [react()],
+  ...(resolvedApiUrl
+    ? { define: { 'import.meta.env.VITE_API_URL': JSON.stringify(resolvedApiUrl) } }
+    : {}),
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -97,4 +116,5 @@ export default defineConfig({
       },
     },
   },
+  }
 })
