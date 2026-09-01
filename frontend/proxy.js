@@ -1,3 +1,21 @@
+const HOP_BY_HOP = new Set([
+  'connection',
+  'keep-alive',
+  'proxy-authenticate',
+  'proxy-authorization',
+  'te',
+  'trailer',
+  'transfer-encoding',
+  'upgrade',
+])
+
+const STRIP_FROM_RESPONSE = new Set([
+  ...HOP_BY_HOP,
+  // fetch() decompresses gzip/br bodies; keeping these breaks the browser decoder.
+  'content-encoding',
+  'content-length',
+])
+
 function resolveBackendBase() {
   const raw =
     process.env.BACKEND_URL?.trim() ||
@@ -11,6 +29,16 @@ function resolveBackendBase() {
     url = `https://${url}`
   }
   return url.replace(/\/api$/, '')
+}
+
+function sanitizeResponseHeaders(upstreamHeaders) {
+  const headers = new Headers()
+  upstreamHeaders.forEach((value, key) => {
+    if (!STRIP_FROM_RESPONSE.has(key.toLowerCase())) {
+      headers.set(key, value)
+    }
+  })
+  return headers
 }
 
 /** @param {Request} request */
@@ -34,6 +62,11 @@ export default async function proxy(request) {
 
   const headers = new Headers(request.headers)
   headers.delete('host')
+  for (const key of HOP_BY_HOP) {
+    headers.delete(key)
+  }
+  // Ask Railway for an uncompressed body so the proxy can forward it safely.
+  headers.set('accept-encoding', 'identity')
 
   const hasBody = request.method !== 'GET' && request.method !== 'HEAD'
   const upstream = await fetch(targetUrl, {
@@ -46,6 +79,6 @@ export default async function proxy(request) {
   return new Response(upstream.body, {
     status: upstream.status,
     statusText: upstream.statusText,
-    headers: upstream.headers,
+    headers: sanitizeResponseHeaders(upstream.headers),
   })
 }
