@@ -22,8 +22,8 @@ function normalizeApiUrl(raw: string): string {
 }
 
 export function resolveProductionApiUrl(env: NodeJS.ProcessEnv = process.env): string | null {
-  // On Vercel, keep same-origin /api — vercel.json rewrites proxy to Railway.
-  if (env.VERCEL) return null
+  // On Vercel always use same-origin /api (proxy.js → Railway). Ignore stale VITE_API_URL env values.
+  if (env.VERCEL) return '/api'
 
   const backend = normalizeBackend(env.BACKEND_URL ?? '')
   const viteApi = normalizeApiUrl(env.VITE_API_URL ?? '/api')

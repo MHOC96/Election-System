@@ -22,27 +22,59 @@ function normalizeApiBaseUrl(raw: string): string {
   return url
 }
 
-const API_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_URL ?? '/api')
+/** Prefer same-origin /api on Vercel; recover from stale baked env URLs in old bundles. */
+function resolveApiBaseUrl(): string {
+  const baked = normalizeApiBaseUrl(import.meta.env.VITE_API_URL ?? '/api')
 
-if (import.meta.env.PROD && API_URL.startsWith('/')) {
-  console.info('[API] Using same-origin API base:', API_URL, '(requires Vercel /api proxy or dev proxy)')
+  if (!import.meta.env.PROD || typeof window === 'undefined') {
+    return baked
+  }
+
+  const pageHost = window.location.hostname
+
+  if (pageHost.endsWith('.vercel.app')) {
+    if (baked === '/api' || baked === 'api') return '/api'
+
+    if (baked.startsWith('http')) {
+      try {
+        const apiHost = new URL(baked).hostname
+        if (apiHost !== pageHost) {
+          console.warn(
+            '[API] Ignoring stale API URL (%s); using same-origin /api instead.',
+            baked,
+          )
+          return '/api'
+        }
+      } catch {
+        return '/api'
+      }
+    }
+
+    return '/api'
+  }
+
+  if (baked.startsWith('http')) {
+    try {
+      const apiHost = new URL(baked, window.location.origin).hostname
+      if (apiHost.endsWith('.vercel.app') && apiHost !== pageHost) {
+        console.warn(
+          '[API] Ignoring stale Vercel API URL (%s); using same-origin /api instead.',
+          baked,
+        )
+        return '/api'
+      }
+    } catch {
+      /* ignore invalid URL */
+    }
+  }
+
+  return baked
 }
 
-if (import.meta.env.PROD && API_URL.startsWith('http')) {
-  try {
-    const apiHost = new URL(API_URL, window.location.origin).hostname
-    const pageHost = window.location.hostname
-    if (apiHost.endsWith('.vercel.app') && apiHost !== pageHost) {
-      console.error(
-        '[API] VITE_API_URL points at another Vercel deployment (%s) which is not your Railway backend. ' +
-          'Fix: set BACKEND_URL to your Railway URL, VITE_API_URL=/api, then redeploy — or set ' +
-          'VITE_API_URL=https://<your-service>.up.railway.app/api',
-        API_URL,
-      )
-    }
-  } catch {
-    /* ignore invalid URL during SSR/tests */
-  }
+const API_URL = resolveApiBaseUrl()
+
+if (import.meta.env.PROD && API_URL.startsWith('/')) {
+  console.info('[API] Using same-origin API base:', API_URL)
 }
 
 export function getApiBaseUrl(): string {

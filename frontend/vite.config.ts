@@ -9,8 +9,6 @@ export default defineConfig(({ mode }) => {
   if (resolvedApiUrl) {
     process.env.VITE_API_URL = resolvedApiUrl
     console.log(`[build] Baking VITE_API_URL=${resolvedApiUrl} into client bundle`)
-  } else if (mode === 'production' && process.env.VERCEL) {
-    console.log('[build] Vercel deploy — API calls use same-origin /api (proxied to Railway)')
   }
 
   return {
