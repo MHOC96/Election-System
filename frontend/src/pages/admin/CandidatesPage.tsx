@@ -44,7 +44,8 @@ import { pageLayoutClass, pageHeaderBlockClass } from '@/lib/design-tokens'
 import { PageNotice } from '@/components/shared/PageNotice'
 import { optimizeCloudinaryUrl } from '@/lib/cloudinary'
 import { candidateSchema, type CandidateForm } from '@/lib/form-schemas'
-import { markQueriesStale, refreshDashboard, POSITIONS_QUERY_KEY, POSITIONS_STALE_MS,
+import { invalidateCandidateSurfaces, POSITIONS_QUERY_KEY, POSITIONS_STALE_MS,
+  CANDIDATES_QUERY_KEY,
   CANDIDATES_MODIFICATION_STATUS_POLL_MS,
   CANDIDATES_MODIFICATION_STATUS_QUERY_KEY,
   CANDIDATES_MODIFICATION_STATUS_STALE_MS,
@@ -67,8 +68,9 @@ export function CandidatesPage() {
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
 
   const { data: candidates, isLoading: candidatesLoading, isFetching, isError: candidatesError, refetch: refetchCandidates } = useQuery({
-    queryKey: ['candidates'],
+    queryKey: CANDIDATES_QUERY_KEY,
     queryFn: () => fetchCandidates(),
+    staleTime: POSITIONS_STALE_MS,
   })
 
   const { data: positions, isLoading: positionsLoading, isError: positionsError, refetch: refetchPositions } = useQuery({
@@ -96,7 +98,7 @@ export function CandidatesPage() {
   }, [positions, candidates])
 
   const syncCandidateInCache = (saved: Candidate) => {
-    queryClient.setQueryData<Candidate[]>(['candidates'], (old) => {
+    queryClient.setQueryData<Candidate[]>(CANDIDATES_QUERY_KEY, (old) => {
       const list = old ?? []
       const index = list.findIndex((candidate) => candidate.id === saved.id)
       if (index >= 0) {
@@ -137,8 +139,7 @@ export function CandidatesPage() {
     },
     onSuccess: (saved) => {
       syncCandidateInCache(saved)
-      markQueriesStale(queryClient, ['candidates'])
-      refreshDashboard(queryClient)
+      invalidateCandidateSurfaces(queryClient)
       closeDialog()
     },
     onError: (error) => notifyApiError(error, 'upload'),
@@ -147,8 +148,8 @@ export function CandidatesPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteCandidate(id),
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['candidates'] })
-      const previous = queryClient.getQueryData<Candidate[]>(['candidates'])
+      await queryClient.cancelQueries({ queryKey: CANDIDATES_QUERY_KEY })
+      const previous = queryClient.getQueryData<Candidate[]>(CANDIDATES_QUERY_KEY)
       queryClient.setQueryData<Candidate[]>(['candidates'], (old) =>
         (old ?? []).filter((candidate) => candidate.id !== id),
       )
@@ -156,12 +157,11 @@ export function CandidatesPage() {
       return { previous }
     },
     onSuccess: () => {
-      markQueriesStale(queryClient, ['candidates'])
-      refreshDashboard(queryClient)
+      invalidateCandidateSurfaces(queryClient)
     },
     onError: (error, _id, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(['candidates'], context.previous)
+        queryClient.setQueryData(CANDIDATES_QUERY_KEY, context.previous)
       }
       notifyApiError(error, 'upload')
     },
@@ -170,15 +170,14 @@ export function CandidatesPage() {
   const clearAllMutation = useMutation({
     mutationFn: clearAllCandidates,
     onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: ['candidates'] })
-      const previous = queryClient.getQueryData<Candidate[]>(['candidates'])
+      await queryClient.cancelQueries({ queryKey: CANDIDATES_QUERY_KEY })
+      const previous = queryClient.getQueryData<Candidate[]>(CANDIDATES_QUERY_KEY)
       queryClient.setQueryData<Candidate[]>(['candidates'], [])
       setClearAllOpen(false)
       return { previous }
     },
     onSuccess: (result) => {
-      markQueriesStale(queryClient, ['candidates'])
-      refreshDashboard(queryClient)
+      invalidateCandidateSurfaces(queryClient)
       if (result.deleted === 0 && result.skipped.length === 0) {
         notifyInfo('Nothing to remove', 'There are no candidates on the list right now.')
       } else if (result.skipped.length > 0) {
@@ -190,7 +189,7 @@ export function CandidatesPage() {
     },
     onError: (error, _vars, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(['candidates'], context.previous)
+        queryClient.setQueryData(CANDIDATES_QUERY_KEY, context.previous)
       }
       notifyApiError(error, 'upload')
     },

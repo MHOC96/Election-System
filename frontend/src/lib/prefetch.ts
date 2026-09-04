@@ -2,14 +2,16 @@ import type { QueryClient } from '@tanstack/react-query'
 import { fetchDashboardOverview } from '@/api/dashboard'
 import { consumeFreshLogin } from '@/lib/auth-storage'
 import {
+  APPLICATIONS_STALE_MS,
   BALLOT_QUERY_KEY,
   BALLOT_STALE_MS,
+  CANDIDATES_QUERY_KEY,
   DASHBOARD_DEFAULT_ACADEMIC_YEAR,
   DASHBOARD_STALE_MS,
   dashboardOverviewQueryKey,
-  MEMBERS_STALE_MS,
   MEMBERS_DELETION_STATUS_QUERY_KEY,
   MEMBERS_DELETION_STATUS_STALE_MS,
+  MEMBERS_STALE_MS,
   ONGOING_ELECTION_QUERY_KEY,
   ONGOING_ELECTION_STALE_MS,
   POSITIONS_QUERY_KEY,
@@ -64,7 +66,7 @@ function prefetchApplicationPageData(queryClient: QueryClient) {
     void queryClient.prefetchQuery({
       queryKey: ['applications', 'me'],
       queryFn: fetchMyApplications,
-      staleTime: 30_000,
+      staleTime: APPLICATIONS_STALE_MS,
     })
   })
 }
@@ -159,19 +161,20 @@ function prefetchCandidatesData(queryClient: QueryClient) {
   prefetchPositions(queryClient)
   void import('@/api/candidates').then(({ fetchCandidates }) => {
     void queryClient.prefetchQuery({
-      queryKey: ['candidates'],
+      queryKey: CANDIDATES_QUERY_KEY,
       queryFn: () => fetchCandidates(undefined),
+      staleTime: POSITIONS_STALE_MS,
     })
   })
 }
 
 function prefetchElectionsData(queryClient: QueryClient) {
   prefetchPositions(queryClient)
-  prefetchCandidatesData(queryClient)
   void import('@/api/elections').then(({ fetchElections }) => {
     void queryClient.prefetchQuery({
       queryKey: ['elections'],
       queryFn: fetchElections,
+      staleTime: POSITIONS_STALE_MS,
     })
   })
 }
@@ -251,13 +254,7 @@ export function prefetchAdminNavRoute(to: string, queryClient: QueryClient) {
       break
     case '/admin/applications':
       void ApplicationReviewPage.preload()
-      void import('@/api/applications').then(({ fetchAllApplications }) => {
-        void queryClient.prefetchQuery({
-          queryKey: ['applications', 'all', 'PENDING_REVIEW', '3rd Year', 1],
-          queryFn: () =>
-            fetchAllApplications({ status: 'PENDING_REVIEW', academic_year: '3rd Year', page: 1 }),
-        })
-      })
+      prefetchPositions(queryClient)
       break
     case '/admin/elections':
       void ElectionsPage.preload()

@@ -26,7 +26,7 @@ import { FormField } from '@/components/design-system/FormField'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass, responsiveTableDesktopClass, responsiveTableMobileClass, dataTableShellClass, dataTableScrollClass } from '@/lib/design-tokens'
-import { POSITIONS_QUERY_KEY, POSITIONS_STALE_MS } from '@/lib/query-sync'
+import { invalidatePositionSurfaces, POSITIONS_QUERY_KEY, POSITIONS_STALE_MS } from '@/lib/query-sync'
 import { positionSchema, type PositionForm } from '@/lib/form-schemas'
 import type { Position } from '@/types/api'
 import { cn } from '@/lib/utils'
@@ -68,7 +68,7 @@ export function PositionsPage() {
       return createPosition(values.name, values.academic_year, undefined, values.max_winners)
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: POSITIONS_QUERY_KEY })
+      invalidatePositionSurfaces(queryClient)
       closeDialog()
     },
     onError: (error) => notifyApiError(error, 'general'),
@@ -77,7 +77,7 @@ export function PositionsPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deletePosition(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: POSITIONS_QUERY_KEY })
+      invalidatePositionSurfaces(queryClient)
       setDeleteTarget(null)
     },
     onError: (error) => notifyApiError(error, 'general'),

@@ -9,7 +9,7 @@ import { SUCCESS_MESSAGES } from '@/lib/user-messages'
 import { fetchPositions } from '@/api/positions'
 import { fetchAllApplications, reviewApplication, type CandidateApplication } from '@/api/applications'
 import { useOngoingElection } from '@/hooks/useOngoingElection'
-import { POSITIONS_QUERY_KEY, POSITIONS_STALE_MS } from '@/lib/query-sync'
+import { POSITIONS_QUERY_KEY, POSITIONS_STALE_MS, invalidateCandidateSurfaces } from '@/lib/query-sync'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
@@ -167,7 +167,7 @@ export function ApplicationReviewPage() {
         ),
       )
       void queryClient.invalidateQueries({ queryKey: ['applications', 'all'] })
-      void queryClient.invalidateQueries({ queryKey: ['candidates'] })
+      invalidateCandidateSurfaces(queryClient)
       if (variables.action === 'REJECT') {
         closeRejectDialog()
       } else {

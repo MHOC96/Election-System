@@ -86,7 +86,7 @@ export function BallotPage() {
     mutationFn: ({ positionId, candidateId }: { positionId: number; candidateId: number }) =>
       submitVote(positionId, candidateId),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: BALLOT_QUERY_KEY })
+      void queryClient.invalidateQueries({ queryKey: BALLOT_QUERY_KEY, refetchType: 'active' })
       notifySuccessMessage(SUCCESS_MESSAGES.voteRecorded)
       setPendingVote(null)
     },

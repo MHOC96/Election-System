@@ -34,6 +34,7 @@ import {
   MEMBERS_DELETION_STATUS_POLL_MS,
   MEMBERS_DELETION_STATUS_QUERY_KEY,
   MEMBERS_DELETION_STATUS_STALE_MS,
+  MEMBERS_READINESS_QUERY_KEY,
   MEMBERS_STALE_MS,
   refreshDashboard,
 } from '@/lib/query-sync'
@@ -79,6 +80,7 @@ export function MembersPage() {
       setPage(1)
       void refreshMembersPage(queryClient, activeTab, 1)
       markQueriesStale(queryClient, ['members'])
+      markQueriesStale(queryClient, MEMBERS_READINESS_QUERY_KEY)
       refreshDashboard(queryClient)
       setImportResult(result)
 
@@ -104,8 +106,9 @@ export function MembersPage() {
         notifyInfo('Nothing to remove', 'There are no member records to delete right now.')
       }
 
-      markQueriesStale(queryClient, ['members', activeTab])
       void refreshMembersPage(queryClient, activeTab, 1)
+      markQueriesStale(queryClient, ['members'])
+      markQueriesStale(queryClient, MEMBERS_READINESS_QUERY_KEY)
       refreshDashboard(queryClient)
     },
     onError: (error) => {
@@ -123,6 +126,8 @@ export function MembersPage() {
     onSuccess: () => {
       closeEditDialog()
       void refreshMembersPage(queryClient, activeTab, page)
+      markQueriesStale(queryClient, MEMBERS_READINESS_QUERY_KEY)
+      refreshDashboard(queryClient)
     },
     onError: (error) => notifyApiError(error, 'import'),
   })

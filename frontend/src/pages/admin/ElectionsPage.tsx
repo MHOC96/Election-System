@@ -48,7 +48,15 @@ import {
   getCreateElectionBlockReason,
   getElectionScheduleBlockReason,
 } from '@/lib/election-readiness'
-import { MEMBERS_DELETION_STATUS_QUERY_KEY, MEMBERS_STALE_MS, POSITIONS_QUERY_KEY, POSITIONS_STALE_MS, refreshDashboard, markQueriesStale } from '@/lib/query-sync'
+import {
+  MEMBERS_READINESS_QUERY_KEY,
+  MEMBERS_STALE_MS,
+  POSITIONS_QUERY_KEY,
+  POSITIONS_STALE_MS,
+  invalidateAfterElectionDeleted,
+  invalidateAfterElectionLifecycleChange,
+  refreshDashboard,
+} from '@/lib/query-sync'
 import { electionSchema, type ElectionForm } from '@/lib/form-schemas'
 import type { Election } from '@/types/api'
 import { cn, formatDate } from '@/lib/utils'
@@ -83,13 +91,14 @@ export function ElectionsPage() {
   const [editingElection, setEditingElection] = useState<Election | null>(null)
 
   const handleElectionCountdownExpire = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ['elections'] })
+    void queryClient.invalidateQueries({ queryKey: ['elections'], refetchType: 'active' })
     refreshDashboard(queryClient)
   }, [queryClient])
 
   const { data: elections, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ['elections'],
     queryFn: fetchElections,
+    staleTime: POSITIONS_STALE_MS,
     refetchInterval: (query) => {
       const list = query.state.data
       if (!list?.some(electionNeedsPhaseRefresh)) return false
@@ -104,7 +113,7 @@ export function ElectionsPage() {
   })
 
   const { data: membersPage, isLoading: membersLoading } = useQuery({
-    queryKey: ['members', 'readiness'],
+    queryKey: MEMBERS_READINESS_QUERY_KEY,
     queryFn: () => fetchMembers(undefined, 1, 1),
     staleTime: MEMBERS_STALE_MS,
   })
@@ -124,8 +133,8 @@ export function ElectionsPage() {
   const createMutation = useMutation({
     mutationFn: (values: ElectionForm) => createElection(values),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['elections'] })
-      refreshDashboard(queryClient)
+      void queryClient.invalidateQueries({ queryKey: ['elections'], refetchType: 'active' })
+      invalidateAfterElectionLifecycleChange(queryClient, 'schedule')
       closeCreateDialog()
     },
     onError: (error) => notifyApiError(error, 'election'),
@@ -134,8 +143,8 @@ export function ElectionsPage() {
   const updateMutation = useMutation({
     mutationFn: (data: { id: number; values: Partial<ElectionForm> }) => updateElection(data.id, data.values),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['elections'] })
-      refreshDashboard(queryClient)
+      void queryClient.invalidateQueries({ queryKey: ['elections'], refetchType: 'active' })
+      invalidateAfterElectionLifecycleChange(queryClient, 'schedule')
       closeCreateDialog()
     },
     onError: (error) => notifyApiError(error, 'election'),
@@ -152,14 +161,13 @@ export function ElectionsPage() {
         setCloseTarget(null)
       }
     },
-    onSuccess: (updated) => {
+    onSuccess: (updated, variables) => {
       queryClient.setQueryData<Election[]>(['elections'], (old) =>
         (old ?? []).map((election) =>
           election.id === updated.id ? updated : election,
         ),
       )
-      refreshDashboard(queryClient)
-      markQueriesStale(queryClient, MEMBERS_DELETION_STATUS_QUERY_KEY)
+      invalidateAfterElectionLifecycleChange(queryClient, variables.action)
     },
     onError: (error, variables) => {
       if (variables.action === 'archive') {
@@ -178,7 +186,7 @@ export function ElectionsPage() {
           election.id === updated.id ? updated : election,
         ),
       )
-      refreshDashboard(queryClient)
+      invalidateAfterElectionLifecycleChange(queryClient, 'start_voting')
     },
     onError: (error) => notifyApiError(error, 'election'),
   })
@@ -195,8 +203,7 @@ export function ElectionsPage() {
       return { previous }
     },
     onSuccess: () => {
-      refreshDashboard(queryClient)
-      markQueriesStale(queryClient, MEMBERS_DELETION_STATUS_QUERY_KEY)
+      invalidateAfterElectionDeleted(queryClient)
       closeCreateDialog()
     },
     onError: (error, _id, context) => {

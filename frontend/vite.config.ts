@@ -1,7 +1,24 @@
 import path from 'path'
-import { defineConfig } from 'vite'
+import { copyFileSync, existsSync } from 'node:fs'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolveProductionApiUrl } from './scripts/resolve-production-api.ts'
+
+function spaNotFoundFallback(): Plugin {
+  return {
+    name: 'spa-not-found-fallback',
+    closeBundle() {
+      const distDir = path.join(__dirname, 'dist')
+      const indexHtml = path.join(distDir, 'index.html')
+      const fallbackHtml = path.join(distDir, '404.html')
+
+      if (existsSync(indexHtml)) {
+        copyFileSync(indexHtml, fallbackHtml)
+        console.log('[build] Copied index.html → 404.html for Vercel SPA fallback')
+      }
+    },
+  }
+}
 
 export default defineConfig(({ mode }) => {
   const resolvedApiUrl = mode === 'production' ? resolveProductionApiUrl(process.env) : null
@@ -12,7 +29,7 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
-  plugins: [react()],
+  plugins: [react(), spaNotFoundFallback()],
   ...(resolvedApiUrl
     ? { define: { 'import.meta.env.VITE_API_URL': JSON.stringify(resolvedApiUrl) } }
     : {}),

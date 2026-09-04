@@ -25,7 +25,8 @@ import { sectionDelays, Stagger } from '@/components/motion/Stagger'
 import { MemberPage } from '@/components/layout/MemberPage'
 import { memberCalloutClass, memberHeroSpacingClass } from '@/lib/design-tokens'
 import { isVotingStartPending } from '@/lib/election-lifecycle-ui'
-import { ONGOING_ELECTION_QUERY_KEY } from '@/lib/query-sync'
+import { ONGOING_ELECTION_QUERY_KEY, APPLICATIONS_STALE_MS } from '@/lib/query-sync'
+import { useDocumentVisible } from '@/lib/useDocumentVisible'
 import { accentScope } from '@/lib/portal-accent'
 import { cn, formatDate } from '@/lib/utils'
 import type { Election, ElectionPhase } from '@/types/api'
@@ -237,6 +238,7 @@ function ApplicationStatusPanel({
 
 export function MemberApplicationStatusPage() {
   const queryClient = useQueryClient()
+  const documentVisible = useDocumentVisible()
   const {
     data: election,
     isLoading: loadingElection,
@@ -254,11 +256,14 @@ export function MemberApplicationStatusPage() {
   } = useQuery({
     queryKey: ['applications', 'me'],
     queryFn: fetchMyApplications,
+    staleTime: APPLICATIONS_STALE_MS,
     refetchInterval: (query) => {
+      if (!documentVisible) return false
       const apps = query.state.data
       const current = apps?.find((app) => app.election === election?.id)
       return current?.status === 'PENDING_REVIEW' ? 10_000 : 30_000
     },
+    refetchIntervalInBackground: false,
     enabled: !!election,
   })
 

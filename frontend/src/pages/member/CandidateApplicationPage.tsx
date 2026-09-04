@@ -23,7 +23,7 @@ import { MemberPageHeader } from '@/components/member/MemberPageHeader'
 import { MemberSection } from '@/components/member/MemberSection'
 import { PositionApplyCard } from '@/components/applications/PositionApplyCard'
 import { memberHeroSpacingClass, memberPositionGridClass } from '@/lib/design-tokens'
-import { ONGOING_ELECTION_QUERY_KEY, APPLICATIONS_STALE_MS, POSITIONS_QUERY_KEY, POSITIONS_STALE_MS } from '@/lib/query-sync'
+import { APPLICATIONS_STALE_MS, ONGOING_ELECTION_QUERY_KEY, POSITIONS_QUERY_KEY, POSITIONS_STALE_MS, markQueriesStale } from '@/lib/query-sync'
 import { fetchPositions } from '@/api/positions'
 import { PhotoCropDialog } from '@/components/shared/PhotoCropDialog'
 import { ApplicationsStartsSoonCard } from '@/components/applications/ApplicationsStartsSoonCard'
@@ -60,7 +60,7 @@ export function CandidateApplicationPage() {
   const submitInFlightRef = useRef(false)
   const { user, isLoading: authLoading, refreshUser } = useAuth()
 
-  const { data: ongoingElection, isLoading: loadingElection, isError: electionError, isFetching: fetchingElection, refetch: refetchElection } = useOngoingElection()
+  const { data: ongoingElection, isLoading: loadingElection, isError: electionError, isFetching: fetchingElection, refetch: refetchElection } = useOngoingElection({ poll: false })
 
   const { data: positions, isLoading: loadingPositions, isError: positionsError, isFetching: fetchingPositions, refetch: refetchPositions } = useQuery({
     queryKey: POSITIONS_QUERY_KEY,
@@ -105,7 +105,8 @@ export function CandidateApplicationPage() {
     mutationFn: submitApplication,
     onSuccess: () => {
       notifySuccessMessage(SUCCESS_MESSAGES.applicationSubmitted)
-      void queryClient.invalidateQueries({ queryKey: ['applications', 'me'] })
+      void queryClient.invalidateQueries({ queryKey: ['applications', 'me'], refetchType: 'active' })
+      markQueriesStale(queryClient, ['applications', 'all'])
       closeDialog()
     },
     onError: (error) => notifyApiError(error, 'application'),

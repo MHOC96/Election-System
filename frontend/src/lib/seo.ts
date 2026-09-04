@@ -93,8 +93,8 @@ export function getSeoForPath(pathname: string): PageSeoConfig {
   }
 
   return {
-    title: SITE_NAME,
-    description: SITE_DESCRIPTION,
+    title: 'Page Not Found',
+    description: `The requested page could not be found on the ${SITE_NAME}.`,
     path,
     noindex: true,
   }

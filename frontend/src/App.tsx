@@ -26,6 +26,7 @@ import { RouteSeo } from '@/components/shared/RouteSeo'
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { AuthSessionBridge } from '@/components/auth/AuthSessionBridge'
 import { initTabCoordinator } from '@/lib/tab-coordinator'
+import { NotFoundPage } from '@/pages/NotFoundPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -154,10 +155,11 @@ export default function App() {
                     }
                   />
                   <Route path="live" element={<Navigate to="/admin" replace />} />
+                  <Route path="*" element={<NotFoundPage embedded />} />
                 </Route>
               </Route>
 
-              <Route path="*" element={<Navigate to="/login" replace />} />
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
             </BrowserRouter>
             <AppToaster />
