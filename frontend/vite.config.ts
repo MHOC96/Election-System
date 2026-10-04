@@ -1,8 +1,14 @@
 import path from 'path'
-import { copyFileSync, existsSync } from 'node:fs'
+import { copyFileSync, existsSync, writeFileSync } from 'node:fs'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolveProductionApiUrl } from './scripts/resolve-production-api.ts'
+
+const DEFAULT_SITE_URL = 'https://election-systems.vercel.app'
+
+function resolveSiteUrl(): string {
+  return (process.env.VITE_SITE_URL?.trim() || DEFAULT_SITE_URL).replace(/\/$/, '')
+}
 
 function spaNotFoundFallback(): Plugin {
   return {
@@ -16,6 +22,35 @@ function spaNotFoundFallback(): Plugin {
         copyFileSync(indexHtml, fallbackHtml)
         console.log('[build] Copied index.html → 404.html for Vercel SPA fallback')
       }
+
+      const siteUrl = resolveSiteUrl()
+      writeFileSync(
+        path.join(distDir, 'robots.txt'),
+        [
+          'User-agent: *',
+          'Allow: /login',
+          'Disallow: /admin',
+          'Disallow: /admin/',
+          '',
+          `Sitemap: ${siteUrl}/sitemap.xml`,
+          '',
+        ].join('\n'),
+      )
+      writeFileSync(
+        path.join(distDir, 'sitemap.xml'),
+        [
+          '<?xml version="1.0" encoding="UTF-8"?>',
+          '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+          '  <url>',
+          `    <loc>${siteUrl}/login</loc>`,
+          '    <changefreq>monthly</changefreq>',
+          '    <priority>0.6</priority>',
+          '  </url>',
+          '</urlset>',
+          '',
+        ].join('\n'),
+      )
+      console.log(`[build] Wrote robots.txt and sitemap.xml for ${siteUrl}`)
     },
   }
 }

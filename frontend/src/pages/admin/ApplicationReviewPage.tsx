@@ -81,11 +81,12 @@ export function ApplicationReviewPage() {
   const [pendingId, setPendingId] = useState<number | null>(null)
   const [selectedPosition, setSelectedPosition] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [activeStatusTab, setActiveStatusTab] = useState<string>('PENDING_REVIEW')
   const [activeYearTab, setActiveYearTab] = useState<string>('2nd Year')
   const [page, setPage] = useState(1)
 
-  const { data: ongoingElection, isLoading: loadingElection } = useOngoingElection()
+  const { data: ongoingElection, isLoading: loadingElection } = useOngoingElection({ poll: false })
 
   const reviewOpen =
     ongoingElection?.current_phase === 'REVIEWING' ||
@@ -95,6 +96,7 @@ export function ApplicationReviewPage() {
     queryKey: POSITIONS_QUERY_KEY,
     queryFn: fetchPositions,
     staleTime: POSITIONS_STALE_MS,
+    enabled: reviewOpen && !!ongoingElection,
   })
 
   const positionFilterId =
@@ -110,7 +112,7 @@ export function ApplicationReviewPage() {
       activeStatusTab,
       activeYearTab,
       selectedPosition,
-      searchQuery,
+      debouncedSearch,
       page,
     ],
     queryFn: () =>
@@ -119,11 +121,12 @@ export function ApplicationReviewPage() {
         election: ongoingElection?.id,
         academic_year: activeYearTab,
         position: positionFilterId,
-        search: searchQuery.trim() || undefined,
+        search: debouncedSearch.trim() || undefined,
         page,
         page_size: APPLICATIONS_PAGE_SIZE,
       }),
     enabled: !!ongoingElection && reviewOpen,
+    staleTime: 0,
   })
 
   const applications = applicationsPage?.results ?? []
@@ -133,8 +136,13 @@ export function ApplicationReviewPage() {
   const canGoNext = !!applicationsPage?.next && page < totalPages
 
   useEffect(() => {
+    const handle = window.setTimeout(() => setDebouncedSearch(searchQuery), 350)
+    return () => window.clearTimeout(handle)
+  }, [searchQuery])
+
+  useEffect(() => {
     setPage(1)
-  }, [activeStatusTab, activeYearTab, selectedPosition, searchQuery])
+  }, [activeStatusTab, activeYearTab, selectedPosition, debouncedSearch])
 
   useEffect(() => {
     if (page > totalPages) {

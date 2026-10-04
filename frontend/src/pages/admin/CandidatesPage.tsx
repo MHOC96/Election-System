@@ -42,7 +42,7 @@ import { FormField } from '@/components/design-system/FormField'
 import { restoreBodyPointerEvents } from '@/lib/pointer-events'
 import { pageLayoutClass, pageHeaderBlockClass } from '@/lib/design-tokens'
 import { PageNotice } from '@/components/shared/PageNotice'
-import { optimizeCloudinaryUrl } from '@/lib/cloudinary'
+import { optimizeCloudinaryUrl, safeCloudinaryHref } from '@/lib/cloudinary'
 import { candidateSchema, type CandidateForm } from '@/lib/form-schemas'
 import { invalidateCandidateSurfaces, POSITIONS_QUERY_KEY, POSITIONS_STALE_MS,
   CANDIDATES_QUERY_KEY,
@@ -124,6 +124,7 @@ export function CandidatesPage() {
 
   const photoUrl = watch('photo_url')
   const declarationUrl = watch('declaration_file')
+  const declarationPreviewHref = safeCloudinaryHref(declarationUrl)
   const academicYear = watch('academic_year')
   const positionId = watch('position')
 
@@ -528,9 +529,9 @@ export function CandidatesPage() {
                 >
                   {uploadingDeclaration ? 'Uploading…' : declarationUrl ? 'Replace PDF' : 'Upload PDF'}
                 </Button>
-                {declarationUrl ? (
+                {declarationPreviewHref ? (
                   <a
-                    href={declarationUrl}
+                    href={declarationPreviewHref}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm font-medium text-primary hover:underline"

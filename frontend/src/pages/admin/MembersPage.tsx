@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { KeyRound, Pencil, Trash2, Users } from 'lucide-react'
 import {
@@ -73,9 +73,21 @@ export function MembersPage() {
   const showDeletionBlockedNotice =
     !deletionStatusLoading && deletionStatus !== undefined && !deletionStatus.allowed
   const totalMembers = data?.count ?? 0
+  const importAbortRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    return () => {
+      importAbortRef.current?.abort()
+    }
+  }, [])
 
   const importMutation = useMutation({
-    mutationFn: (file: File) => importMembers(file, activeTab),
+    mutationFn: (file: File) => {
+      importAbortRef.current?.abort()
+      const controller = new AbortController()
+      importAbortRef.current = controller
+      return importMembers(file, activeTab, controller.signal)
+    },
     onSuccess: (result) => {
       setPage(1)
       void refreshMembersPage(queryClient, activeTab, 1)

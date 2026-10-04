@@ -1,4 +1,4 @@
-import { Suspense, useEffect } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
@@ -26,7 +26,9 @@ import { RouteSeo } from '@/components/shared/RouteSeo'
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { AuthSessionBridge } from '@/components/auth/AuthSessionBridge'
 import { initTabCoordinator } from '@/lib/tab-coordinator'
-import { NotFoundPage } from '@/pages/NotFoundPage'
+const NotFoundPage = lazy(() =>
+  import('@/pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
+)
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,6 +37,7 @@ const queryClient = new QueryClient({
       gcTime: 5 * 60_000,
       retry: 1,
       refetchOnWindowFocus: false,
+      refetchIntervalInBackground: false,
     },
   },
 })
@@ -51,7 +54,9 @@ const ballotFallback = (
 )
 
 export default function App() {
-  useEffect(() => initTabCoordinator(), [])
+  useEffect(() => {
+    return initTabCoordinator()
+  }, [])
 
   return (
     <ErrorBoundary>
@@ -155,11 +160,25 @@ export default function App() {
                     }
                   />
                   <Route path="live" element={<Navigate to="/admin" replace />} />
-                  <Route path="*" element={<NotFoundPage embedded />} />
+                  <Route
+                    path="*"
+                    element={
+                      <Suspense fallback={pageFallback}>
+                        <NotFoundPage embedded />
+                      </Suspense>
+                    }
+                  />
                 </Route>
               </Route>
 
-              <Route path="*" element={<NotFoundPage />} />
+              <Route
+                path="*"
+                element={
+                  <Suspense fallback={layoutFallback}>
+                    <NotFoundPage />
+                  </Suspense>
+                }
+              />
             </Routes>
             </BrowserRouter>
             <AppToaster />

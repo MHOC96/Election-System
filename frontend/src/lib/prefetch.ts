@@ -6,6 +6,7 @@ import {
   BALLOT_QUERY_KEY,
   BALLOT_STALE_MS,
   CANDIDATES_QUERY_KEY,
+  ELECTIONS_QUERY_KEY,
   DASHBOARD_DEFAULT_ACADEMIC_YEAR,
   DASHBOARD_STALE_MS,
   dashboardOverviewQueryKey,
@@ -172,7 +173,7 @@ function prefetchElectionsData(queryClient: QueryClient) {
   prefetchPositions(queryClient)
   void import('@/api/elections').then(({ fetchElections }) => {
     void queryClient.prefetchQuery({
-      queryKey: ['elections'],
+      queryKey: ELECTIONS_QUERY_KEY,
       queryFn: fetchElections,
       staleTime: POSITIONS_STALE_MS,
     })

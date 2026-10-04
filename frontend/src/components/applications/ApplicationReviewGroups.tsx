@@ -2,7 +2,7 @@ import { CalendarClock, CheckCircle2, CreditCard, ExternalLink, FileText, Loader
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { CandidateApplication } from '@/api/applications'
-import { optimizeCloudinaryUrl } from '@/lib/cloudinary'
+import { optimizeCloudinaryUrl, safeCloudinaryHref } from '@/lib/cloudinary'
 import {
   applicationReviewCardClass,
   applicationReviewGridClass,
@@ -33,13 +33,15 @@ interface ApplicantCardProps {
 function ApplicantCard({ app, pendingId, onApprove, onReject }: ApplicantCardProps) {
   const isBusy = pendingId === app.id
   const isPending = app.status === 'PENDING_REVIEW'
+  const photoSrc = app.photo_url ? optimizeCloudinaryUrl(app.photo_url, 96) : ''
+  const declarationHref = safeCloudinaryHref(app.declaration_file)
 
   return (
     <article className={applicationReviewCardClass}>
       <header className="flex items-start gap-3">
-        {app.photo_url ? (
+        {photoSrc ? (
           <img
-            src={optimizeCloudinaryUrl(app.photo_url, 96)}
+            src={photoSrc}
             alt=""
             loading="lazy"
             decoding="async"
@@ -65,14 +67,6 @@ function ApplicantCard({ app, pendingId, onApprove, onReject }: ApplicantCardPro
           <CreditCard className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden="true" />
           <dd className="truncate">CPM {app.member_cpm || app.cpm_number}</dd>
         </div>
-
-        {app.member_mc ? (
-          <div className="flex items-center gap-2">
-            <dt className="sr-only">MC number</dt>
-            <CreditCard className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden="true" />
-            <dd className="truncate">MC {app.member_mc}</dd>
-          </div>
-        ) : null}
 
         {app.member_academic_year ? (
           <div className="flex items-center gap-2">
@@ -104,13 +98,15 @@ function ApplicantCard({ app, pendingId, onApprove, onReject }: ApplicantCardPro
       ) : null}
 
       <div className="mt-auto space-y-2 pt-1">
-        <Button variant="outline" size="sm" asChild className="h-9 w-full justify-center">
-          <a href={app.declaration_file} target="_blank" rel="noopener noreferrer">
-            <FileText className="h-4 w-4" aria-hidden="true" />
-            View declaration
-            <ExternalLink className="h-3 w-3 opacity-70" aria-hidden="true" />
-          </a>
-        </Button>
+        {declarationHref ? (
+          <Button variant="outline" size="sm" asChild className="h-9 w-full justify-center">
+            <a href={declarationHref} target="_blank" rel="noopener noreferrer">
+              <FileText className="h-4 w-4" aria-hidden="true" />
+              View declaration
+              <ExternalLink className="h-3 w-3 opacity-70" aria-hidden="true" />
+            </a>
+          </Button>
+        ) : null}
 
         {isPending ? (
           <div className="grid grid-cols-2 gap-2">

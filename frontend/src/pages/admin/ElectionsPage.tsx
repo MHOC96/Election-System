@@ -52,11 +52,13 @@ import {
   MEMBERS_READINESS_QUERY_KEY,
   MEMBERS_STALE_MS,
   POSITIONS_QUERY_KEY,
+  ELECTIONS_QUERY_KEY,
   POSITIONS_STALE_MS,
   invalidateAfterElectionDeleted,
   invalidateAfterElectionLifecycleChange,
   refreshDashboard,
 } from '@/lib/query-sync'
+import { useDocumentVisible } from '@/lib/useDocumentVisible'
 import { electionSchema, type ElectionForm } from '@/lib/form-schemas'
 import type { Election } from '@/types/api'
 import { cn, formatDate } from '@/lib/utils'
@@ -70,6 +72,7 @@ import {
 
 export function ElectionsPage() {
   const queryClient = useQueryClient()
+  const documentVisible = useDocumentVisible()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [closeTarget, setCloseTarget] = useState<Election | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Election | null>(null)
@@ -91,19 +94,21 @@ export function ElectionsPage() {
   const [editingElection, setEditingElection] = useState<Election | null>(null)
 
   const handleElectionCountdownExpire = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ['elections'], refetchType: 'active' })
+    void queryClient.invalidateQueries({ queryKey: ELECTIONS_QUERY_KEY, refetchType: 'active' })
     refreshDashboard(queryClient)
   }, [queryClient])
 
   const { data: elections, isLoading, isError, isFetching, refetch } = useQuery({
-    queryKey: ['elections'],
+    queryKey: ELECTIONS_QUERY_KEY,
     queryFn: fetchElections,
     staleTime: POSITIONS_STALE_MS,
     refetchInterval: (query) => {
+      if (!documentVisible) return false
       const list = query.state.data
       if (!list?.some(electionNeedsPhaseRefresh)) return false
       return 10_000
     },
+    refetchIntervalInBackground: false,
   })
 
   const { data: positions, isLoading: positionsLoading } = useQuery({
@@ -133,7 +138,7 @@ export function ElectionsPage() {
   const createMutation = useMutation({
     mutationFn: (values: ElectionForm) => createElection(values),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['elections'], refetchType: 'active' })
+      void queryClient.invalidateQueries({ queryKey: ELECTIONS_QUERY_KEY, refetchType: 'active' })
       invalidateAfterElectionLifecycleChange(queryClient, 'schedule')
       closeCreateDialog()
     },
@@ -143,7 +148,7 @@ export function ElectionsPage() {
   const updateMutation = useMutation({
     mutationFn: (data: { id: number; values: Partial<ElectionForm> }) => updateElection(data.id, data.values),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['elections'], refetchType: 'active' })
+      void queryClient.invalidateQueries({ queryKey: ELECTIONS_QUERY_KEY, refetchType: 'active' })
       invalidateAfterElectionLifecycleChange(queryClient, 'schedule')
       closeCreateDialog()
     },
@@ -162,7 +167,7 @@ export function ElectionsPage() {
       }
     },
     onSuccess: (updated, variables) => {
-      queryClient.setQueryData<Election[]>(['elections'], (old) =>
+      queryClient.setQueryData<Election[]>(ELECTIONS_QUERY_KEY, (old) =>
         (old ?? []).map((election) =>
           election.id === updated.id ? updated : election,
         ),
@@ -171,7 +176,7 @@ export function ElectionsPage() {
     },
     onError: (error, variables) => {
       if (variables.action === 'archive') {
-        void queryClient.invalidateQueries({ queryKey: ['elections'] })
+        void queryClient.invalidateQueries({ queryKey: ELECTIONS_QUERY_KEY })
       }
       notifyApiError(error, 'election')
     },
@@ -181,7 +186,7 @@ export function ElectionsPage() {
     mutationFn: async ({ id, voting_start_at, voting_end_at }: { id: number; voting_start_at?: string; voting_end_at?: string }) =>
       startVotingElection(id, voting_start_at, voting_end_at),
     onSuccess: (updated) => {
-      queryClient.setQueryData<Election[]>(['elections'], (old) =>
+      queryClient.setQueryData<Election[]>(ELECTIONS_QUERY_KEY, (old) =>
         (old ?? []).map((election) =>
           election.id === updated.id ? updated : election,
         ),
@@ -194,9 +199,9 @@ export function ElectionsPage() {
   const deleteMutation = useMutation({
     mutationFn: deleteElection,
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['elections'] })
-      const previous = queryClient.getQueryData<Election[]>(['elections'])
-      queryClient.setQueryData<Election[]>(['elections'], (old) =>
+      await queryClient.cancelQueries({ queryKey: ELECTIONS_QUERY_KEY })
+      const previous = queryClient.getQueryData<Election[]>(ELECTIONS_QUERY_KEY)
+      queryClient.setQueryData<Election[]>(ELECTIONS_QUERY_KEY, (old) =>
         (old ?? []).filter((election) => election.id !== id),
       )
       setDeleteTarget(null)
@@ -208,7 +213,7 @@ export function ElectionsPage() {
     },
     onError: (error, _id, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(['elections'], context.previous)
+        queryClient.setQueryData(ELECTIONS_QUERY_KEY, context.previous)
       }
       notifyApiError(error, 'election')
     },

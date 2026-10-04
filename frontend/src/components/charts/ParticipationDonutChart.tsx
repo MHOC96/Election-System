@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Cell, Label, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import { ChartTooltip } from '@/components/charts/ChartTooltip'
-import { chartAnimation, participationSegmentColors } from '@/components/charts/chart-theme'
+import { participationSegmentColors } from '@/components/charts/chart-theme'
 
 interface ParticipationDonutChartProps {
   completed: number
@@ -136,8 +136,7 @@ export function ParticipationDonutChart({
               cornerRadius={5}
               stroke="hsl(var(--card))"
               strokeWidth={2}
-              animationDuration={chartAnimation.duration}
-              animationEasing={chartAnimation.easing}
+              isAnimationActive={false}
               onMouseEnter={(_, index) => setHoveredKey(chartData[index]?.key)}
               onMouseLeave={() => setHoveredKey(undefined)}
             >

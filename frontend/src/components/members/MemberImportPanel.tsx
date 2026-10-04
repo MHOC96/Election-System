@@ -16,6 +16,7 @@ import { Progress } from '@/components/ui/progress'
 import {
   downloadImportIssuesCsv,
   downloadMemberCsvTemplate,
+  MAX_MEMBER_IMPORT_FILE_BYTES,
   parseMemberCsvPreview,
   parseMemberXlsxPreview,
   type MemberImportPreviewResult,
@@ -109,6 +110,11 @@ export function MemberImportPanel({
 
       if (!isAcceptedFile(file)) {
         setFileError('Only CSV and XLSX files are supported.')
+        return
+      }
+
+      if (file.size > MAX_MEMBER_IMPORT_FILE_BYTES) {
+        setFileError('File exceeds the 5 MB limit.')
         return
       }
 

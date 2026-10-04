@@ -97,6 +97,14 @@ export function CandidateApplicationPage() {
   }, [user, refreshUser])
 
   useEffect(() => {
+    return () => {
+      if (croppedPreview?.startsWith('blob:')) {
+        URL.revokeObjectURL(croppedPreview)
+      }
+    }
+  }, [croppedPreview])
+
+  useEffect(() => {
     if (!selectedPosition) return
     reset(buildDefaultFormValues(user?.cpm_number ?? ''))
   }, [selectedPosition, user?.cpm_number, reset])

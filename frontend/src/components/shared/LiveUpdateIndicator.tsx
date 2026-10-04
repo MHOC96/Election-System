@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
+import { useDocumentVisible } from '@/lib/useDocumentVisible'
 
 interface LiveUpdateIndicatorProps {
   isActive?: boolean
@@ -25,12 +26,13 @@ export function LiveUpdateIndicator({
   className,
 }: LiveUpdateIndicatorProps) {
   const [, setTick] = useState(0)
+  const documentVisible = useDocumentVisible()
 
   useEffect(() => {
-    if (!updatedAt) return
+    if (!updatedAt || !documentVisible) return
     const id = window.setInterval(() => setTick((t) => t + 1), 1000)
     return () => window.clearInterval(id)
-  }, [updatedAt])
+  }, [updatedAt, documentVisible])
 
   if (!updatedAt) return null
 

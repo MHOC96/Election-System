@@ -28,12 +28,6 @@ class LoginSerializer(TokenObtainPairSerializer):
         )
 
         if user is None:
-            try:
-                db_user = User.objects.get(cpm_number=cpm_number)
-                if db_user.has_changed_password and db_user.mc_number == mc_number:
-                    raise AuthenticationFailed("You have changed your password. Please use your updated password.")
-            except User.DoesNotExist:
-                pass
             raise AuthenticationFailed("Invalid CPM Number or Password.")
             
         if not user.is_active:

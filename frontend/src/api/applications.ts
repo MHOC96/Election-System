@@ -7,7 +7,6 @@ export interface CandidateApplication {
   election_name: string
   member: number
   member_cpm: string
-  member_mc: string
   member_academic_year: string | null
   position: number
   position_name: string

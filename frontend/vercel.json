@@ -36,7 +36,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
+          "value": "no-cache, must-revalidate"
         }
       ]
     },
@@ -45,7 +45,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
+          "value": "no-cache, must-revalidate"
         }
       ]
     },
@@ -54,12 +54,30 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
+          "value": "no-cache, must-revalidate"
         }
       ]
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api/|assets/|robots\\.txt|sitemap\\.xml|manifest\\.json|favicon\\.svg|icons\\.svg).*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/((?!api/).*)",
       "headers": [
         {
           "key": "X-Frame-Options",

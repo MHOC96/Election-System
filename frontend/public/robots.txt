@@ -3,4 +3,4 @@ Allow: /login
 Disallow: /admin
 Disallow: /admin/
 
-Sitemap: /sitemap.xml
+Sitemap: https://election-systems.vercel.app/sitemap.xml

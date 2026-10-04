@@ -245,7 +245,7 @@ export function MemberApplicationStatusPage() {
     isError: electionError,
     refetch: refetchElection,
     isFetching: fetchingElection,
-  } = useOngoingElection()
+  } = useOngoingElection({ poll: false })
 
   const {
     data: myApplications,
@@ -261,7 +261,8 @@ export function MemberApplicationStatusPage() {
       if (!documentVisible) return false
       const apps = query.state.data
       const current = apps?.find((app) => app.election === election?.id)
-      return current?.status === 'PENDING_REVIEW' ? 10_000 : 30_000
+      if (current?.status !== 'PENDING_REVIEW') return false
+      return 10_000
     },
     refetchIntervalInBackground: false,
     enabled: !!election,

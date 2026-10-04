@@ -65,16 +65,34 @@ export default async function proxy(request) {
   for (const key of HOP_BY_HOP) {
     headers.delete(key)
   }
-  // Ask Railway for an uncompressed body so the proxy can forward it safely.
-  headers.set('accept-encoding', 'identity')
 
   const hasBody = request.method !== 'GET' && request.method !== 'HEAD'
-  const upstream = await fetch(targetUrl, {
-    method: request.method,
-    headers,
-    body: hasBody ? request.body : undefined,
-    ...(hasBody ? { duplex: 'half' } : {}),
-  })
+  let upstream
+  try {
+    upstream = await fetch(targetUrl, {
+      method: request.method,
+      headers,
+      body: hasBody ? request.body : undefined,
+      ...(hasBody ? { duplex: 'half' } : {}),
+      signal: AbortSignal.timeout(25_000),
+    })
+  } catch (fetchError) {
+    const timedOut =
+      fetchError instanceof Error &&
+      (fetchError.name === 'TimeoutError' || fetchError.name === 'AbortError')
+    return Response.json(
+      {
+        success: false,
+        error: {
+          code: timedOut ? 'gateway_timeout' : 'upstream_unreachable',
+          message: timedOut
+            ? 'The election API took too long to respond.'
+            : 'Could not reach the election API.',
+        },
+      },
+      { status: timedOut ? 504 : 502 },
+    )
+  }
 
   return new Response(upstream.body, {
     status: upstream.status,

@@ -120,7 +120,15 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
+type AuthRetryConfig = InternalAxiosRequestConfig & { _authRetry?: boolean }
+
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  const method = (config.method ?? 'get').toLowerCase()
+  if (method === 'get' || method === 'head') {
+    config.headers.set('Cache-Control', 'no-cache')
+    config.headers.set('Pragma', 'no-cache')
+  }
+
   const token = getAccessToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
@@ -131,7 +139,7 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<ApiFailure>) => {
-    const original = error.config
+    const original = error.config as AuthRetryConfig | undefined
     if (!original || error.response?.status !== 401) {
       return Promise.reject(error)
     }
@@ -141,6 +149,20 @@ api.interceptors.response.use(
     }
 
     if (original.url?.includes('/auth/login') || original.url?.includes('/auth/refresh')) {
+      return Promise.reject(error)
+    }
+
+    if (original._authRetry) {
+      if (!isLoginGracePeriod()) {
+        clearAuth()
+        dispatchAuthSessionExpired()
+      }
+      return Promise.reject(error)
+    }
+
+    const method = (original.method ?? 'get').toLowerCase()
+    const safeToRetry = method === 'get' || method === 'head' || method === 'options'
+    if (!safeToRetry) {
       return Promise.reject(error)
     }
 
@@ -162,6 +184,7 @@ api.interceptors.response.use(
       return Promise.reject(error)
     }
 
+    original._authRetry = true
     original.headers.Authorization = `Bearer ${newToken}`
     return api(original)
   },
@@ -223,11 +246,25 @@ export async function downloadReport(
     responseType: 'blob',
   })
 
+  const blob = response.data as Blob
+  const contentType = (response.headers['content-type'] as string | undefined)?.split(';')[0]?.trim()
+  if (contentType?.includes('application/json')) {
+    const text = await blob.text()
+    let message = 'Report download failed.'
+    try {
+      const parsed = JSON.parse(text) as ApiFailure
+      message = parsed.error?.message ?? message
+    } catch {
+      /* non-JSON error body */
+    }
+    throw new Error(message)
+  }
+
   const disposition = response.headers['content-disposition'] as string | undefined
   const match = disposition?.match(/filename="?([^"]+)"?/)
   const filename = match?.[1] ?? `${type}-report.${format}`
 
-  const url = window.URL.createObjectURL(new Blob([response.data]))
+  const url = window.URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
   link.download = filename

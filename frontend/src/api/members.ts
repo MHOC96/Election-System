@@ -36,10 +36,33 @@ export async function fetchMemberImportJob(jobId: number) {
   return apiGet<MemberImportJobState>(`/members/import/${jobId}/`)
 }
 
-async function pollMemberImportJob(jobId: number): Promise<MemberImportResult> {
+function abortableDelay(ms: number, signal?: AbortSignal): Promise<void> {
+  if (signal?.aborted) {
+    return Promise.reject(new DOMException('Import cancelled', 'AbortError'))
+  }
+  return new Promise((resolve, reject) => {
+    const timeoutId = window.setTimeout(resolve, ms)
+    signal?.addEventListener(
+      'abort',
+      () => {
+        window.clearTimeout(timeoutId)
+        reject(new DOMException('Import cancelled', 'AbortError'))
+      },
+      { once: true },
+    )
+  })
+}
+
+async function pollMemberImportJob(
+  jobId: number,
+  signal?: AbortSignal,
+): Promise<MemberImportResult> {
   const started = Date.now()
 
   while (Date.now() - started < IMPORT_POLL_TIMEOUT_MS) {
+    if (signal?.aborted) {
+      throw new DOMException('Import cancelled', 'AbortError')
+    }
     const job = await fetchMemberImportJob(jobId)
     if (job.status === 'COMPLETED' && job.result) {
       return job.result
@@ -47,13 +70,17 @@ async function pollMemberImportJob(jobId: number): Promise<MemberImportResult> {
     if (job.status === 'FAILED') {
       throw new Error(job.error_message ?? 'Import failed.')
     }
-    await new Promise((resolve) => window.setTimeout(resolve, IMPORT_POLL_INTERVAL_MS))
+    await abortableDelay(IMPORT_POLL_INTERVAL_MS, signal)
   }
 
   throw new Error('Import is taking longer than expected. Refresh the page and check members shortly.')
 }
 
-export async function importMembers(file: File, academicYear: string): Promise<MemberImportResult> {
+export async function importMembers(
+  file: File,
+  academicYear: string,
+  signal?: AbortSignal,
+): Promise<MemberImportResult> {
   const formData = new FormData()
   formData.append('file', file)
   formData.append('academic_year', academicYear)
@@ -69,7 +96,7 @@ export async function importMembers(file: File, academicYear: string): Promise<M
 
   const payload = unwrapImportResponse(data)
   if (status === 202 && isAsyncImportStart(payload)) {
-    return pollMemberImportJob(payload.job_id)
+    return pollMemberImportJob(payload.job_id, signal)
   }
 
   return payload as MemberImportResult

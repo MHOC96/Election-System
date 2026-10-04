@@ -116,6 +116,10 @@ export function PublishedResultsPage() {
                         <img
                           src={optimizeCloudinaryUrl(winner.photo_url, 96)}
                           alt=""
+                          width={80}
+                          height={80}
+                          loading="lazy"
+                          decoding="async"
                           className="h-16 w-16 shrink-0 rounded-2xl border-2 border-portal-surface object-cover shadow-portal sm:h-20 sm:w-20"
                         />
                         <div className="min-w-0 flex-1">

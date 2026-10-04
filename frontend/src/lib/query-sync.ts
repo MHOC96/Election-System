@@ -37,7 +37,8 @@ export const POSITIONS_QUERY_KEY = ['positions'] as const
 
 export const CANDIDATES_QUERY_KEY = ['candidates'] as const
 
-export const ELECTIONS_QUERY_KEY = ['elections'] as const
+/** Admin elections list — distinct from `['elections','ongoing']` and published-results keys. */
+export const ELECTIONS_QUERY_KEY = ['elections', 'list'] as const
 
 export const APPLICATIONS_QUERY_KEY = ['applications'] as const
 
@@ -172,13 +173,7 @@ export function invalidateAfterElectionLifecycleChange(
 export function invalidateCandidateSurfaces(queryClient: QueryClient) {
   invalidateAndRefetch(queryClient, CANDIDATES_QUERY_KEY)
   markQueriesStale(queryClient, CANDIDATES_MODIFICATION_STATUS_QUERY_KEY)
-
-  const phase = queryClient.getQueryData<{ current_phase?: string }>(ONGOING_ELECTION_QUERY_KEY)
-    ?.current_phase
-  if (phase === 'VOTING_OPEN') {
-    invalidateAndRefetch(queryClient, BALLOT_QUERY_KEY)
-  }
-
+  invalidateAndRefetch(queryClient, BALLOT_QUERY_KEY)
   refreshDashboard(queryClient)
 }
 

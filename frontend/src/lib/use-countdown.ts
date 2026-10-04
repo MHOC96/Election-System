@@ -18,6 +18,7 @@ function syncTarget(targetIso: string) {
 }
 
 function tickAll() {
+  if (typeof document !== 'undefined' && document.hidden) return
   for (const targetIso of targetSubscribers.keys()) {
     syncTarget(targetIso)
     targetSubscribers.get(targetIso)?.forEach((listener) => listener())

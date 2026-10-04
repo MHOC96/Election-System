@@ -275,16 +275,31 @@ export function downloadMemberCsvTemplate() {
   URL.revokeObjectURL(url)
 }
 
+/** Max size aligned with backend member import limits. */
+export const MAX_MEMBER_IMPORT_FILE_BYTES = 5 * 1024 * 1024
+
+function csvCell(value: string | number | null | undefined): string {
+  const raw = String(value ?? '')
+  const escaped = raw.replace(/"/g, '""')
+  const needsFormulaGuard = /^[=+\-@\t\r]/.test(raw)
+  const body = needsFormulaGuard ? `'${escaped}` : escaped
+  return `"${body}"`
+}
+
 export function downloadImportIssuesCsv(
   failed: MemberImportResult['failed_rows'],
   duplicates: MemberImportResult['duplicates'],
 ) {
   const lines = ['Row,CPM Number,Type,Reason']
   for (const row of failed) {
-    lines.push(`${row.row},"${row.cpm_number ?? ''}",Failed,"${row.reason.replace(/"/g, '""')}"`)
+    lines.push(
+      [row.row, csvCell(row.cpm_number ?? ''), 'Failed', csvCell(row.reason)].join(','),
+    )
   }
   for (const row of duplicates) {
-    lines.push(`${row.row},"${row.cpm_number}",Duplicate,"${row.reason.replace(/"/g, '""')}"`)
+    lines.push(
+      [row.row, csvCell(row.cpm_number), 'Duplicate', csvCell(row.reason)].join(','),
+    )
   }
   const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' })
   const url = URL.createObjectURL(blob)

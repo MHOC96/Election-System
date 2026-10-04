@@ -59,7 +59,7 @@ export function ReportsPage() {
       }
       return getDefaultReportElection(archivedElections)?.id ?? null
     })
-  }, [archivedElections, reportsAvailable])
+  }, [statusQuery.dataUpdatedAt, reportsAvailable])
 
   const selectedElection =
     archivedElections.find((election) => election.id === selectedElectionId) ??

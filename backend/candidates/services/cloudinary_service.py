@@ -1,4 +1,5 @@
 import re
+from urllib.parse import urlparse
 
 import cloudinary
 import cloudinary.uploader
@@ -34,6 +35,31 @@ def configure_cloudinary():
         api_secret=settings.CLOUDINARY_API_SECRET,
         secure=True,
     )
+
+
+def validate_cloudinary_delivery_url(value: str) -> str:
+    """Reject substring-trick URLs; require HTTPS delivery on res.cloudinary.com."""
+    if not value or not str(value).strip():
+        return value
+
+    parsed = urlparse(str(value).strip())
+    if parsed.scheme != "https":
+        raise ValueError("URL must use HTTPS.")
+    if parsed.hostname != "res.cloudinary.com":
+        raise ValueError("URL must be hosted on res.cloudinary.com.")
+    if parsed.username or parsed.password or parsed.port not in (None, 443):
+        raise ValueError("Invalid Cloudinary URL.")
+    path = parsed.path or ""
+    if "/upload/" not in path and "/raw/upload/" not in path:
+        raise ValueError("Invalid Cloudinary asset path.")
+
+    expected_cloud = (settings.CLOUDINARY_CLOUD_NAME or "").strip()
+    if expected_cloud:
+        prefix = f"/{expected_cloud}/"
+        if not path.startswith(prefix):
+            raise ValueError("Cloudinary URL does not match this deployment's cloud name.")
+
+    return str(value).strip()
 
 
 def validate_image_file(uploaded_file) -> None:

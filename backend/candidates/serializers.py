@@ -41,20 +41,22 @@ class CandidateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_photo_url(self, value):
-        if not value.startswith("https://"):
-            raise serializers.ValidationError("Photo URL must use HTTPS.")
-        if "res.cloudinary.com" not in value:
-            raise serializers.ValidationError("Photo URL must be a Cloudinary URL.")
-        return value
+        from candidates.services.cloudinary_service import validate_cloudinary_delivery_url
+
+        try:
+            return validate_cloudinary_delivery_url(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
 
     def validate_declaration_file(self, value):
         if not value:
             return value
-        if not value.startswith("https://"):
-            raise serializers.ValidationError("Declaration file URL must use HTTPS.")
-        if "res.cloudinary.com" not in value:
-            raise serializers.ValidationError("Declaration file URL must be a Cloudinary URL.")
-        return value
+        from candidates.services.cloudinary_service import validate_cloudinary_delivery_url
+
+        try:
+            return validate_cloudinary_delivery_url(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
 
     def validate(self, attrs):
         is_create = self.instance is None
@@ -109,7 +111,6 @@ from candidates.models import CandidateApplication, ApplicationStatus
 class CandidateApplicationSerializer(serializers.ModelSerializer):
     position_name = serializers.CharField(source="position.name", read_only=True)
     member_cpm = serializers.CharField(source="member.cpm_number", read_only=True)
-    member_mc = serializers.CharField(source="member.mc_number", read_only=True)
     member_academic_year = serializers.CharField(source="member.academic_year", read_only=True)
     election_name = serializers.CharField(source="election.name", read_only=True)
 
@@ -121,7 +122,6 @@ class CandidateApplicationSerializer(serializers.ModelSerializer):
             "election_name",
             "member",
             "member_cpm",
-            "member_mc",
             "member_academic_year",
             "position",
             "position_name",
@@ -136,7 +136,7 @@ class CandidateApplicationSerializer(serializers.ModelSerializer):
             "approved_at",
             "approved_by",
         )
-        read_only_fields = ("id", "election", "member", "status", "rejection_reason", "submitted_at", "approved_at", "approved_by", "position_name", "member_cpm", "member_mc", "member_academic_year", "election_name")
+        read_only_fields = ("id", "election", "member", "status", "rejection_reason", "submitted_at", "approved_at", "approved_by", "position_name", "member_cpm", "member_academic_year", "election_name")
 
     def validate_full_name(self, value):
         name = value.strip()
@@ -145,18 +145,20 @@ class CandidateApplicationSerializer(serializers.ModelSerializer):
         return name
         
     def validate_photo_url(self, value):
-        if not value.startswith("https://"):
-            raise serializers.ValidationError("Photo URL must use HTTPS.")
-        if "res.cloudinary.com" not in value:
-            raise serializers.ValidationError("Photo URL must be a Cloudinary URL.")
-        return value
-        
+        from candidates.services.cloudinary_service import validate_cloudinary_delivery_url
+
+        try:
+            return validate_cloudinary_delivery_url(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
+
     def validate_declaration_file(self, value):
-        if not value.startswith("https://"):
-            raise serializers.ValidationError("Declaration file URL must use HTTPS.")
-        if "res.cloudinary.com" not in value:
-            raise serializers.ValidationError("Declaration file URL must be a Cloudinary URL.")
-        return value
+        from candidates.services.cloudinary_service import validate_cloudinary_delivery_url
+
+        try:
+            return validate_cloudinary_delivery_url(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
 
 
 class ApplicationReviewSerializer(serializers.Serializer):
